@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 export async function userRoutes(app: FastifyInstance) {
 	app.get(
 		"/",
+		// @ts-ignore ignore typescript complaints
 		{ preHandler: [app.authenticate] },
 		(req: FastifyRequest, reply: FastifyReply) => {
 			reply.send({ message: "/ route hit" });
@@ -40,8 +41,10 @@ export async function userRoutes(app: FastifyInstance) {
 		login,
 	);
 
+	// @ts-ignore ignore typescript complaints
 	app.delete("/logout", { preHandler: [app.authenticate] }, logout);
 
+	// @ts-ignore ignore typescript complaints
 	app.get("/getUsers", { preHandler: [app.authenticate] }, getUsers);
 
 	app.log.info("User routes registered.");

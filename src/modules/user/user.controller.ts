@@ -66,6 +66,7 @@ export async function login(
 		name: user.name,
 	};
 
+	// @ts-ignore ignore typescript complaints
 	const token = req.jwt.sign(payload);
 
 	reply.setCookie("access_token", token, {
