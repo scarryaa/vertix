@@ -6,8 +6,11 @@ settings:
 
 dependencies:
   '@prisma/client':
-    specifier: 4.4.0
-    version: 4.4.0
+    specifier: ^5.6.0
+    version: 5.12.0
+  typescript:
+    specifier: ^5.4.3
+    version: 5.4.3
 
 devDependencies:
   '@types/node':
@@ -15,10 +18,7 @@ devDependencies:
     version: 16.18.93
   ts-node:
     specifier: ^10.2.1
-    version: 10.9.2(@types/node@16.18.93)(typescript@4.9.5)
-  typescript:
-    specifier: ^4.4.3
-    version: 4.9.5
+    version: 10.9.2(@types/node@16.18.93)(typescript@5.4.3)
 
 packages:
 
@@ -45,21 +45,15 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
 
-  /@prisma/client@4.4.0:
-    resolution: {integrity: sha512-ciKOP246x1xwr04G9ajHlJ4pkmtu9Q6esVyqVBO0QJihaKQIUvbPjClp17IsRJyxqNpFm4ScbOc/s9DUzKHINQ==}
-    engines: {node: '>=14.17'}
+  /@prisma/client@5.12.0:
+    resolution: {integrity: sha512-bk/+KPpRm0+IzqFCtAxrj+/TNiHzulspnO+OkysaYY/atc/eX0Gx8V3tTLxbHKVX0LKD4Hi8KKCcSbU1U72n7Q==}
+    engines: {node: '>=16.13'}
     requiresBuild: true
     peerDependencies:
       prisma: '*'
     peerDependenciesMeta:
       prisma:
         optional: true
-    dependencies:
-      '@prisma/engines-version': 4.4.0-66.f352a33b70356f46311da8b00d83386dd9f145d6
-    dev: false
-
-  /@prisma/engines-version@4.4.0-66.f352a33b70356f46311da8b00d83386dd9f145d6:
-    resolution: {integrity: sha512-P5v/PuEIJLYXZUZBvOLPqoyCW+m6StNqHdiR6te++gYVODpPdLakks5HVx3JaZIY+LwR02juJWFlwpc9Eog/ug==}
     dev: false
 
   /@tsconfig/node10@1.0.11:
@@ -110,7 +104,7 @@ packages:
     resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}
     dev: true
 
-  /ts-node@10.9.2(@types/node@16.18.93)(typescript@4.9.5):
+  /ts-node@10.9.2(@types/node@16.18.93)(typescript@5.4.3):
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
     peerDependencies:
@@ -136,16 +130,15 @@ packages:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-      typescript: 4.9.5
+      typescript: 5.4.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
     dev: true
 
-  /typescript@4.9.5:
-    resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
-    engines: {node: '>=4.2.0'}
+  /typescript@5.4.3:
+    resolution: {integrity: sha512-KrPd3PKaCLr78MalgiwJnA25Nm8HAmdwN3mYUYZgG/wizIo9EainNVQI9/yDavtVFRN2h3k8uf3GLHuhDMgEHg==}
+    engines: {node: '>=14.17'}
     hasBin: true
-    dev: true
 
   /v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
