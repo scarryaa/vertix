@@ -7,18 +7,17 @@
     "start": "ts-node src/index.ts"
   },
   "keywords": [
-    "prisma",
-    "nixos prisma",
-    "nixos"
+    "vertix",
+    "codestash"
   ],
   "author": "scarryaa",
   "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^5.6.0",
-    "typescript": "^5.4.3"
+    "@prisma/client": "^5.6.0"
   },
   "devDependencies": {
     "@types/node": "^16.10.1",
-    "ts-node": "^10.2.1"
+    "ts-node": "^10.2.1",
+    "typescript": "^5.4.3"
   }
 }
