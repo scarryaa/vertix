@@ -11,7 +11,7 @@
         nativeBuildInputs = [ pkgs.bashInteractive ];
         buildInputs = with pkgs; [
           nodePackages.prisma
-          nodePackages.npm
+          nodePackages.pnpm
           nodejs-slim
         ];
         shellHook = with pkgs; ''
