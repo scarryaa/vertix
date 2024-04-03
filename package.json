@@ -1,10 +1,10 @@
 {
-  "name": "prisma-example",
-  "version": "1.0.0",
-  "description": "An example prisma on nixos",
+  "name": "vertix",
+  "version": "0.0.1",
+  "description": "Vertix server implementation for Codestash",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node index.ts"
+    "start": "ts-node src/index.ts"
   },
   "keywords": [
     "prisma",
