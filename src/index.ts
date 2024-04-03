@@ -10,11 +10,19 @@ import fastify, {
 import { userRoutes } from "./modules/user/user.route";
 import { userSchemas } from "./modules/user/user.schema";
 
-class MyApp {
+type ServerConfig = {
+	port: number;
+	host: string;
+}
+
+class VortexServer {
+	private config: ServerConfig;
 	app: FastifyInstance;
 
-	constructor() {
+	constructor(config: ServerConfig) {
+		this.config = config;
 		this.app = fastify();
+
 		this.setup();
 	}
 
@@ -73,13 +81,13 @@ class MyApp {
 
 	async start() {
 		await this.app.listen({
-			port: 3000,
-			host: "localhost",
+			port: this.config.port,
+			host: this.config.host,
 		});
 
-		console.log(`Server listening on port ${3000}`);
+		console.log(`Server listening on port ${this.config.port}`);
 	}
 }
 
-const myApp = new MyApp();
-myApp.start();
+const server = new VortexServer({ port: 3000, host: "localhost" });
+server.start();
