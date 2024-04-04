@@ -7,13 +7,17 @@ import fastify, {
 	type FastifyReply,
 	type FastifyRequest,
 } from "fastify";
-import { userRoutes } from "./modules/user/user.route";
+import { buildJsonSchemas, register } from "fastify-zod";
+import type { CustomRequest } from "../types/request";
+import { repositoryRoutes } from "./modules/repository/repository.routes";
+import { repositorySchemas } from "./modules/repository/repository.schema";
+import { userRoutes } from "./modules/user/user.routes";
 import { userSchemas } from "./modules/user/user.schema";
 
 type ServerConfig = {
 	port: number;
 	host: string;
-}
+};
 
 class VortexServer {
 	private config: ServerConfig;
@@ -27,16 +31,16 @@ class VortexServer {
 	}
 
 	async setup() {
-		this.app.get("/health_check", (req, res) => {
+		this.app.get("/health_check", (req: CustomRequest, res) => {
 			res.send({ message: "Success" });
 		});
 
 		this.app.register(userRoutes, { prefix: "/api/users" });
+		this.app.register(repositoryRoutes, { prefix: "/api/repositories" });
 
 		// add jwt, cookie
 		this.app.register(fjwt, { secret: env.JWT_SECRET ?? "" });
 		this.app.addHook("preHandler", (req, res, next) => {
-			// @ts-ignore
 			req.jwt = this.app.jwt;
 			return next();
 		});
@@ -66,6 +70,10 @@ class VortexServer {
 
 		// add schemas
 		for (const schema of userSchemas) {
+			this.app.addSchema(schema);
+		}
+
+		for (const schema of repositorySchemas) {
 			this.app.addSchema(schema);
 		}
 

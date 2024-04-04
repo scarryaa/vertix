@@ -1,6 +1,18 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import * as bcrypt from 'bcrypt';
-import type { FastifyReply, FastifyRequest } from "fastify";
+import {
+	mockBcrypt,
+	mockPrisma,
+	mockReply,
+	mockRequest,
+} from "./__mocks__/mocks";
+
+jest.mock("@prisma/client", () => ({
+	PrismaClient: jest.fn(() => mockPrisma),
+}));
+
+jest.mock("bcrypt", () => mockBcrypt);
+
+import { PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcrypt";
 import {
 	createUser,
 	getUsers,
@@ -8,50 +20,11 @@ import {
 	logout,
 } from "../src/modules/user/user.controller";
 
-// Mock FastifyRequest and FastifyReply objects
-const mockRequest = {
-	jwt: {
-		sign: jest.fn(() => "mocked-token"),
-	},
-} as unknown as FastifyRequest;
-const mockReply = {
-	code: jest.fn().mockReturnThis(),
-	send: jest.fn(),
-	setCookie: jest.fn(),
-	clearCookie: jest.fn(),
-} as unknown as FastifyReply;
-
-// Mock PrismaClient and bcrypt
-jest.mock("@prisma/client", () => {
-	const mockPrisma = {
-		user: {
-			findMany: jest.fn(),
-			create: jest.fn(() => ({
-				id: "mocked-user-id",
-				email: "test@example.com",
-				name: "Test User",
-				username: "testuser",
-			})),
-			findUnique: jest.fn(),
-			findFirst: jest.fn(),
-		},
-	};
-
-	return {
-		PrismaClient: jest.fn(() => mockPrisma),
-	};
-});
-
-jest.mock("bcrypt", () => ({
-	hash: jest.fn(() => "hashed-password"),
-	compare: jest.fn(),
-}));
-
 describe("User Functions", () => {
 	afterEach(() => {
-	  jest.clearAllMocks();
+		jest.clearAllMocks();
 	});
-  
+
 	const prisma = new PrismaClient();
 
 	test("createUser - successful", async () => {
@@ -128,72 +101,72 @@ describe("User Functions", () => {
 			message: "Internal Server Error",
 		});
 	});
-  
+
 	test("login - successful", async () => {
-	  const mockBody = {
-		email: "test@example.com",
-		password: "password123",
-	  };
-  
-	  // Mock PrismaClient.findUnique() to return a user object
-	  (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
-		id: "mocked-user-id",
-		email: "test@example.com",
-		name: "Test User",
-		password: "hashed-password",
-	  });
-  
-	  // Mock bcrypt.compare() to return true
-	  (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
-  
-	  (mockRequest as any).body = mockBody;
-  
-	  await login(mockRequest as any, mockReply);
-  
-	  expect(mockRequest.jwt.sign).toHaveBeenCalledTimes(1);
-	  expect(mockReply.setCookie).toHaveBeenCalledWith(
-		"access_token",
-		expect.any(String),
-		{ path: "/", httpOnly: true, secure: true }
-	  );
-	  expect(mockReply.send).toHaveBeenCalledWith({
-		message: "Login successful.",
-	  });
+		const mockBody = {
+			email: "test@example.com",
+			password: "password123",
+		};
+
+		// Mock PrismaClient.findUnique() to return a user object
+		(prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
+			id: "mocked-user-id",
+			email: "test@example.com",
+			name: "Test User",
+			password: "hashed-password",
+		});
+
+		// Mock bcrypt.compare() to return true
+		(bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+
+		(mockRequest as any).body = mockBody;
+
+		await login(mockRequest as any, mockReply);
+
+		expect(mockRequest.jwt.sign).toHaveBeenCalledTimes(1);
+		expect(mockReply.setCookie).toHaveBeenCalledWith(
+			"access_token",
+			expect.any(String),
+			{ path: "/", httpOnly: true, secure: true },
+		);
+		expect(mockReply.send).toHaveBeenCalledWith({
+			message: "Login successful.",
+		});
 	});
-  
+
 	test("login - invalid credentials", async () => {
-	  const mockBody = {
-		email: "test@example.com",
-		password: "wrongpassword",
-	  };
-  
-	  // Mock PrismaClient.findUnique() to return a user object
-	  (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
-		id: "mocked-user-id",
-		email: "test@example.com",
-		name: "Test User",
-		password: "hashed-password",
-	  });
-  
-	  // Mock bcrypt.compare() to return false
-	  (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
-  
-	  (mockRequest as any).body = mockBody;
-  
-	  await login(mockRequest as any, mockReply);
-  
-	  expect(mockReply.code).toHaveBeenCalledWith(401);
-	  expect(mockReply.send).toHaveBeenCalledWith({
-		message: "Invalid email or password.",
-	  });
+		const mockBody = {
+			email: "test@example.com",
+			password: "wrongpassword",
+		};
+
+		// Mock PrismaClient.findUnique() to return a user object
+		(prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
+			id: "mocked-user-id",
+			email: "test@example.com",
+			name: "Test User",
+			password: "hashed-password",
+		});
+
+		// Mock bcrypt.compare() to return false
+		(bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
+
+		(mockRequest as any).body = mockBody;
+
+		await login(mockRequest as any, mockReply);
+
+		expect(mockReply.code).toHaveBeenCalledWith(401);
+		expect(mockReply.send).toHaveBeenCalledWith({
+			message: "Invalid email or password.",
+		});
 	});
-  
+
 	test("logout", async () => {
-	  await logout(mockRequest as any, mockReply);
-  
-	  expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token");
-	  expect(mockReply.send).toHaveBeenCalledWith({
-		message: "Logout successful.",
-	  });
+		await logout(mockRequest as any, mockReply);
+
+		expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token");
+		expect(mockReply.send).toHaveBeenCalledWith({
+			message: "Logout successful.",
+		});
 	});
-  });
+});

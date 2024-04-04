@@ -1,17 +1,14 @@
-import { PrismaClient } from "@prisma/client";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { CustomInstance, UserRoutesOptions } from "../../../types/request";
 import { createUser, getUsers, login, logout } from "./user.controller";
 import { $ref } from "./user.schema";
 
-const prisma = new PrismaClient();
-
-export async function userRoutes(app: FastifyInstance) {
+export const userRoutes: UserRoutesOptions = async function userRoutes(app: CustomInstance) {
 	app.get(
 		"/",
-		// @ts-ignore ignore typescript complaints
 		{ preHandler: [app.authenticate] },
 		(req: FastifyRequest, reply: FastifyReply) => {
-			reply.send({ message: "/ route hit" });
+			reply.send({ message: "This is the default route for the 'users' endpoint." });
 		},
 	);
 
@@ -41,10 +38,8 @@ export async function userRoutes(app: FastifyInstance) {
 		login,
 	);
 
-	// @ts-ignore ignore typescript complaints
 	app.delete("/logout", { preHandler: [app.authenticate] }, logout);
 
-	// @ts-ignore ignore typescript complaints
 	app.get("/getUsers", { preHandler: [app.authenticate] }, getUsers);
 
 	app.log.info("User routes registered.");

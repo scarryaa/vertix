@@ -4,7 +4,8 @@
   "description": "Vertix server implementation for Codestash",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "test": "pnpm jest"
   },
   "keywords": [
     "vertix",
