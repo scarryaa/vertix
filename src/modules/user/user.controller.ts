@@ -1,18 +1,15 @@
 import assert from "node:assert";
 import fjwt from "@fastify/jwt";
+import rateLimit from "@fastify/rate-limit";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import errorHandler from "../../middleware/error-handler";
 import type { LoginUserInput, UserInput } from "./user.schema";
 
 const prisma = new PrismaClient();
 
 const SALT_ROUNDS = Number.parseInt(process.env.SALT_ROUNDS || "10", 10);
-
-async function errorHandler(error: unknown, reply: FastifyReply) {
-    console.error(error);
-    reply.status(500).send({ message: "Internal Server Error" });
-}
 
 export async function createUser(
     req: FastifyRequest<{ Body: UserInput }>,
@@ -46,7 +43,7 @@ export async function createUser(
 
         return reply.status(201).send(newUser);
     } catch (error) {
-        return errorHandler(error, reply);
+        return errorHandler(error, req, reply);
     }
 }
 
@@ -65,7 +62,6 @@ export async function login(
 
         const payload = { id: user.id, email: user.email, name: user.name };
         const token = await reply.jwtSign(payload);
-        console.log(token);
 
         reply.setCookie("access_token", token, {
             path: "/",
@@ -76,7 +72,7 @@ export async function login(
 
         return reply.send({ message: "Login successful." });
     } catch (error) {
-        return errorHandler(error, reply);
+        return errorHandler(error, req, reply);
     }
 }
 
@@ -109,7 +105,7 @@ export async function getAllUsers(req: FastifyRequest, reply: FastifyReply) {
 
         return reply.status(200).send(usersWithEmail);
     } catch (error) {
-        return errorHandler(error, reply);
+        return errorHandler(error, req, reply);
     }
 }
 
@@ -124,7 +120,7 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
 
         return reply.send({ message: "Logout successful." });
     } catch (error) {
-        return errorHandler(error, reply);
+        return errorHandler(error, req, reply);
     }
 }
 
@@ -133,4 +129,6 @@ export default async function userRoutes(fastify: FastifyInstance, _opts: any) {
     fastify.post("/login", login);
     fastify.get("/users", getAllUsers);
     fastify.post("/logout", logout);
+
+    fastify.setErrorHandler(errorHandler);
 }

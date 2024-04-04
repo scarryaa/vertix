@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { CustomInstance, UserRoutesOptions } from "../../../types/request";
+import errorHandler from "../../middleware/error-handler";
 import { createUser, getAllUsers, login, logout } from "./user.controller";
 import { $ref } from "./user.schema";
 

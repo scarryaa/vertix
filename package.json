@@ -13,15 +13,13 @@
     "vertix",
     "codestash"
   ],
-  "jest": {
-    "preset": "ts-jest"
-  },
   "author": "scarryaa",
   "license": "MIT",
   "dependencies": {
     "@fastify/cookie": "^9.3.1",
     "@fastify/env": "^4.3.0",
     "@fastify/jwt": "^8.0.0",
+    "@fastify/rate-limit": "^9.1.0",
     "@prisma/client": "^5.6.0",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
@@ -33,7 +31,9 @@
     "@types/bcrypt": "^5.0.2",
     "@types/jest": "^29.5.12",
     "@types/node": "^16.18.94",
+    "@types/node-fetch": "^2.6.11",
     "jest": "^29.7.0",
+    "node-fetch": "^2.7.0",
     "prisma": "^5.6.0",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.2.1",

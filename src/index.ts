@@ -2,13 +2,14 @@ import assert from "node:assert";
 import { env } from "node:process";
 import fCookie from "@fastify/cookie";
 import fjwt, { type FastifyJWT } from "@fastify/jwt";
+import rateLimit from '@fastify/rate-limit'
 import fastify, {
 	type FastifyInstance,
 	type FastifyReply,
 	type FastifyRequest,
 } from "fastify";
-import { buildJsonSchemas, register } from "fastify-zod";
 import type { CustomRequest } from "../types/request";
+import errorHandler from "./middleware/error-handler";
 import { repositoryRoutes } from "./modules/repository/repository.routes";
 import { repositorySchemas } from "./modules/repository/repository.schema";
 import { userRoutes } from "./modules/user/user.routes";
@@ -37,6 +38,14 @@ class VortexServer {
 
 		this.app.register(userRoutes, { prefix: "/api/users" });
 		this.app.register(repositoryRoutes, { prefix: "/api/repositories" });
+
+		// add rate limiting, global error handler
+		this.app.setErrorHandler(errorHandler);
+		this.app.register(rateLimit, {
+			max: 100,
+			timeWindow: "1 minute",
+			keyGenerator: (req) => req.ip
+		})
 
 		// add jwt, cookie
 		assert(process.env.JWT_SECRET, "JWT_SECRET missing")

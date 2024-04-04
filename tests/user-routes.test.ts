@@ -88,9 +88,9 @@ describe("User Functions", () => {
 		};
 
 		// Mock PrismaClient.create() to throw an error
-		(prisma.user.create as jest.Mock).mockRejectedValueOnce(
-			new Error("Mock error"),
-		);
+		(prisma.user.create as jest.Mock).mockImplementationOnce(() => {
+			throw new Error("Mock error");
+		});
 
 		(mockRequest as any).body = mockBody;
 
@@ -164,7 +164,7 @@ describe("User Functions", () => {
 	test("logout", async () => {
 		await logout(mockRequest as any, mockReply);
 
-		expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token", {"httpOnly": true, "path": "/", "sameSite": "strict", "secure": false});
+		expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token", { "httpOnly": true, "path": "/", "sameSite": "strict", "secure": false });
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "Logout successful.",
 		});
