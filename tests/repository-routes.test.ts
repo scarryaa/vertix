@@ -11,7 +11,7 @@ jest.mock("@prisma/client", () => ({
 
 jest.mock("bcrypt", () => mockBcrypt);
 
-import { PrismaClient, User } from "@prisma/client";
+import { User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -22,6 +22,7 @@ import {
 	updateRepository,
 } from "../src/modules/repository/repository.controller";
 import type { RepositoryInput } from "../src/modules/repository/repository.schema";
+import prisma from "../src/util/prisma";
 
 describe("Repository Controller", () => {
 	let ownerId: number;
@@ -47,8 +48,7 @@ describe("Repository Controller", () => {
 		await prisma.user.deleteMany();
 		await prisma.$disconnect();
 	});
-
-	const prisma = new PrismaClient();
+	
 	let repositories = [];
 
 	describe("createRepository", () => {

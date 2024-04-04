@@ -11,7 +11,6 @@ jest.mock("@prisma/client", () => ({
 
 jest.mock("bcrypt", () => mockBcrypt);
 
-import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import {
 	createUser,
@@ -19,13 +18,12 @@ import {
 	login,
 	logout,
 } from "../src/modules/user/user.controller";
+import prisma from "../src/util/prisma";
 
 describe("User Functions", () => {
 	afterEach(() => {
 		jest.clearAllMocks();
 	});
-
-	const prisma = new PrismaClient();
 
 	test("createUser - successful", async () => {
 		const mockBody = {

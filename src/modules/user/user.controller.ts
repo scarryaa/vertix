@@ -1,13 +1,11 @@
 import assert from "node:assert";
 import fjwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import errorHandler from "../../middleware/error-handler";
+import prisma from "../../util/prisma";
 import type { LoginUserInput, UserInput } from "./user.schema";
-
-const prisma = new PrismaClient();
 
 const SALT_ROUNDS = Number.parseInt(process.env.SALT_ROUNDS || "10", 10);
 

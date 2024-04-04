@@ -1,13 +1,12 @@
-import {
-	type Issue,
-	type Prisma,
-	PrismaClient,
-	type Repository,
-	type Star,
-} from "@prisma/client";
+import type { Issue, Prisma, Repository, Star } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { replyWithError } from "../../util/messages";
-import { checkOwnerExists, checkRepositoryExists, isRepositoryNameValid } from "../../util/repository-validation";
+import prisma from "../../util/prisma";
+import {
+	checkOwnerExists,
+	checkRepositoryExists,
+	isRepositoryNameValid,
+} from "../../util/repository-validation";
 import {
 	type ValidationError,
 	validateAllowedValues,
@@ -22,61 +21,60 @@ import type {
 	UpdateRepositoryInput,
 } from "./repository.schema";
 
-const prisma = new PrismaClient();
-
 const MAX_DESCRIPTION_LENGTH = 255;
-
 
 export async function createRepository(
 	req: FastifyRequest<{ Body: RepositoryInput }>,
 	reply: FastifyReply,
-  ) {
+) {
 	try {
-	  const { name, ownerId, description, visibility } = req.body;
-  
-	  // Validate input data
-	  if (!isRepositoryNameValid(name)) {
-		return reply.code(400).send({ message: "Invalid repository name" });
-	  }
-  
-	  // Check if repository already exists
-	  if (await checkRepositoryExists(name, ownerId)) {
-		return reply.code(409).send({
-		  message: "Repository with this name and owner already exists",
-		});
-	  }
-  
-	  // Check if owner exists
-	  if (!(await checkOwnerExists(ownerId))) {
-		return reply.code(404).send({
-		  message: "Owner with provided id does not exist",
-		});
-	  }
-  
-	  // Create repository using a transaction
-	  const newRepository: Repository = await prisma.$transaction(async (prisma) => {
-		return prisma.repository.create({
-		  data: {
-			name,
-			visibility,
-			description,
-			ownerId,
-		  },
-		});
-	  });
-  
-	  return reply.code(201).send(newRepository);
+		const { name, ownerId, description, visibility } = req.body;
+
+		// Validate input data
+		if (!isRepositoryNameValid(name)) {
+			return reply.code(400).send({ message: "Invalid repository name" });
+		}
+
+		// Check if repository already exists
+		if (await checkRepositoryExists(name, ownerId)) {
+			return reply.code(409).send({
+				message: "Repository with this name and owner already exists",
+			});
+		}
+
+		// Check if owner exists
+		if (!(await checkOwnerExists(ownerId))) {
+			return reply.code(404).send({
+				message: "Owner with provided id does not exist",
+			});
+		}
+
+		// Create repository using a transaction
+		const newRepository: Repository = await prisma.$transaction(
+			async (prisma) => {
+				return prisma.repository.create({
+					data: {
+						name,
+						visibility,
+						description,
+						ownerId,
+					},
+				});
+			},
+		);
+
+		return reply.code(201).send(newRepository);
 	} catch (error) {
-	  console.error("Error creating repository: ", error);
-	  return reply.code(500).send({ message: "Internal Server Error" });
+		console.error("Error creating repository: ", error);
+		return reply.code(500).send({ message: "Internal Server Error" });
 	}
-  }
+}
 
 export async function getAllRepositories(
 	req: FastifyRequest<{ Querystring: GetRepositoriesInput }>,
 	reply: FastifyReply,
 ) {
-    // @TODO check/filter visibility
+	// @TODO check/filter visibility
 	try {
 		const { limit, page, search, visibility, ownerId } = req.query;
 
@@ -167,7 +165,7 @@ export async function getRepository(
 	req: FastifyRequest<{ Querystring: { id: GetRepositoryInput } }>,
 	reply: FastifyReply,
 ) {
-    // @TODO check repository visibility
+	// @TODO check repository visibility
 	try {
 		const { id } = req.query;
 
@@ -211,7 +209,7 @@ export async function updateRepository(
 	}>,
 	reply: FastifyReply,
 ) {
-    // @TODO check permissions
+	// @TODO check permissions
 	try {
 		const { id, name, description, visibility, ownerId } = req.body;
 
@@ -255,7 +253,7 @@ export async function deleteRepository(
 	req: FastifyRequest<{ Body: { id: string } }>,
 	reply: FastifyReply,
 ) {
-    // @TODO check permissions
+	// @TODO check permissions
 	try {
 		const { id } = req.body;
 
