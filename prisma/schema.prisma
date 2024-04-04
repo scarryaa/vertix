@@ -15,34 +15,33 @@ enum Role {
 
 // User model representing users of the website
 model User {
-  role                 Role            @default(USER)
-  id                   Int             @id @default(autoincrement())
-  username             String          @unique // Unique username for each user
-  email                String          @unique // Unique email address for each user
-  name                 String? // Full name of the user
-  avatar               String? // URL of the user's avatar image
-  bio                  String? // Short bio or description of the user
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  role                  Role           @default(USER)
+  id                    Int            @id @default(autoincrement())
+  username              String         @unique // Unique username for each user
+  email                 String         @unique // Unique email address for each user
+  name                  String?        // Full name of the user
+  avatar                String?        // URL of the user's avatar image
+  bio                   String?        // Short bio or description of the user
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  
   // Relations
-  repositories         Repository[] // One-to-many relation: A user can have multiple repositories
-  followers            Follow[]        @relation("UserFollowers")
-  following            Follow[]        @relation("UserFollowing")
-  issues               Issue[] // One-to-many relation: A user can have multiple issues
-  stars                Star[] // One-to-many relation: A user can have multiple stars
-  password             String
-  publicEmail          String?
-  preferences          UserPreference?
-  userPreferenceId     Int?
-  Collaborator         Collaborator[]
-  Comment              Comment[]
-  Notification         Notification[]
-  Member               Member[]
-  PullRequest          PullRequest?    @relation(fields: [pullRequestId], references: [id])
-  pullRequestsAuthored PullRequest[]   @relation("PullRequestAuthor")
-  pullRequestsAssigned PullRequest[]   @relation("PullRequestAssignees")
-  pullRequestId        Int?
-  Commit               Commit[]
+  repositories          Repository[]   // One-to-many relation: A user can have multiple repositories
+  followers             Follow[]       @relation("UserFollowers")
+  following             Follow[]       @relation("UserFollowing")
+  issues                Issue[]        // One-to-many relation: A user can have multiple issues
+  stars                 Star[]         // One-to-many relation: A user can have multiple stars
+  password              String
+  publicEmail           String?
+  preferences           UserPreference?
+  userPreferenceId      Int?
+  collaborators         Collaborator[]
+  comments              Comment[]
+  notifications         Notification[]
+  memberships           Member[]
+  pullRequests          PullRequest[]  @relation("PullRequestAssignees")
+  pullRequestsAuthored  PullRequest[]  @relation("PullRequestAuthor")
+  commits               Commit[]
 }
 
 model UserPreference {
@@ -141,14 +140,14 @@ model Comment {
 }
 
 model Commit {
-  id             Int          @id @default(autoincrement())
-  sha            String       @unique
-  message        String
-  createdAt      DateTime     @default(now())
-  pullRequest    PullRequest  @relation(fields: [pullRequestId], references: [id])
-  pullRequestId  Int
-  author         User         @relation(fields: [authorId], references: [id])
-  authorId       Int
+  id            Int         @id @default(autoincrement())
+  sha           String      @unique
+  message       String
+  createdAt     DateTime    @default(now())
+  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id])
+  pullRequestId Int
+  author        User        @relation(fields: [authorId], references: [id])
+  authorId      Int
 }
 
 // Issue model representing issues in repositories
