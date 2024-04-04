@@ -1,7 +1,7 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 
 export default async function errorHandler(
-	error: any,
+	error: unknown,
 	request: FastifyRequest,
 	reply: FastifyReply,
 ) {

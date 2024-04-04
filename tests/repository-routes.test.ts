@@ -20,9 +20,9 @@ import {
 	deleteRepository,
 	getAllRepositories,
 	updateRepository,
-} from "../src/modules/repository/repository.controller";
-import type { RepositoryInput } from "../src/modules/repository/repository.schema";
-import prisma from "../src/util/prisma";
+} from "../src/controllers/repository.controller";
+import type { RepositoryInput } from "../src/schemas/repository.schema";
+import prisma from "../src/utils/prisma";
 
 describe("Repository Controller", () => {
 	let ownerId: number;
@@ -48,7 +48,7 @@ describe("Repository Controller", () => {
 		await prisma.user.deleteMany();
 		await prisma.$disconnect();
 	});
-	
+
 	let repositories = [];
 
 	describe("createRepository", () => {
@@ -67,16 +67,18 @@ describe("Repository Controller", () => {
 				send: jest.fn(),
 			} as unknown as FastifyReply;
 
-			await createRepository(mockRequest, mockReply);
+			const newRepo = await createRepository(mockRequest, mockReply);
+			repositories.push(newRepo);
 
 			expect(mockReply.code).toHaveBeenCalledWith(201);
 			expect(mockReply.send).toHaveBeenCalledWith(
 				expect.objectContaining({
 					name: "test-repo",
-					ownerId: ownerId,
+					id: `mocked-repository-id-${repositories.length}`,
+					owner: { connect: { id: ownerId } },
 					description: "This is a test repository",
 					visibility: "public",
-				})
+				}),
 			);
 		});
 	});
@@ -94,8 +96,8 @@ describe("Repository Controller", () => {
 			const mockRequest = {
 				query: {
 					limit: 20,
-					page: 1
-				}
+					page: 1,
+				},
 			} as FastifyRequest;
 			const mockReply = {
 				code: jest.fn().mockReturnThis(),
@@ -122,7 +124,7 @@ describe("Repository Controller", () => {
 							visibility: "private",
 						}),
 					]),
-				})
+				}),
 			);
 		});
 	});

@@ -1,25 +1,27 @@
-import type { Issue, Prisma, Repository, Star } from "@prisma/client";
+import type { Prisma, Repository } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { replyWithError } from "../../util/messages";
-import prisma from "../../util/prisma";
-import {
-	checkOwnerExists,
-	checkRepositoryExists,
-	isRepositoryNameValid,
-} from "../../util/repository-validation";
-import {
-	type ValidationError,
-	validateAllowedValues,
-	validateRange,
-	validateType,
-} from "../../util/validation";
 import type {
 	GetRepositoriesInput,
 	GetRepositoriesResponse,
 	GetRepositoryInput,
 	RepositoryInput,
 	UpdateRepositoryInput,
-} from "./repository.schema";
+} from "../schemas/repository.schema";
+import { repositoryService } from "../services";
+import { NotFoundError } from "../utils/errors/not-found.error";
+import { replyWithError } from "../utils/messages";
+import {
+	checkRepositoryExists,
+	isRepositoryNameValid,
+} from "../utils/repository-validation";
+import { checkOwnerExists } from "../utils/user-validation";
+import {
+	type ValidationError,
+	handleValidations,
+	validateAllowedValues,
+	validateRange,
+	validateType,
+} from "../utils/validation";
 
 const MAX_DESCRIPTION_LENGTH = 255;
 
@@ -49,17 +51,13 @@ export async function createRepository(
 			});
 		}
 
-		// Create repository using a transaction
-		const newRepository: Repository = await prisma.$transaction(
-			async (prisma) => {
-				return prisma.repository.create({
-					data: {
-						name,
-						visibility,
-						description,
-						ownerId,
-					},
-				});
+		// Create repository
+		const newRepository: Repository = await repositoryService.createRepository(
+			ownerId,
+			{
+				name,
+				description,
+				visibility,
 			},
 		);
 
@@ -86,30 +84,21 @@ export async function getAllRepositories(
 				: null,
 			// ownerId can be optional
 			ownerId
-				? validateType(Number(ownerId) || undefined, "number", "ownerId")
+				? validateType(Number(ownerId) || undefined, Number, "ownerId")
 				: null,
 			// page can be optional
 			page
 				? validateRange(Number(page), 1, Number.POSITIVE_INFINITY, "page")
 				: null,
-			page ? validateType(Number(page) || undefined, "number", "page") : null,
+			page ? validateType(Number(page) || undefined, Number, "page") : null,
 			// limit can be optional
 			limit ? validateRange(Number(limit), 1, 100, "limit") : null,
 			limit
-				? validateType(Number(limit) || undefined, "number", "limit")
+				? validateType(Number(limit) || undefined, Number, "limit")
 				: null,
-		].filter(Boolean);
+		];
 
-		// If there are errors, reply with the first one
-		if (validations.length > 0) {
-			const firstError = validations.find(
-				(validation): validation is ValidationError => validation !== null,
-			);
-
-			if (firstError) {
-				return replyWithError(reply, firstError.message);
-			}
-		}
+		handleValidations(reply, validations);
 
 		const whereClause: Prisma.RepositoryWhereInput = {};
 
@@ -118,40 +107,28 @@ export async function getAllRepositories(
 		const parsedLimit = Math.min(100, Math.max(1, Number(limit) || 20));
 		const parsedOwnerId = ownerId ? Number(ownerId) : undefined;
 
-		if (search) {
-			whereClause.OR = [
-				{ name: { contains: search, mode: "insensitive" } },
-				{ description: { contains: search, mode: "insensitive" } },
-			];
-		}
+		const { repositories, totalCount } =
+			await repositoryService.getAllRepositories(
+				parsedLimit,
+				parsedPage,
+				search,
+				visibility,
+				parsedOwnerId,
+			);
 
-		if (parsedOwnerId !== undefined) {
-			whereClause.ownerId = parsedOwnerId;
-		}
-
-		const totalCount = await prisma.repository.count({ where: whereClause });
-
-		const repositories = await prisma.repository.findMany({
-			where: whereClause,
-			take: parsedLimit,
-			skip: (parsedPage - 1) * parsedLimit,
-		});
-
-		const formattedRepositories = repositories.map((repo) => ({
-			...repo,
-			visibility: repo.visibility as "public" | "private",
-		}));
-
-		// Return generic message if no repositories
-		if (totalCount === 0) {
-			return reply.code(404).send({ message: "No repositories found" });
+		// Check if repositories is empty
+		if (totalCount === 0 || repositories === null) {
+			throw new NotFoundError("No repositories found");
 		}
 
 		const response: GetRepositoriesResponse = {
-			repositories: formattedRepositories,
+			repositories: repositories.map((repo) => ({
+				...repo,
+				visibility: repo.visibility as "public" | "private",
+			})),
 			totalCount,
-			limit: parsedLimit,
 			page: parsedPage,
+			limit: parsedLimit,
 		};
 
 		return reply.code(200).send(response);
@@ -173,24 +150,13 @@ export async function getRepository(
 		const validations = [
 			// id is required
 			validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
-			validateType(Number(id) || undefined, "number", "id"),
-		].filter(Boolean);
+			validateType(Number(id) || undefined, Number, "id"),
+		];
 
-		// If there's errors, send the first one
-		if (validations.length > 0) {
-			const firstError = validations.find(
-				(validation): validation is ValidationError => validation !== null,
-			);
-
-			if (firstError) {
-				return replyWithError(reply, firstError.message);
-			}
-		}
+		handleValidations(reply, validations);
 
 		// Otherwise, we can proceed
-		const repository = await prisma.repository.findUnique({
-			where: { id: Number(id) },
-		});
+		const repository = await repositoryService.findRepositoryById(Number(id));
 
 		if (!repository) {
 			return reply.code(404).send({ message: "Repository not found" });
@@ -209,11 +175,24 @@ export async function updateRepository(
 	}>,
 	reply: FastifyReply,
 ) {
-	// @TODO check permissions
+	// only owners of the repo can update
 	try {
 		const { id, name, description, visibility, ownerId } = req.body;
 
-		const dataToUpdate: Record<string, any> = {};
+		const idNum = Number(id);
+		const ownerIdNum = Number(ownerId);
+
+		const validations = [
+			validateRange(idNum, 1, Number.POSITIVE_INFINITY, "id"),
+			validateType(idNum ?? undefined, Number, "id"),
+			validateRange(ownerIdNum, 1, Number.POSITIVE_INFINITY, "ownerId"),
+			validateType(ownerIdNum ?? undefined, Number, "ownerId"),
+		];
+
+		handleValidations(reply, validations);
+		
+		// If validated, we can continue
+		const dataToUpdate: Record<string, unknown> = {};
 
 		if (name !== undefined) {
 			dataToUpdate.name = name;
@@ -237,10 +216,11 @@ export async function updateRepository(
 				.send({ message: "No fields provided for update." });
 		}
 
-		const updatedRepository = await prisma.repository.update({
-			where: { id: Number(id) },
-			data: dataToUpdate,
-		});
+		const updatedRepository = await repositoryService.updateRepository(
+			Number(id),
+			Number(ownerId),
+			dataToUpdate,
+		);
 
 		return reply.code(200).send(updatedRepository);
 	} catch (error) {
@@ -250,16 +230,25 @@ export async function updateRepository(
 }
 
 export async function deleteRepository(
-	req: FastifyRequest<{ Body: { id: string } }>,
+	req: FastifyRequest<{ Body: { id: string; userId: string } }>,
 	reply: FastifyReply,
 ) {
-	// @TODO check permissions
 	try {
-		const { id } = req.body;
+		const { id, userId } = req.body;
+		
+		const idNum = Number(id);
+		const userIdNum = Number(userId);
 
-		await prisma.repository.delete({
-			where: { id: Number.parseInt(id) },
-		});
+		const validations = [
+			validateRange(idNum, 1, Number.POSITIVE_INFINITY, "id"),
+			validateType(idNum || undefined, Number, "id"),
+			validateRange(userIdNum, 1, Number.POSITIVE_INFINITY, "userId"),
+			validateType(userIdNum || undefined, Number, "userId")
+		];
+
+		handleValidations(reply, validations);
+
+		await repositoryService.deleteRepository(Number(id), Number(userId));
 
 		return reply.code(204).send();
 	} catch (error) {

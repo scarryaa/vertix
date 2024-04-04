@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { CustomInstance, UserRoutesOptions } from "../../../types/request";
-import errorHandler from "../../middleware/error-handler";
-import { createUser, getAllUsers, login, logout } from "./user.controller";
-import { $ref } from "./user.schema";
+import type { CustomInstance, UserRoutesOptions } from "../../types/request";
+import { createUser, getAllUsers, login, logout } from "../controllers/user.controller";
+import errorHandler from "../middlewares/error-handler";
+import { $ref } from "../schemas/user.schema";
 
 export const userRoutes: UserRoutesOptions = async function userRoutes(app: CustomInstance) {
 	app.get(

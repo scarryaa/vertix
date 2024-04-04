@@ -1,3 +1,6 @@
+import type { FastifyReply } from "fastify";
+import { replyWithError } from "./messages";
+
 export type ValidationError = {
 	type: "type" | "range" | "value";
 	message: string;
@@ -33,16 +36,15 @@ export const validateAllowedValues = <T>(
  * @param valueName - The name of the value being validated (used in the error message).
  * @returns An error message if the validation fails, or null if it passes.
  */
-
-export const validateType = (
-	value: any,
-	expectedType: string,
+export const validateType = <T>(
+	value: unknown,
+	expectedType: T,
 	valueName: string,
 ): ValidationError | null => {
-	if (typeof value !== expectedType) {
+	if (typeof value !== typeof expectedType) {
 		return {
 			type: "type",
-			message: `Invalid type for ${valueName}. Expected ${expectedType}.`,
+			message: `Invalid type for ${valueName}. Expected ${typeof expectedType}.`,
 		};
 	}
 	return null;
@@ -69,4 +71,17 @@ export const validateRange = (
 		};
 	}
 	return null;
+};
+
+export const handleValidations = (
+	reply: FastifyReply,
+	validations: Array<ValidationError | null | undefined>,
+): boolean => {
+	const filteredValidations = validations.filter(Boolean) as ValidationError[];
+	if (filteredValidations.length > 0) {
+		const firstErr = filteredValidations[0];
+		replyWithError(reply, firstErr.message);
+		return true;
+	}
+	return false;
 };

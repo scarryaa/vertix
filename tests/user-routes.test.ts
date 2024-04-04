@@ -17,8 +17,8 @@ import {
 	getAllUsers,
 	login,
 	logout,
-} from "../src/modules/user/user.controller";
-import prisma from "../src/util/prisma";
+} from "../src/controllers/user.controller";
+import prisma from "../src/utils/prisma";
 
 describe("User Functions", () => {
 	afterEach(() => {

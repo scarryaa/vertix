@@ -9,11 +9,11 @@ import fastify, {
 	type FastifyRequest,
 } from "fastify";
 import type { CustomRequest } from "../types/request";
-import errorHandler from "./middleware/error-handler";
-import { repositoryRoutes } from "./modules/repository/repository.routes";
-import { repositorySchemas } from "./modules/repository/repository.schema";
-import { userRoutes } from "./modules/user/user.routes";
-import { userSchemas } from "./modules/user/user.schema";
+import errorHandler from "./middlewares/error-handler";
+import { repositoryRoutes } from "./routes/repository.routes";
+import { userRoutes } from "./routes/user.routes";
+import { repositorySchemas } from "./schemas/repository.schema";
+import { userSchemas } from "./schemas/user.schema";
 
 type ServerConfig = {
 	port: number;

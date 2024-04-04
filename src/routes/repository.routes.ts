@@ -1,13 +1,13 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { CustomInstance } from "../../../types/request";
+import type { CustomInstance } from "../../types/request";
 import {
 	createRepository,
 	deleteRepository,
 	getAllRepositories,
 	getRepository,
 	updateRepository,
-} from "./repository.controller";
-import { $ref } from "./repository.schema";
+} from "../controllers/repository.controller";
+import { $ref } from "../schemas/repository.schema";
 
 export const repositoryRoutes = async function repositoryRoutes(
 	app: CustomInstance,

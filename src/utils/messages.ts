@@ -1,8 +1,4 @@
 import type { FastifyReply } from "fastify";
-export enum Types {
-	Number = "number",
-	String = "string",
-}
 
 export const replyWithError = (
 	reply: FastifyReply,
