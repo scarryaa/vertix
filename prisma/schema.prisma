@@ -38,7 +38,6 @@ model User {
   Comment          Comment[]
   Notification     Notification[]
   Member           Member[]
-  PullRequest      PullRequest[]
   PullRequest      PullRequest?    @relation(fields: [pullRequestId], references: [id])
   pullRequestId    Int?
   Commit           Commit[]
