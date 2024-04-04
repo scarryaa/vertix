@@ -15,7 +15,7 @@ import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import {
 	createUser,
-	getUsers,
+	getAllUsers,
 	login,
 	logout,
 } from "../src/modules/user/user.controller";
@@ -37,13 +37,13 @@ describe("User Functions", () => {
 
 		// Mock PrismaClient.create() to return a user object
 		(mockRequest as any).body = mockBody;
-		(mockReply as any).code.mockClear();
+		(mockReply as any).status.mockClear();
 		(mockReply as any).send.mockClear();
 
 		await createUser(mockRequest as any, mockReply);
 
 		// Assert that response code is 201 and user object is sent in response
-		expect(mockReply.code).toHaveBeenCalledWith(201);
+		expect(mockReply.status).toHaveBeenCalledWith(201);
 		expect(mockReply.send).toHaveBeenCalledWith(
 			expect.objectContaining({
 				// Assert user object properties
@@ -73,7 +73,7 @@ describe("User Functions", () => {
 
 		await createUser(mockRequest as any, mockReply);
 
-		expect(mockReply.code).toHaveBeenCalledWith(409);
+		expect(mockReply.status).toHaveBeenCalledWith(409);
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "User with this email or username already exists.",
 		});
@@ -96,7 +96,7 @@ describe("User Functions", () => {
 
 		await createUser(mockRequest as any, mockReply);
 
-		expect(mockReply.code).toHaveBeenCalledWith(500);
+		expect(mockReply.status).toHaveBeenCalledWith(500);
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "Internal Server Error",
 		});
@@ -123,11 +123,11 @@ describe("User Functions", () => {
 
 		await login(mockRequest as any, mockReply);
 
-		expect(mockRequest.jwt.sign).toHaveBeenCalledTimes(1);
+		expect(mockReply.jwtSign).toHaveBeenCalledTimes(1);
 		expect(mockReply.setCookie).toHaveBeenCalledWith(
 			"access_token",
 			expect.any(String),
-			{ path: "/", httpOnly: true, secure: true },
+			{ path: "/", httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" },
 		);
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "Login successful.",
@@ -155,7 +155,7 @@ describe("User Functions", () => {
 
 		await login(mockRequest as any, mockReply);
 
-		expect(mockReply.code).toHaveBeenCalledWith(401);
+		expect(mockReply.status).toHaveBeenCalledWith(401);
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "Invalid email or password.",
 		});
@@ -164,7 +164,7 @@ describe("User Functions", () => {
 	test("logout", async () => {
 		await logout(mockRequest as any, mockReply);
 
-		expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token");
+		expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token", {"httpOnly": true, "path": "/", "sameSite": "strict", "secure": false});
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "Logout successful.",
 		});

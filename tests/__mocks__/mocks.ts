@@ -2,16 +2,14 @@ import type { Repository, User } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 export const mockRequest = {
-	jwt: {
-		sign: jest.fn(() => "mocked-token"),
-	},
 } as unknown as FastifyRequest;
 
 export const mockReply = {
-	code: jest.fn().mockReturnThis(),
+	status: jest.fn().mockReturnThis(),
 	send: jest.fn(),
 	setCookie: jest.fn(),
 	clearCookie: jest.fn(),
+  jwtSign: jest.fn(() => "mocked-token"),
 } as unknown as FastifyReply;
 
 let repositories: Repository[] = [];

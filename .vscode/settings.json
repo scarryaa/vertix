@@ -1,0 +1,4 @@
+{
+    "biome.requireConfiguration": false,
+    "biome.lspBin": "./biome-test/node_modules/@biomejs/biome/bin/biome",
+}

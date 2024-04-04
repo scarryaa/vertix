@@ -39,7 +39,14 @@ class VortexServer {
 		this.app.register(repositoryRoutes, { prefix: "/api/repositories" });
 
 		// add jwt, cookie
-		this.app.register(fjwt, { secret: env.JWT_SECRET ?? "" });
+		assert(process.env.JWT_SECRET, "JWT_SECRET missing")
+		this.app.register(fjwt, {
+			secret: process.env.JWT_SECRET ?? "",
+			cookie: {
+				cookieName: "access_token",
+				signed: false,
+			},
+		});
 		this.app.addHook("preHandler", (req, res, next) => {
 			req.jwt = this.app.jwt;
 			return next();

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { CustomInstance, UserRoutesOptions } from "../../../types/request";
-import { createUser, getUsers, login, logout } from "./user.controller";
+import { createUser, getAllUsers, login, logout } from "./user.controller";
 import { $ref } from "./user.schema";
 
 export const userRoutes: UserRoutesOptions = async function userRoutes(app: CustomInstance) {
@@ -40,7 +40,7 @@ export const userRoutes: UserRoutesOptions = async function userRoutes(app: Cust
 
 	app.delete("/logout", { preHandler: [app.authenticate] }, logout);
 
-	app.get("/getUsers", { preHandler: [] }, getUsers);
+	app.get("/getUsers", { preHandler: [] }, getAllUsers);
 
 	app.log.info("User routes registered.");
 }
