@@ -45,7 +45,7 @@ describe("User Functions", () => {
 		expect(mockReply.send).toHaveBeenCalledWith(
 			expect.objectContaining({
 				// Assert user object properties
-				id: expect.any(String),
+				id: expect.any(Number),
 				email: mockBody.email,
 				name: mockBody.name,
 			}),

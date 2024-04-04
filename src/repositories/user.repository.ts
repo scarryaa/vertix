@@ -1,8 +1,13 @@
-import type { User } from "@prisma/client";
-import prisma from "../utils/prisma";
+import type { PrismaClient, User } from "@prisma/client";
 
 export class UserRepository {
+    private readonly prisma: PrismaClient;
+
+    constructor(prisma: PrismaClient) {
+        this.prisma = prisma;
+    }
+
 	async findById(userId: number): Promise<User | null> {
-		return prisma.user.findFirst({ where: { id: userId } });
+		return this.prisma.user.findFirst({ where: { id: userId } });
 	}
 }

@@ -84,23 +84,19 @@ export async function getAllRepositories(
 				: null,
 			// ownerId can be optional
 			ownerId
-				? validateType(Number(ownerId) || undefined, Number, "ownerId")
+				? validateType(Number(ownerId) || undefined, 0, "ownerId")
 				: null,
 			// page can be optional
 			page
 				? validateRange(Number(page), 1, Number.POSITIVE_INFINITY, "page")
 				: null,
-			page ? validateType(Number(page) || undefined, Number, "page") : null,
+			page ? validateType(Number(page) || undefined, 0, "page") : null,
 			// limit can be optional
 			limit ? validateRange(Number(limit), 1, 100, "limit") : null,
-			limit
-				? validateType(Number(limit) || undefined, Number, "limit")
-				: null,
+			limit ? validateType(Number(limit) || undefined, 0, "limit") : null,
 		];
 
 		handleValidations(reply, validations);
-
-		const whereClause: Prisma.RepositoryWhereInput = {};
 
 		// If we passed validation, we can continue
 		const parsedPage = Math.max(1, Number(page) || 1);
@@ -150,7 +146,7 @@ export async function getRepository(
 		const validations = [
 			// id is required
 			validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
-			validateType(Number(id) || undefined, Number, "id"),
+			validateType(Number(id) || undefined, 0, "id"),
 		];
 
 		handleValidations(reply, validations);
@@ -184,13 +180,13 @@ export async function updateRepository(
 
 		const validations = [
 			validateRange(idNum, 1, Number.POSITIVE_INFINITY, "id"),
-			validateType(idNum ?? undefined, Number, "id"),
+			validateType(idNum ?? undefined, 0, "id"),
 			validateRange(ownerIdNum, 1, Number.POSITIVE_INFINITY, "ownerId"),
-			validateType(ownerIdNum ?? undefined, Number, "ownerId"),
+			validateType(ownerIdNum ?? undefined, 0, "ownerId"),
 		];
 
 		handleValidations(reply, validations);
-		
+
 		// If validated, we can continue
 		const dataToUpdate: Record<string, unknown> = {};
 
@@ -235,15 +231,15 @@ export async function deleteRepository(
 ) {
 	try {
 		const { id, userId } = req.body;
-		
+
 		const idNum = Number(id);
 		const userIdNum = Number(userId);
 
 		const validations = [
 			validateRange(idNum, 1, Number.POSITIVE_INFINITY, "id"),
-			validateType(idNum || undefined, Number, "id"),
+			validateType(idNum || undefined, 0, "id"),
 			validateRange(userIdNum, 1, Number.POSITIVE_INFINITY, "userId"),
-			validateType(userIdNum || undefined, Number, "userId")
+			validateType(userIdNum || undefined, 0, "userId"),
 		];
 
 		handleValidations(reply, validations);

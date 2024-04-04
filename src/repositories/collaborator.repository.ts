@@ -1,30 +1,35 @@
-import type { Collaborator } from "@prisma/client";
-import prisma from "../utils/prisma";
+import type { Collaborator, PrismaClient } from "@prisma/client";
 
 export class CollaboratorRepository {
-  async findById(id: number): Promise<Collaborator | null> {
-    const collaborator = await prisma.collaborator.findUnique({
-      where: {
-        id,
-      },
-    });
+	private readonly prisma: PrismaClient;
 
-    return collaborator;
-  }
+	constructor(prisma: PrismaClient) {
+		this.prisma = prisma;
+	}
 
-  async findOne(
-    repositoryId: number,
-    userId: number
-  ): Promise<Collaborator | null> {
-    const collaborator = await prisma.collaborator.findUnique({
-      where: {
-        repositoryId_userId: {
-          repositoryId,
-          userId,
-        },
-      },
-    });
+	async findById(id: number): Promise<Collaborator | null> {
+		const collaborator = await this.prisma.collaborator.findUnique({
+			where: {
+				id,
+			},
+		});
 
-    return collaborator;
-  }
+		return collaborator;
+	}
+
+	async findOne(
+		repositoryId: number,
+		userId: number,
+	): Promise<Collaborator | null> {
+		const collaborator = await this.prisma.collaborator.findUnique({
+			where: {
+				repositoryId_userId: {
+					repositoryId,
+					userId,
+				},
+			},
+		});
+
+		return collaborator;
+	}
 }

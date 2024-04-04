@@ -1,8 +1,6 @@
 import {
 	mockBcrypt,
 	mockPrisma,
-	mockReply,
-	mockRequest,
 } from "./__mocks__/mocks";
 
 jest.mock("@prisma/client", () => ({
@@ -11,15 +9,10 @@ jest.mock("@prisma/client", () => ({
 
 jest.mock("bcrypt", () => mockBcrypt);
 
-import { User } from "@prisma/client";
-import * as bcrypt from "bcrypt";
-
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
 	createRepository,
-	deleteRepository,
 	getAllRepositories,
-	updateRepository,
 } from "../src/controllers/repository.controller";
 import type { RepositoryInput } from "../src/schemas/repository.schema";
 import prisma from "../src/utils/prisma";
@@ -74,7 +67,7 @@ describe("Repository Controller", () => {
 			expect(mockReply.send).toHaveBeenCalledWith(
 				expect.objectContaining({
 					name: "test-repo",
-					id: `mocked-repository-id-${repositories.length}`,
+					id: repositories.length,
 					owner: { connect: { id: ownerId } },
 					description: "This is a test repository",
 					visibility: "public",

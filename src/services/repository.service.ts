@@ -1,10 +1,4 @@
-import {
-	type Collaborator,
-	type Prisma,
-	PrismaClient,
-	type Repository,
-	User,
-} from "@prisma/client";
+import type { Prisma, Repository } from "@prisma/client";
 
 import type { CollaboratorRepository } from "../repositories/collaborator.repository";
 import type { RepositoryRepository } from "../repositories/repository.repository";
@@ -26,7 +20,7 @@ export class RepositoryService {
 		search: string | undefined,
 		visibility: "public" | "private" | undefined,
 		ownerId: number | undefined,
-	): Promise<{ repositories: Repository[], totalCount: number}> {
+	): Promise<{ repositories: Repository[]; totalCount: number }> {
 		const whereClause: Prisma.RepositoryWhereInput = {};
 
 		if (search) {
@@ -101,23 +95,23 @@ export class RepositoryService {
 			);
 		}
 
-		return this.repoRepo.delete(repositoryId);
+		return this.repoRepo.delete({ where: { id: repositoryId } });
 	}
 
 	async isUserCollaborator(
 		repositoryId: number,
 		userId: number,
-	  ): Promise<boolean> {
+	): Promise<boolean> {
 		const repository = await this.repoRepo.findById(repositoryId);
-	
+
 		if (repository?.ownerId === userId) {
-		  return true;
+			return true;
 		}
-	
-		const collaborator = await this.collabRepo.findOne(repositoryId, userId)
-	
+
+		const collaborator = await this.collabRepo.findOne(repositoryId, userId);
+
 		return !!collaborator;
-	  }
+	}
 
 	private async canUserUpdateRepository(
 		repositoryId: number,
