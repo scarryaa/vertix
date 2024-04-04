@@ -55,7 +55,7 @@ export async function login(req: FastifyRequest<{ Body: LoginUserInput }>, reply
             return reply.code(401).send({ message: "Invalid email or password." });
         }
         const payload = { id: user.id, email: user.email, name: user.name };
-		// @ts-ignore ignore ts error
+        // @ts-ignore ignore ts error
         const token = req.jwt.sign(payload);
 
         reply.setCookie("access_token", token, { path: "/", httpOnly: true, secure: true });
@@ -69,15 +69,45 @@ export async function login(req: FastifyRequest<{ Body: LoginUserInput }>, reply
 
 export async function getUsers(req: FastifyRequest, reply: FastifyReply) {
     try {
-        const users = await prisma.user.findMany({
-            select: { name: true, id: true, email: true },
-        });
-        return reply.code(200).send(users);
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          name: true,
+          avatar: true,
+          bio: true,
+          createdAt: true,
+          updatedAt: true,
+          publicEmail: true,
+          preferences: {
+            select: {
+              showPublicEmail: true,
+            },
+          },
+        },
+      });
+  
+      const usersWithEmail = users.map((user) => {
+        const { preferences, email, publicEmail, ...rest } = user;
+        const showPublicEmail = preferences?.showPublicEmail || false;
+  
+        if (showPublicEmail) {
+          return {
+            ...rest,
+            publicEmail: publicEmail,
+          };
+        } else {
+          return rest;
+        }
+      });
+  
+      return reply.code(200).send(usersWithEmail);
     } catch (error) {
-        console.error("Error fetching users:", error);
-        return reply.code(500).send({ message: "Internal Server Error" });
+      console.error("Error fetching users:", error);
+      return reply.code(500).send({ message: "Internal Server Error" });
     }
-}
+  }
 
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
     try {

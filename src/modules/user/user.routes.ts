@@ -40,7 +40,7 @@ export const userRoutes: UserRoutesOptions = async function userRoutes(app: Cust
 
 	app.delete("/logout", { preHandler: [app.authenticate] }, logout);
 
-	app.get("/getUsers", { preHandler: [app.authenticate] }, getUsers);
+	app.get("/getUsers", { preHandler: [] }, getUsers);
 
 	app.log.info("User routes registered.");
 }

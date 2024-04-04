@@ -7,46 +7,146 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  MODERATOR
+  USER
+}
+
 // User model representing users of the website
 model User {
-  id           Int          @id @default(autoincrement())
-  username     String       @unique // Unique username for each user
-  email        String       @unique // Unique email address for each user
-  name         String? // Full name of the user
-  avatar       String? // URL of the user's avatar image
-  bio          String? // Short bio or description of the user
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  role             Role            @default(USER)
+  id               Int             @id @default(autoincrement())
+  username         String          @unique // Unique username for each user
+  email            String          @unique // Unique email address for each user
+  name             String? // Full name of the user
+  avatar           String? // URL of the user's avatar image
+  bio              String? // Short bio or description of the user
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   // Relations
-  repositories Repository[] // One-to-many relation: A user can have multiple repositories
-  followers    Follow[]     @relation("UserFollowers")
-  following    Follow[]     @relation("UserFollowing")
-  issues       Issue[] // One-to-many relation: A user can have multiple issues
-  stars        Star[] // One-to-many relation: A user can have multiple stars
-  password     String
+  repositories     Repository[] // One-to-many relation: A user can have multiple repositories
+  followers        Follow[]        @relation("UserFollowers")
+  following        Follow[]        @relation("UserFollowing")
+  issues           Issue[] // One-to-many relation: A user can have multiple issues
+  stars            Star[] // One-to-many relation: A user can have multiple stars
+  password         String
+  publicEmail      String?
+  preferences      UserPreference?
+  userPreferenceId Int?
+  Collaborator     Collaborator[]
+  Comment          Comment[]
+  Notification     Notification[]
+  Member           Member[]
+  PullRequest      PullRequest[]
+  PullRequest      PullRequest?    @relation(fields: [pullRequestId], references: [id])
+  pullRequestId    Int?
+  Commit           Commit[]
+}
+
+model UserPreference {
+  id              Int     @id @default(autoincrement())
+  user            User?   @relation(fields: [userId], references: [id])
+  userId          Int     @unique
+  theme           String  @default("system")
+  showPublicEmail Boolean @default(false)
 }
 
 // Intermediate model for the many-to-many relation
 model Follow {
-  id          Int  @id @default(autoincrement())
-  follower    User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  id          Int      @id @default(autoincrement())
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
   followerId  Int
-  following   User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
   followingId Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([followerId, followingId])
 }
 
 // Repository model representing repositories on the website
 model Repository {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  visibility  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  owner       User     @relation(fields: [ownerId], references: [id])
-  ownerId     Int
-  issues      Issue[]
-  stars       Star[]
+  id             Int            @id @default(autoincrement())
+  name           String
+  description    String?
+  visibility     String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  owner          User           @relation(fields: [ownerId], references: [id])
+  ownerId        Int
+  issues         Issue[]
+  stars          Star[]
+  language       String?
+  Collaborator   Collaborator[]
+  License        License?       @relation(fields: [licenseId], references: [id])
+  licenseId      Int?
+  Tag            Tag?           @relation(fields: [tagId], references: [id])
+  tagId          Int?
+  Organization   Organization?  @relation(fields: [organizationId], references: [id])
+  organizationId Int?
+  PullRequest    PullRequest[]
+}
+
+model License {
+  id           Int          @id @default(autoincrement())
+  name         String
+  key          String       @unique
+  repositories Repository[]
+}
+
+model Collaborator {
+  id           Int        @id @default(autoincrement())
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repositoryId Int
+  user         User       @relation(fields: [userId], references: [id])
+  userId       Int
+
+  @@unique([repositoryId, userId])
+}
+
+model PullRequest {
+  id           Int        @id @default(autoincrement())
+  title        String
+  description  String?
+  status       String     @default("OPEN")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repositoryId Int
+  author       User       @relation(fields: [authorId], references: [id])
+  authorId     Int
+  assignees    User[]
+  comments     Comment[]
+  commits      Commit[]
+  headBranch   String
+  baseBranch   String
+  mergedAt     DateTime?
+  closedAt     DateTime?
+}
+
+model Comment {
+  id            Int         @id @default(autoincrement())
+  body          String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id])
+  pullRequestId Int
+  author        User        @relation(fields: [authorId], references: [id])
+  authorId      Int
+  Issue         Issue?      @relation(fields: [issueId], references: [id])
+  issueId       Int?
+}
+
+model Commit {
+  id            Int         @id @default(autoincrement())
+  sha           String      @unique
+  message       String
+  createdAt     DateTime    @default(now())
+  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id])
+  pullRequestId Int
+  author        User        @relation(fields: [authorId], references: [id])
+  authorId      Int
 }
 
 // Issue model representing issues in repositories
@@ -61,6 +161,7 @@ model Issue {
   repositoryId Int
   author       User       @relation(fields: [authorId], references: [id])
   authorId     Int
+  Comment      Comment[]
 }
 
 // Star model representing stars (likes) on repositories
@@ -72,4 +173,43 @@ model Star {
   repositoryId Int
   user         User       @relation(fields: [userId], references: [id])
   userId       Int
+
+  @@unique([repositoryId, userId])
+}
+
+model Tag {
+  id           Int          @id @default(autoincrement())
+  name         String
+  repositories Repository[]
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  type      String
+  data      Json
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Organization {
+  id           Int          @id @default(autoincrement())
+  name         String
+  description  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  members      Member[]
+  repositories Repository[]
+}
+
+model Member {
+  id             Int          @id @default(autoincrement())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId Int
+  user           User         @relation(fields: [userId], references: [id])
+  userId         Int
+  role           String
+
+  @@unique([organizationId, userId])
 }

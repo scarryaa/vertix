@@ -7,9 +7,9 @@ import {
 } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { replyWithError } from "../../util/messages";
+import { checkOwnerExists, checkRepositoryExists, isRepositoryNameValid } from "../../util/repository-validation";
 import {
 	type ValidationError,
-	isRepositoryNameValid,
 	validateAllowedValues,
 	validateRange,
 	validateType,
@@ -26,56 +26,51 @@ const prisma = new PrismaClient();
 
 const MAX_DESCRIPTION_LENGTH = 255;
 
+
 export async function createRepository(
-    req: FastifyRequest<{ Body: RepositoryInput }>,
-    reply: FastifyReply,
-) {
-    try {
-        const { name, ownerId, description, visibility } = req.body;
-
-		// Make sure name has no spaces and is in format name-of-repository
-		if (!isRepositoryNameValid(name)) {
-			reply.status(400).send({message: 'Invalid repository name'});
-			return;
-		}
-		
-
-        // Check if repository already exists
-        const existingRepository = await prisma.repository.findFirst({
-            where: {
-                AND: [{ name: name }, { ownerId: ownerId }],
-            },
-        });
-        if (existingRepository) {
-            return reply.code(409).send({
-                message: "Repository with this name and owner already exists.",
-            });
-        }
-
-        // Check if owner exists
-        const owner = await prisma.user.findFirst({ where: { id: ownerId } });
-        if (!owner) {
-            return reply.code(404).send({
-                message: "User with provided id does not exist.",
-            });
-        }
-
-        // Proceed to create repository
-        const newRepository: Repository = await prisma.repository.create({
-            data: {
-                name: name,
-                visibility: visibility,
-                description: description,
-                ownerId: ownerId,
-            },
-        });
-
-        return reply.code(201).send(newRepository);
-    } catch (error) {
-        console.error("Error creating repository: ", error);
-        return reply.code(500).send({ message: "Internal Server Error" });
-    }
-}
+	req: FastifyRequest<{ Body: RepositoryInput }>,
+	reply: FastifyReply,
+  ) {
+	try {
+	  const { name, ownerId, description, visibility } = req.body;
+  
+	  // Validate input data
+	  if (!isRepositoryNameValid(name)) {
+		return reply.code(400).send({ message: "Invalid repository name" });
+	  }
+  
+	  // Check if repository already exists
+	  if (await checkRepositoryExists(name, ownerId)) {
+		return reply.code(409).send({
+		  message: "Repository with this name and owner already exists",
+		});
+	  }
+  
+	  // Check if owner exists
+	  if (!(await checkOwnerExists(ownerId))) {
+		return reply.code(404).send({
+		  message: "Owner with provided id does not exist",
+		});
+	  }
+  
+	  // Create repository using a transaction
+	  const newRepository: Repository = await prisma.$transaction(async (prisma) => {
+		return prisma.repository.create({
+		  data: {
+			name,
+			visibility,
+			description,
+			ownerId,
+		  },
+		});
+	  });
+  
+	  return reply.code(201).send(newRepository);
+	} catch (error) {
+	  console.error("Error creating repository: ", error);
+	  return reply.code(500).send({ message: "Internal Server Error" });
+	}
+  }
 
 export async function getAllRepositories(
 	req: FastifyRequest<{ Querystring: GetRepositoriesInput }>,

@@ -1,4 +1,4 @@
-import type { Repository } from "@prisma/client";
+import type { Repository, User } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 export const mockRequest = {
@@ -14,21 +14,62 @@ export const mockReply = {
 	clearCookie: jest.fn(),
 } as unknown as FastifyReply;
 
-const repositories: Repository[] = [];
+let repositories: Repository[] = [];
+let users: User[] = [];
 
-export const mockPrisma = {
-	user: {
-		findMany: jest.fn(),
-		create: jest.fn(() => ({
-			id: "mocked-user-id",
-			email: "test@example.com",
-			name: "Test User",
-			username: "testuser",
-		})),
-		findUnique: jest.fn(),
-		findFirst: jest.fn(),
-	},
+interface MockPrisma {
+  $disconnect: jest.Mock;
+  $transaction: jest.Mock;
+  user: {
+    findMany: jest.Mock;
+    create: jest.Mock;
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    deleteMany: jest.Mock;
+    count: jest.Mock;
+  };
   repository: {
+    deleteMany: jest.Mock;
+    count: jest.Mock;
+    findMany: jest.Mock;
+    create: jest.Mock;
+    createMany: jest.Mock;
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+  };
+}
+
+
+export const mockPrisma: MockPrisma = {
+  $disconnect: jest.fn(),
+  $transaction: jest.fn((callback) => callback(mockPrisma)),
+  user: {
+    findMany: jest.fn(),
+    create: jest.fn((data) => {
+      const newUser = {
+        id: `mocked-user-id-${users.length + 1}`,
+        ...data.data,
+      };
+      users.push(newUser);
+      return newUser;
+    }),
+    findUnique: jest.fn(),
+    findFirst: jest.fn((args) => {
+      if (args.where.id) {
+        return users.find((user) => user.id === args.where.id);
+      }
+      return null;
+    }),
+    deleteMany: jest.fn(() => {
+      users = [];
+    }),
+    count: jest.fn().mockImplementation(() => users.length),
+  },
+  repository: {
+    deleteMany: jest.fn(() => {
+      repositories = [];
+    }),
+    count: jest.fn(),
     findMany: jest.fn().mockImplementation(() => repositories),
     create: jest.fn().mockImplementation((data) => {
       const newRepository = {

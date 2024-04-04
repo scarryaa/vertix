@@ -64,7 +64,7 @@ describe("User Functions", () => {
 
 		// Mock PrismaClient.findFirst() to return an existing user object
 		(prisma.user.findFirst as jest.Mock).mockResolvedValueOnce({
-			id: "existing-user-id",
+			id: 1,
 			email: "test@example.com",
 			username: "testuser",
 		});
@@ -110,7 +110,7 @@ describe("User Functions", () => {
 
 		// Mock PrismaClient.findUnique() to return a user object
 		(prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
-			id: "mocked-user-id",
+			id: 1,
 			email: "test@example.com",
 			name: "Test User",
 			password: "hashed-password",
@@ -142,7 +142,7 @@ describe("User Functions", () => {
 
 		// Mock PrismaClient.findUnique() to return a user object
 		(prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
-			id: "mocked-user-id",
+			id: 1,
 			email: "test@example.com",
 			name: "Test User",
 			password: "hashed-password",

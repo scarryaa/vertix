@@ -28,6 +28,7 @@ const main = async () => {
             name: "Bob",
             password: "hunter2",
             username: "bobbyboy24",
+            publicEmail: "bob@test.test",
             repositories: {
                 createMany: {
                     data: [
@@ -42,12 +43,18 @@ const main = async () => {
                         }
                     ]
                 }
+            },
+            preferences: {
+                create: {
+                    theme: "dark",
+                    showPublicEmail: true
+                }
             }
         }
     });
 
     const mary = await prisma.user.upsert({
-        where: {email: "mary@test.test"},
+        where: { email: "mary@test.test" },
         update: {},
         create: {
             email: "mary@test.test",
@@ -55,7 +62,14 @@ const main = async () => {
             password: "password",
             username: "maary",
             bio: "Hi! This is my profile.",
-        }
+            publicEmail: "mary@test.test",
+            preferences: {
+                create: {
+                    theme: "dark",
+                    showPublicEmail: false
+                }
+            }
+        },
     })
 }
 

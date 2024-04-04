@@ -11,7 +11,7 @@ jest.mock("@prisma/client", () => ({
 
 jest.mock("bcrypt", () => mockBcrypt);
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -19,30 +19,49 @@ import {
 	createRepository,
 	deleteRepository,
 	getAllRepositories,
-	getRepositoryById,
 	updateRepository,
 } from "../src/modules/repository/repository.controller";
 import type { RepositoryInput } from "../src/modules/repository/repository.schema";
 
 describe("Repository Controller", () => {
+	let ownerId: number;
+
+	beforeAll(async () => {
+		// Create owner
+		const user = await prisma.user.create({
+			data: {
+				username: "testuser",
+				email: "testuser@example.com",
+				password: "password",
+			},
+		});
+		ownerId = user.id;
+	});
 	afterEach(async () => {
 		jest.clearAllMocks();
-        repositories = [];
+		repositories = [];
+	});
+
+	afterAll(async () => {
+		await prisma.repository.deleteMany();
+		await prisma.user.deleteMany();
+		await prisma.$disconnect();
 	});
 
 	const prisma = new PrismaClient();
-    let repositories = [];
+	let repositories = [];
 
 	describe("createRepository", () => {
 		it("should create a new repository", async () => {
 			const mockRequest = {
 				body: {
-					name: "Test Repository",
-					ownerId: 1,
+					name: "test-repo",
+					ownerId: ownerId,
 					description: "This is a test repository",
 					visibility: "public",
 				},
 			} as FastifyRequest<{ Body: RepositoryInput }>;
+
 			const mockReply = {
 				code: jest.fn().mockReturnThis(),
 				send: jest.fn(),
@@ -53,12 +72,11 @@ describe("Repository Controller", () => {
 			expect(mockReply.code).toHaveBeenCalledWith(201);
 			expect(mockReply.send).toHaveBeenCalledWith(
 				expect.objectContaining({
-					name: "Test Repository",
-					ownerId: 1,
+					name: "test-repo",
+					ownerId: ownerId,
 					description: "This is a test repository",
 					visibility: "public",
-                    id: `mocked-repository-id-${repositories.length + 1}`,
-				}),
+				})
 			);
 		});
 	});
@@ -73,28 +91,38 @@ describe("Repository Controller", () => {
 				],
 			});
 
-			const mockRequest = {} as FastifyRequest;
+			const mockRequest = {
+				query: {
+					limit: 20,
+					page: 1
+				}
+			} as FastifyRequest;
 			const mockReply = {
 				code: jest.fn().mockReturnThis(),
 				send: jest.fn(),
 			} as unknown as FastifyReply;
 
+			// @ts-ignore
 			await getAllRepositories(mockRequest, mockReply);
 
 			expect(mockReply.code).toHaveBeenCalledWith(200);
 			expect(mockReply.send).toHaveBeenCalledWith(
-				expect.arrayContaining([
-					expect.objectContaining({
-						name: "Repo 1",
-						ownerId: 1,
-						visibility: "public",
-					}),
-					expect.objectContaining({
-						name: "Repo 2",
-						ownerId: 2,
-						visibility: "private",
-					}),
-				]),
+				expect.objectContaining({
+					limit: 20,
+					page: 1,
+					repositories: expect.arrayContaining([
+						expect.objectContaining({
+							name: "Repo 1",
+							ownerId: 1,
+							visibility: "public",
+						}),
+						expect.objectContaining({
+							name: "Repo 2",
+							ownerId: 2,
+							visibility: "private",
+						}),
+					]),
+				})
 			);
 		});
 	});
