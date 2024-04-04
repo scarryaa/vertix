@@ -9,6 +9,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { replyWithError } from "../../util/messages";
 import {
 	type ValidationError,
+	isRepositoryNameValid,
 	validateAllowedValues,
 	validateRange,
 	validateType,
@@ -32,14 +33,19 @@ export async function createRepository(
     try {
         const { name, ownerId, description, visibility } = req.body;
 
+		// Make sure name has no spaces and is in format name-of-repository
+		if (!isRepositoryNameValid(name)) {
+			reply.status(400).send({message: 'Invalid repository name'});
+			return;
+		}
+		
+
         // Check if repository already exists
         const existingRepository = await prisma.repository.findFirst({
             where: {
                 AND: [{ name: name }, { ownerId: ownerId }],
             },
         });
-
-        // If it already exists, return error response
         if (existingRepository) {
             return reply.code(409).send({
                 message: "Repository with this name and owner already exists.",
@@ -75,6 +81,7 @@ export async function getAllRepositories(
 	req: FastifyRequest<{ Querystring: GetRepositoriesInput }>,
 	reply: FastifyReply,
 ) {
+    // @TODO check/filter visibility
 	try {
 		const { limit, page, search, visibility, ownerId } = req.query;
 
@@ -165,6 +172,7 @@ export async function getRepository(
 	req: FastifyRequest<{ Querystring: { id: GetRepositoryInput } }>,
 	reply: FastifyReply,
 ) {
+    // @TODO check repository visibility
 	try {
 		const { id } = req.query;
 
@@ -208,6 +216,7 @@ export async function updateRepository(
 	}>,
 	reply: FastifyReply,
 ) {
+    // @TODO check permissions
 	try {
 		const { id, name, description, visibility, ownerId } = req.body;
 
@@ -251,6 +260,7 @@ export async function deleteRepository(
 	req: FastifyRequest<{ Body: { id: string } }>,
 	reply: FastifyReply,
 ) {
+    // @TODO check permissions
 	try {
 		const { id } = req.body;
 

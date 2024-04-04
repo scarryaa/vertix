@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "test": "pnpm jest"
+    "test": "pnpm jest",
+    "db-seed": "tsc prisma/seed.ts && cat prisma/seed.js | node --input-type=\"commonjs\" && rm prisma/seed.js"
   },
   "keywords": [
     "vertix",
