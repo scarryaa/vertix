@@ -11,44 +11,36 @@ datasource db {
 model User {
   role      String   @default("USER") @map("USER|ADMIN|MODERATOR")
   id        Int      @id @default(autoincrement())
-  username  String   @unique // Unique username for each user
-  email     String   @unique // Unique email address for each user
-  name      String // Full name of the user
-  avatar    String? // URL of the user's avatar image
-  bio       String? // Short bio or description of the user
+  username  String   @unique
+  email     String   @unique
+  name      String
+  avatar    String?
+  bio       String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  repositories         Repository[] // One-to-many relation: A user can have multiple repositories
-  followers            Follow[]        @relation("UserFollowers")
-  following            Follow[]        @relation("UserFollowing")
-  issues               Issue[] // One-to-many relation: A user can have multiple issues
-  stars                Star[] // One-to-many relation: A user can have multiple stars
+  repositories         Repository[]
+  followersRelation    Follow[]        @relation("UserFollowers")
+  followingRelation    Follow[]        @relation("UserFollowing")
+  issuesAuthored       Issue[]         @relation("IssueAuthor")
+  stars                Star[]          @relation("UserStars")
   password             String
   publicEmail          String?
   preferences          UserPreference?
   userPreferenceId     Int?
-  collaborators        Collaborator[]
-  comments             Comment[]
-  notifications        Notification[]
-  memberships          Member[]
-  pullRequests         PullRequest[]   @relation("PullRequestAssignees")
+  collaboratorRelation Collaborator[]  @relation("UserCollaborator")
+  commentsAuthored     Comment[]       @relation("CommentAuthor")
+  notifications        Notification[]  @relation("UserNotifications")
+  memberships          Member[]        @relation("UserMemberships")
+  pullRequestsAssigned PullRequest[]   @relation("PullRequestAssignees")
   pullRequestsAuthored PullRequest[]   @relation("PullRequestAuthor")
-  commits              Commit[]
-  PullRequest          PullRequest?    @relation(fields: [pullRequestId], references: [id])
+  commitsAuthored      Commit[]        @relation("CommitAuthor")
+  pullRequestAssigned  PullRequest?    @relation(fields: [pullRequestId], references: [id])
   pullRequestId        Int?
 }
 
-model UserPreference {
-  id              Int     @id @default(autoincrement())
-  user            User?   @relation(fields: [userId], references: [id])
-  userId          Int     @unique
-  theme           String  @default("system")
-  showPublicEmail Boolean @default(false)
-}
-
-// Intermediate model for the many-to-many relation
+// Intermediate models and relations
 model Follow {
   id          Int      @id @default(autoincrement())
   follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
@@ -61,41 +53,33 @@ model Follow {
   @@unique([followerId, followingId])
 }
 
-// Repository model representing repositories on the website
 model Repository {
-  id             Int            @id @default(autoincrement())
-  name           String
-  description    String?
-  visibility     String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  owner          User           @relation(fields: [ownerId], references: [id])
-  ownerId        Int
-  issues         Issue[]
-  stars          Star[]
-  language       String?
-  collaborator   Collaborator[]
-  license        License?       @relation(fields: [licenseId], references: [id])
-  licenseId      Int?
-  tag            Tag?           @relation(fields: [tagId], references: [id])
-  tagId          Int?
-  organization   Organization?  @relation(fields: [organizationId], references: [id])
-  organizationId Int?
-  pullRequest    PullRequest[]
-}
-
-model License {
-  id           Int          @id @default(autoincrement())
-  name         String
-  key          String       @unique
-  repositories Repository[]
+  id              Int            @id @default(autoincrement())
+  name            String
+  description     String?
+  visibility      String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  owner           User           @relation(fields: [ownerId], references: [id])
+  ownerId         Int
+  issues          Issue[]        @relation("RepositoryIssues")
+  stars           Star[]         @relation("RepositoryStars")
+  language        String?
+  collaboratorRel Collaborator[] @relation("RepositoryCollaborator")
+  license         License?       @relation(fields: [licenseId], references: [id])
+  licenseId       Int?
+  tag             Tag?           @relation(fields: [tagId], references: [id])
+  tagId           Int?
+  organization    Organization?  @relation(fields: [organizationId], references: [id])
+  organizationId  Int?
+  pullRequests    PullRequest[]  @relation("RepositoryPullRequests")
 }
 
 model Collaborator {
   id           Int        @id @default(autoincrement())
-  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repository   Repository @relation("RepositoryCollaborator", fields: [repositoryId], references: [id])
   repositoryId Int
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation("UserCollaborator", fields: [userId], references: [id])
   userId       Int
 
   @@unique([repositoryId, userId])
@@ -108,13 +92,13 @@ model PullRequest {
   status       String     @default("OPEN")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repository   Repository @relation("RepositoryPullRequests", fields: [repositoryId], references: [id])
   repositoryId Int
   author       User       @relation("PullRequestAuthor", fields: [authorId], references: [id])
   authorId     Int
   assignees    User[]     @relation("PullRequestAssignees")
-  comments     Comment[]
-  commits      Commit[]
+  comments     Comment[]  @relation("PullRequestComments")
+  commits      Commit[]   @relation("PullRequestCommits")
   headBranch   String
   baseBranch   String
   mergedAt     DateTime?
@@ -127,11 +111,11 @@ model Comment {
   body          String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id])
+  pullRequest   PullRequest @relation("PullRequestComments", fields: [pullRequestId], references: [id])
   pullRequestId Int
-  author        User        @relation(fields: [authorId], references: [id])
+  author        User        @relation("CommentAuthor", fields: [authorId], references: [id])
   authorId      Int
-  Issue         Issue?      @relation(fields: [issueId], references: [id])
+  issue         Issue?      @relation("IssueComments", fields: [issueId], references: [id])
   issueId       Int?
 }
 
@@ -140,9 +124,9 @@ model Commit {
   sha           String      @unique
   message       String
   createdAt     DateTime    @default(now())
-  pullRequest   PullRequest @relation(fields: [pullRequestId], references: [id])
+  pullRequest   PullRequest @relation("PullRequestCommits", fields: [pullRequestId], references: [id])
   pullRequestId Int
-  author        User        @relation(fields: [authorId], references: [id])
+  author        User        @relation("CommitAuthor", fields: [authorId], references: [id])
   authorId      Int
 }
 
@@ -154,11 +138,11 @@ model Issue {
   status       String
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repository   Repository @relation("RepositoryIssues", fields: [repositoryId], references: [id])
   repositoryId Int
-  author       User       @relation(fields: [authorId], references: [id])
+  author       User       @relation("IssueAuthor", fields: [authorId], references: [id])
   authorId     Int
-  Comment      Comment[]
+  comments     Comment[]  @relation("IssueComments")
 }
 
 // Star model representing stars (likes) on repositories
@@ -166,14 +150,15 @@ model Star {
   id           Int        @id @default(autoincrement())
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repository   Repository @relation("RepositoryStars", fields: [repositoryId], references: [id])
   repositoryId Int
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation("UserStars", fields: [userId], references: [id])
   userId       Int
 
   @@unique([repositoryId, userId])
 }
 
+// Other models
 model Tag {
   id           Int          @id @default(autoincrement())
   name         String
@@ -182,7 +167,7 @@ model Tag {
 
 model Notification {
   id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation("UserNotifications", fields: [userId], references: [id])
   userId    Int
   type      String
   data      Json
@@ -196,17 +181,32 @@ model Organization {
   description  String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  members      Member[]
+  members      Member[]     @relation("OrganizationMembers")
   repositories Repository[]
 }
 
 model Member {
   id             Int          @id @default(autoincrement())
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation("OrganizationMembers", fields: [organizationId], references: [id])
   organizationId Int
-  user           User         @relation(fields: [userId], references: [id])
+  user           User         @relation("UserMemberships", fields: [userId], references: [id])
   userId         Int
   role           String
 
   @@unique([organizationId, userId])
+}
+
+model UserPreference {
+  id              Int     @id @default(autoincrement())
+  user            User?   @relation(fields: [userId], references: [id])
+  userId          Int     @unique
+  theme           String  @default("system")
+  showPublicEmail Boolean @default(false)
+}
+
+model License {
+  id           Int          @id @default(autoincrement())
+  name         String
+  key          String       @unique
+  repositories Repository[]
 }

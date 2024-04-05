@@ -1,4 +1,4 @@
-import { mockBcrypt, mockPrisma } from "../__mocks__/mocks";
+import { mockPrisma } from "../__mocks__/mocks";
 
 jest.mock("@prisma/client", () => {
 	return {
@@ -9,20 +9,17 @@ jest.mock("@prisma/client", () => {
 import {
 	type Prisma,
 	PrismaClient,
-	type Repository,
-	type User,
 } from "@prisma/client";
-import { createRepository } from "../../src/controllers/repository.controller";
 import { Role } from "../../src/models";
-import { RepositoryRepository } from "../../src/repositories/repository.repository";
+import { RepositoryRepositoryImpl } from "../../src/repositories/repository.repository";
 
 describe("RepositoryRepository", () => {
-	let repositoryRepository: RepositoryRepository;
+	let repositoryRepository: RepositoryRepositoryImpl;
 	let prismaMock: jest.Mocked<PrismaClient>;
 
 	beforeEach(() => {
 		prismaMock = new PrismaClient() as jest.Mocked<PrismaClient>;
-		repositoryRepository = new RepositoryRepository(prismaMock);
+		repositoryRepository = new RepositoryRepositoryImpl(prismaMock);
 	});
 
 	afterEach(async () => {

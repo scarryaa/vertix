@@ -80,7 +80,8 @@ export const handleValidations = (
 	const filteredValidations = validations.filter(Boolean) as ValidationError[];
 	if (filteredValidations.length > 0) {
 		const firstErr = filteredValidations[0];
-		replyWithError(reply, firstErr.message);
+
+		if (firstErr) replyWithError(reply, firstErr.message);
 		return true;
 	}
 	return false;

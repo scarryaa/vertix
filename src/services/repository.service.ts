@@ -1,21 +1,20 @@
 import type { Repository } from "../models";
 import type { CollaboratorRepository } from "../repositories/collaborator.repository";
-import type { RepositoryRepository } from "../repositories/repository.repository";
+import type { RepositoryRepositoryImpl } from "../repositories/repository.repository";
 import { UnauthorizedError } from "../utils/errors";
 
-export type ServiceRepositoryInclude<T> = {
-	[K in keyof T]?: boolean | ServiceRepositoryArgs<T[K]>;
-};
-
-type ServiceRepositoryArgs<T> = {
-	select?: {
-		[K in keyof T]?: boolean;
-	};
-};
+interface RepositoryQueryOptions {
+	limit?: number;
+	page?: number;
+	search?: string;
+	visibility?: "public" | "private";
+	ownerId?: number;
+	skip?: number;
+}
 
 export class RepositoryService {
 	constructor(
-		private repoRepo: RepositoryRepository,
+		private repoRepo: RepositoryRepositoryImpl,
 		private collabRepo: CollaboratorRepository,
 	) {}
 
@@ -23,31 +22,24 @@ export class RepositoryService {
 		return await this.repoRepo.findById(id);
 	}
 
-	async getAllRepositories(options: {
-		limit?: number;
-		page?: number;
-		search?: string;
-		visibility?: "public" | "private";
-		ownerId?: number;
-		skip?: number;
-	}): Promise<{ repositories: Repository[]; totalCount: number }> {
-		const { limit, page, search, visibility, ownerId, skip } = options;
+	async getAllRepositories(
+		options: RepositoryQueryOptions,
+	): Promise<{ repositories: Repository[]; totalCount: number }> {
+		const { limit = 20, page = 1, search, visibility, ownerId, skip } = options;
+		const parsedLimit = parseLimit(limit);
+		const parsedPage = parsePage(page);
+		const parsedSkip = parseSkip(parsedPage, parsedLimit, skip);
 
-		const parsedPage = Math.max(1, page || 1);
-		const parsedLimit = Math.min(100, Math.max(1, limit || 20));
-		const parsedSkip =
-			skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
-
-		const { repositories, totalCount } = await this.repoRepo.findAll({
+		const { items, totalCount } = await this.repoRepo.findAll({
 			limit: parsedLimit,
 			ownerId: ownerId,
 			page: parsedPage,
 			search: search,
-			skip: skip,
+			skip: parsedSkip,
 			visibility: visibility,
 		});
 
-		return { repositories, totalCount };
+		return { repositories: items, totalCount };
 	}
 
 	async createRepository(
@@ -112,6 +104,12 @@ export class RepositoryService {
 		return !!collaborator;
 	}
 
+	async isUserOwner(repositoryId: number, userId: number): Promise<boolean> {
+		const repository = await this.repoRepo.findById(repositoryId);
+
+		return repository?.ownerId === userId;
+	}
+
 	private async canUserUpdateRepository(
 		repositoryId: number,
 		userId: number,
@@ -123,6 +121,19 @@ export class RepositoryService {
 		repositoryId: number,
 		userId: number,
 	): Promise<boolean> {
-		return this.isUserCollaborator(repositoryId, userId);
+		return this.isUserOwner(repositoryId, userId);
 	}
+}
+
+// Helpers
+function parseLimit(limit?: number): number {
+	return Math.min(100, Math.max(1, limit || 20));
+}
+
+function parsePage(page?: number): number {
+	return Math.max(1, page || 1);
+}
+
+function parseSkip(page: number, limit: number, skip?: number): number {
+	return skip !== undefined ? skip : (page - 1) * limit;
 }

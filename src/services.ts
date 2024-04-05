@@ -1,14 +1,14 @@
 import { CollaboratorRepository } from "./repositories/collaborator.repository";
-import { RepositoryRepository } from "./repositories/repository.repository";
-import { UserRepository } from "./repositories/user.repository";
+import { RepositoryRepositoryImpl } from "./repositories/repository.repository";
+import { UserRepositoryImpl } from "./repositories/user.repository";
 import { CollaboratorService } from "./services/collaborator.service";
 import { RepositoryService } from "./services/repository.service";
 import { UserService } from "./services/user.service";
 import prisma from "./utils/prisma";
 
-const userRepo = new UserRepository(prisma);
+const userRepo = new UserRepositoryImpl(prisma);
 const collaboratorRepo = new CollaboratorRepository(prisma);
-const repositoryRepo = new RepositoryRepository(prisma);
+const repositoryRepo = new RepositoryRepositoryImpl(prisma);
 
 const userService = new UserService(userRepo);
 const collaboratorService = new CollaboratorService(collaboratorRepo);

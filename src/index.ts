@@ -9,7 +9,7 @@ import fastify, {
 	type FastifyRequest,
 } from "fastify";
 import type { CustomRequest } from "../types/request";
-import errorHandler from "./middlewares/error-handler";
+import { errorHandler } from "./middlewares/error.middleware";
 import { repositoryRoutes } from "./routes/repository.routes";
 import { userRoutes } from "./routes/user.routes";
 import { repositorySchemas } from "./schemas/repository.schema";
@@ -96,7 +96,7 @@ class VortexServer {
 		const listeners = ["SIGINT", "SIGTERM"];
 		for (let i = 0; i < listeners.length; i++) {
 			const signal = listeners[i];
-			process.on(signal, async () => {
+			process.on(signal as any, async () => {
 				await this.app.close();
 				process.exit(0);
 			});

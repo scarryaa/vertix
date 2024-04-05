@@ -3,7 +3,6 @@ import fjwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
 import bcrypt from "bcrypt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import errorHandler from "../middlewares/error-handler";
 import type { LoginUserInput, UserInput } from "../schemas/user.schema";
 import prisma from "../utils/prisma";
 
@@ -41,7 +40,7 @@ export async function createUser(
 
 		return reply.status(201).send(newUser);
 	} catch (error) {
-		return errorHandler(error, req, reply);
+		throw new Error("INTERNAL_SERVER_ERROR");
 	}
 }
 
@@ -70,7 +69,7 @@ export async function login(
 
 		return reply.send({ message: "Login successful." });
 	} catch (error) {
-		return errorHandler(error, req, reply);
+		throw new Error("INTERNAL_SERVER_ERROR");
 	}
 }
 
@@ -103,7 +102,7 @@ export async function getAllUsers(req: FastifyRequest, reply: FastifyReply) {
 
 		return reply.status(200).send(usersWithEmail);
 	} catch (error) {
-		return errorHandler(error, req, reply);
+		throw new Error("INTERNAL_SERVER_ERROR");
 	}
 }
 
@@ -118,7 +117,7 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
 
 		return reply.send({ message: "Logout successful." });
 	} catch (error) {
-		return errorHandler(error, req, reply);
+		throw new Error("INTERNAL_SERVER_ERROR");
 	}
 }
 
@@ -128,6 +127,4 @@ export default async function userRoutes(fastify: FastifyInstance, _opts: any) {
 	fastify.post("/login", login);
 	fastify.get("/users", getAllUsers);
 	fastify.post("/logout", logout);
-
-	fastify.setErrorHandler(errorHandler);
 }

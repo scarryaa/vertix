@@ -10,34 +10,32 @@ import type {
 	UserPreference,
 } from ".";
 
-export const Role: "USER" | "ADMIN" | "MODERATOR" = "USER";
-
 export interface User {
-	role: typeof Role;
-	id?: number;
+	id: number;
+	role: "USER" | "ADMIN" | "MODERATOR" | string;
 	username: string;
-	password: string;
 	email: string;
 	name: string;
-	avatar?: string;
-	bio?: string;
-	createdAt?: Date;
-	updatedAt?: Date;
-	repositories?: Repository[];
-	followers?: Follow[];
-	following?: Follow[];
-	issues?: Issue[];
-	stars?: Star[];
-	publicEmail?: string;
-	preferences?: UserPreference;
-	userPreferenceId?: number;
-	collaborators?: Collaborator[];
-	comments?: Comment[];
-	notifications?: Notification[];
-	memberships?: Member[];
-	pullRequests?: PullRequest[];
-	pullRequestsAuthored?: PullRequest[];
-	commits?: Commit[];
-	pullRequest?: PullRequest;
-	pullRequestId?: number;
-}
+	avatar: string | null;
+	bio: string | null;
+	createdAt: Date | null;
+	updatedAt: Date | null;
+	repositories: Repository[];
+	followers: Follow[];
+	following: Follow[];
+	issues: Issue[];
+	stars: Star[];
+	password: string;
+	publicEmail: string | null;
+	preferences: UserPreference | null;
+	userPreferenceId: number | null;
+	collaborators: Collaborator[];
+	comments: Comment[];
+	notifications: Notification[];
+	memberships: Member[];
+	pullRequests: PullRequest[];
+	pullRequestsAuthored: PullRequest[];
+	commits: Commit[];
+	pullRequest: PullRequest | null;
+	pullRequestId: number | null;
+  }

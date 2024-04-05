@@ -8,7 +8,9 @@
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
-        "typeRoots": ["./node_modules/@types", "./types"]
+        "typeRoots": ["./node_modules/@types", "./types"],
+        "strictNullChecks": true,
+        "noUncheckedIndexedAccess": true
     },
     "include": ["src/**/*", "./types", "tests"]
 }

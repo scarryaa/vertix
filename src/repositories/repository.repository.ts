@@ -1,19 +1,25 @@
-import type { Prisma, PrismaClient, Repository } from "@prisma/client";
-import type { Repository as RepositoryModel } from "../models";
-import { Role as ModelRole, type Role } from "../models/user.model";
+import type {
+	Prisma,
+	PrismaClient,
+	Repository as PrismaRepository,
+} from "@prisma/client";
+import type { Repository } from "../models";
+import type {
+	BaseRepository,
+	FindAllOptions,
+	RepositoryInclude,
+} from "./base.repository";
+import { buildUserIncludeOptions } from "./utils/repository.utils";
 
-type RepositoryInclude = {
-	owner?: boolean;
-	issues?: boolean;
-	stars?: boolean;
-	collaborator?: boolean;
-	license?: boolean;
-	tag?: boolean;
-	organization?: boolean;
-	pullRequest?: boolean;
-};
+interface RepositoryRepository
+	extends BaseRepository<
+		Repository,
+		Prisma.RepositoryCreateInput,
+		Prisma.RepositoryUpdateInput,
+		{ where: Prisma.RepositoryWhereUniqueInput }
+	> {}
 
-export class RepositoryRepository {
+export class RepositoryRepositoryImpl implements RepositoryRepository {
 	private readonly prisma: PrismaClient;
 
 	constructor(prisma: PrismaClient) {
@@ -22,106 +28,26 @@ export class RepositoryRepository {
 
 	async findById(
 		id: number,
-		include?: RepositoryInclude,
-	): Promise<RepositoryModel | undefined> {
-		const includeOpts: Prisma.RepositoryInclude = {};
-
-		if (include?.issues) {
-			includeOpts.issues = {
-				select: {
-					id: true,
-					title: true,
-					repository: true,
-					author: true,
-					Comment: true,
-				},
-			};
-		}
-
-		if (include?.stars) {
-			includeOpts.stars = {
-				select: {
-					id: true,
-				},
-			};
-		}
-
-		if (include?.owner) {
-			includeOpts.owner = {
-				select: {
-					role: true,
-				},
-			};
-		}
-
-		if (include?.collaborator) {
-			includeOpts.collaborator = {
-				select: {
-					id: true,
-				},
-			};
-		}
-
-		if (include?.license) {
-			includeOpts.license = {
-				select: {
-					id: true,
-				},
-			};
-		}
-
-		if (include?.organization) {
-			includeOpts.organization = {
-				select: {
-					id: true,
-				},
-			};
-		}
-
-		if (include?.pullRequest) {
-			includeOpts.pullRequest = {
-				select: {
-					id: true,
-				},
-			};
-		}
-
-		if (include?.tag) {
-			includeOpts.tag = {
-				select: {
-					id: true,
-				},
-			};
-		}
+		include?: RepositoryInclude<Repository>,
+	): Promise<Repository | undefined> {
+		const includeOpts: Prisma.RepositoryInclude =
+			buildUserIncludeOptions(include);
 
 		const res = await this.prisma.repository.findUnique({
 			where: { id },
-			include: { ...includeOpts },
+			include: includeOpts,
 		});
 
 		if (!res) {
 			return undefined;
 		}
 
-		return {
-			...res,
-			// biome-ignore lint/suspicious/noExplicitAny: cannot cast to enum
-			...(include?.owner && { owner: res.owner as any }),
-		};
+		return res;
 	}
 
-	async findByOwner(ownerId: number): Promise<RepositoryModel[]> {
-		return this.prisma.repository.findMany({ where: { ownerId } });
-	}
-
-	async findAll(options: {
-		limit?: number;
-		page?: number;
-		search?: string;
-		visibility?: "public" | "private";
-		ownerId?: number;
-		skip?: number;
-	}): Promise<{ repositories: Repository[]; totalCount: number }> {
+	async findAll(
+		options: FindAllOptions<Repository>,
+	): Promise<{ items: Repository[]; totalCount: number }> {
 		const { limit, page, search, visibility, ownerId, skip } = options;
 		// biome-ignore lint/suspicious/noExplicitAny: need any here
 		const whereClause: any = {};
@@ -155,43 +81,23 @@ export class RepositoryRepository {
 			where: whereClause,
 		});
 
-		return { repositories, totalCount };
+		return { items: repositories, totalCount };
 	}
 
-	async create(data: Prisma.RepositoryCreateInput): Promise<RepositoryModel> {
+	async create(data: Prisma.RepositoryCreateInput): Promise<Repository> {
 		return this.prisma.repository.create({ data });
-	}
-
-	async createMany(
-		data: Prisma.RepositoryCreateManyInput[],
-	): Promise<RepositoryModel[]> {
-		const batchPayload = await this.prisma.repository.createMany({ data });
-
-		const createdIds = batchPayload.count
-			? [...Array(batchPayload.count).keys()].map((_, i) => i + 1)
-			: [];
-
-		const createdRepositories = await this.prisma.repository.findMany({
-			where: {
-				id: {
-					in: createdIds,
-				},
-			},
-		});
-
-		return createdRepositories;
 	}
 
 	async update(
 		id: number,
 		data: Prisma.RepositoryUpdateInput,
-	): Promise<RepositoryModel> {
+	): Promise<Repository> {
 		return this.prisma.repository.update({ where: { id }, data });
 	}
 
 	async delete(params: {
 		where: Prisma.RepositoryWhereUniqueInput;
-	}): Promise<RepositoryModel> {
+	}): Promise<Repository> {
 		const { where } = params;
 		return this.prisma.repository.delete({ where });
 	}
