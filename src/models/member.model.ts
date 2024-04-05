@@ -1,8 +1,10 @@
-import type { Organization, User } from ".";
+import type { Organization, OrganizationRole, UserBasic } from ".";
 
 export interface Member {
 	id: number;
-	organizationId: number;
-	userId: number;
-	role: string;
+	organization: Organization;
+	organization_id: number;
+	user: UserBasic;
+	user_id: number;
+	role: OrganizationRole;
 }

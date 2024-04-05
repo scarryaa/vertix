@@ -30,109 +30,34 @@ enum RepositoryVisibility {
   PRIVATE
 }
 
-enum Language {
-  ENGLISH
-  SPANISH
-  FRENCH
-  GERMAN
-  ITALIAN
-  PORTUGUESE
-  RUSSIAN
-  CHINESE
-  JAPANESE
-  KOREAN
-  ARABIC
-  HINDI
-}
-
-enum ProgrammingLanguage {
-  JAVASCRIPT
-  TYPESCRIPT
-  PYTHON
-  RUBY
-  JAVA
-  GO
-  C
-  CPP
-  CSHARP
-  SWIFT
-  RUST
-  KOTLIN
-  PHP
-  SCALA
-  CLOJURE
-  HASKELL
-  ERLANG
-  ELIXIR
-  PERL
-  GROOVY
-  BASH
-  R
-  MATLAB
-  OBJECTIVE_C
-  ASSEMBLY
-  LISP
-}
-
-enum Timezone {
-  UTC
-  EST
-  PST
-  CST
-  MST
-  AEST
-  AEDT
-  IST
-  JST
-  CET
-  EET
-  GMT
-}
-
-enum NotificationType {
-  ISSUE_COMMENT
-  PULL_REQUEST_COMMENT
-  PULL_REQUEST_REVIEW
-  PULL_REQUEST_REVIEW_COMMENT
-  MENTION
-  REPOSITORY_WATCH
-  REPOSITORY_STAR
-  REPOSITORY_FORK
-}
-
-enum OrganizationMemberRole {
-  OWNER
-  ADMIN
-  MEMBER
-}
 model User {
-  id                     Int                   @id @default(autoincrement())
-  role                   UserRole              @default(USER)
-  created_at             DateTime              @default(now())
-  updated_at             DateTime              @updatedAt
-  username               String                @unique
-  email                  String                @unique
+  id                     Int        @id @default(autoincrement())
+  role                   UserRole   @default(USER)
+  created_at             DateTime   @default(now())
+  updated_at             DateTime   @updatedAt
+  username               String     @unique
+  email                  String     @unique
   password               String
   name                   String
   avatar                 String?
   bio                    String?
   public_email           String?
-  verified_email         Boolean               @default(false)
-  languages              Language[]            @default([ENGLISH])
-  perferred_languages    Language[]            @default([ENGLISH])
-  programming_languages  ProgrammingLanguage[]
-  timezone               Timezone?             @default(EST)
-  status                 UserStatus            @default(ACTIVE)
-  user_preferences_id    Int                   @unique
+  verified_email         Boolean    @default(false)
+  languages              String[]   // @TODO convert to enum
+  perferred_languages    String[]   @default(["English"])
+  programming_languages  String[] // @TODO convert to enum
+  timezone               String?    @default("EST") // @TODO convert to enum
+  status                 UserStatus @default(ACTIVE)
+  user_preferences_id    Int        @unique
   last_login_at          DateTime?
   deleted_at             DateTime?
   reset_password_token   String?
   reset_password_expires DateTime?
-  two_factor_enabled     Boolean               @default(false)
+  two_factor_enabled     Boolean    @default(false)
   phone                  String?
   location               String?
   website                String?
-  deleted                Boolean               @default(false)
+  deleted                Boolean    @default(false)
 
   assigned_issues      IssueAssignee[]
   social_logins        SocialLogin[]
@@ -183,23 +108,23 @@ model Follow {
 }
 
 model Repository {
-  id                    Int                   @id @default(autoincrement())
+  id                    Int            @id @default(autoincrement())
   name                  String
   description           String?
   visibility            String
-  created_at            DateTime              @default(now())
-  updated_at            DateTime              @updatedAt
-  owner                 User                  @relation(fields: [owner_id], references: [id])
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+  owner                 User           @relation(fields: [owner_id], references: [id])
   owner_id              Int
-  issues                Issue[]               @relation("RepositoryIssues")
+  issues                Issue[]        @relation("RepositoryIssues")
   stars                 Star[]
-  programming_languages ProgrammingLanguage[]
+  programming_languages String? // @TODO convert to enum
   collaborators         Collaborator[]
-  license               License?              @relation(fields: [license_id], references: [id])
+  license               License?       @relation(fields: [license_id], references: [id])
   license_id            Int?
-  tag                   Tag?                  @relation(fields: [tag_id], references: [id])
+  tag                   Tag?           @relation(fields: [tag_id], references: [id])
   tag_id                Int?
-  organization          Organization?         @relation(fields: [organization_id], references: [id])
+  organization          Organization?  @relation(fields: [organization_id], references: [id])
   organization_id       Int?
   pull_requests         PullRequest[]
 
@@ -303,13 +228,13 @@ model Tag {
 }
 
 model Notification {
-  id         Int              @id @default(autoincrement())
-  user       User             @relation("UserNotifications", fields: [user_id], references: [id], onDelete: Cascade)
+  id         Int      @id @default(autoincrement())
+  user       User     @relation("UserNotifications", fields: [user_id], references: [id], onDelete: Cascade)
   user_id    Int
-  type       NotificationType
+  type       String // @TODO convert into enum
   data       Json
-  read       Boolean          @default(false)
-  created_at DateTime         @default(now())
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
 }
 
 model Organization {
@@ -323,12 +248,12 @@ model Organization {
 }
 
 model Member {
-  id              Int                    @id @default(autoincrement())
-  organization    Organization           @relation(fields: [organization_id], references: [id])
+  id              Int          @id @default(autoincrement())
+  organization    Organization @relation(fields: [organization_id], references: [id])
   organization_id Int
-  user            User                   @relation(fields: [user_id], references: [id])
+  user            User         @relation(fields: [user_id], references: [id])
   user_id         Int
-  role            OrganizationMemberRole
+  role            String // @TODO conver to enum
 
   @@unique([organization_id, user_id])
 }

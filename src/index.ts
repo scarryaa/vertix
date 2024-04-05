@@ -14,6 +14,7 @@ import { repositoryRoutes } from "./routes/repository.routes";
 import { userRoutes } from "./routes/user.routes";
 import { repositorySchemas } from "./schemas/repository.schema";
 import { userSchemas } from "./schemas/user.schema";
+import prisma from "./utils/prisma";
 
 type ServerConfig = {
 	port: number;

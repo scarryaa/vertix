@@ -1,5 +1,9 @@
-export interface Collaborator {
+import type { RepositoryDetailed, UserBasic } from ".";
+
+export interface CollaboratorDetailed {
 	id: number;
-	repositoryId: number;
-	userId: number;
-  }
+	repository: RepositoryDetailed;
+	repository_id: number;
+	user: UserBasic;
+	user_id: number;
+}

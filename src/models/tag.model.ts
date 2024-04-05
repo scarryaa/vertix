@@ -1,7 +1,7 @@
-import type { Repository } from ".";
+import type { RepositoryDetailed } from ".";
 
 export interface Tag {
 	id: number;
 	name: string;
-	repositories: Repository[];
+	repositories: RepositoryDetailed[];
 }

@@ -1,11 +1,11 @@
-import type { Repository, User } from ".";
+import type { RepositoryDetailed, UserBasic } from ".";
 
 export interface Star {
 	id: number;
-	createdAt: Date;
-	updatedAt: Date;
-	repositoryId: number;
-	userId: number;
-	repository: Repository;
-	user: User;
+	created_at: Date;
+	updattd_at: Date;
+	repository: RepositoryDetailed;
+	repository_id: number;
+	user: UserBasic;
+	user_id: number;
 }

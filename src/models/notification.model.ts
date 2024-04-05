@@ -1,11 +1,11 @@
-import type { User } from ".";
+import type { NotificationData, NotificationType, UserBasic } from ".";
 
 export interface Notification {
 	id: number;
-	userId: number;
-	type: string;
-	// biome-ignore lint/suspicious/noExplicitAny: data can be any
-	data: any;
+	user: UserBasic;
+	user_id: number;
+	type: NotificationType;
+	data: NotificationData;
 	read: boolean;
-	createdAt: Date;
-  }
+	created_at: Date;
+}

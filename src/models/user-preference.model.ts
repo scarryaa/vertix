@@ -1,6 +1,9 @@
-export interface UserPreference {
+import type { UserBasic } from ".";
+
+export interface UserPreferences {
 	id: number;
-	userId: number;
+	user: UserBasic | null;
+	user_id: number | null;
 	theme: string;
-	showPublicEmail: boolean;
+	show_public_email: boolean;
 }

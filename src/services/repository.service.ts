@@ -18,11 +18,11 @@ export class RepositoryService {
 		private collabRepo: CollaboratorRepository,
 	) {}
 
-	async findRepositoryById(id: number): Promise<Repository | undefined> {
+	async findById(id: number): Promise<Repository | undefined> {
 		return await this.repoRepo.findById(id);
 	}
 
-	async getAllRepositories(
+	async getAll(
 		options: RepositoryQueryOptions,
 	): Promise<{ repositories: Repository[]; totalCount: number }> {
 		const { limit = 20, page = 1, search, visibility, ownerId, skip } = options;
@@ -42,7 +42,7 @@ export class RepositoryService {
 		return { repositories: items, totalCount };
 	}
 
-	async createRepository(
+	async create(
 		userId: number,
 		data: { name: string; description?: string; visibility: string },
 	): Promise<Repository> {
@@ -58,7 +58,7 @@ export class RepositoryService {
 		});
 	}
 
-	async updateRepository(
+	async update(
 		repositoryId: number,
 		userId: number,
 		data: { name?: string; description?: string; visibility?: string },
@@ -74,7 +74,7 @@ export class RepositoryService {
 		return this.repoRepo.update(repositoryId, data);
 	}
 
-	async deleteRepository(
+	async delete(
 		repositoryId: number,
 		userId: number,
 	): Promise<Repository> {

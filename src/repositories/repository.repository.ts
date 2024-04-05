@@ -1,9 +1,5 @@
-import type {
-	Prisma,
-	PrismaClient,
-	Repository as PrismaRepository,
-} from "@prisma/client";
-import type { Repository } from "../models";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import type { RepositoryDetailed } from "../models";
 import type {
 	BaseRepository,
 	FindAllOptions,
@@ -13,7 +9,7 @@ import { buildUserIncludeOptions } from "./utils/repository.utils";
 
 interface RepositoryRepository
 	extends BaseRepository<
-		Repository,
+		RepositoryDetailed,
 		Prisma.RepositoryCreateInput,
 		Prisma.RepositoryUpdateInput,
 		Prisma.RepositoryCreateManyInput,
@@ -29,8 +25,8 @@ export class RepositoryRepositoryImpl implements RepositoryRepository {
 
 	async findById(
 		id: number,
-		include?: RepositoryInclude<Repository>,
-	): Promise<Repository | undefined> {
+		include?: RepositoryInclude<RepositoryDetailed>,
+	): Promise<RepositoryDetailed | undefined> {
 		const includeOpts: Prisma.RepositoryInclude =
 			buildUserIncludeOptions(include);
 
@@ -47,8 +43,8 @@ export class RepositoryRepositoryImpl implements RepositoryRepository {
 	}
 
 	async findAll(
-		options: FindAllOptions<Repository>,
-	): Promise<{ items: Repository[]; totalCount: number }> {
+		options: FindAllOptions<RepositoryDetailed>,
+	): Promise<{ items: RepositoryDetailed[]; totalCount: number }> {
 		const { limit, page, search, visibility, ownerId, skip } = options;
 		// biome-ignore lint/suspicious/noExplicitAny: need any here
 		const whereClause: any = {};
@@ -85,7 +81,9 @@ export class RepositoryRepositoryImpl implements RepositoryRepository {
 		return { items: repositories, totalCount };
 	}
 
-	async create(data: Prisma.RepositoryCreateInput): Promise<Repository> {
+	async create(
+		data: Prisma.RepositoryCreateInput,
+	): Promise<RepositoryDetailed> {
 		return await this.prisma.repository.create({ data });
 	}
 
@@ -97,18 +95,18 @@ export class RepositoryRepositoryImpl implements RepositoryRepository {
 	async update(
 		id: number,
 		data: Prisma.RepositoryUpdateInput,
-	): Promise<Repository> {
+	): Promise<RepositoryDetailed> {
 		return await this.prisma.repository.update({ where: { id }, data });
 	}
 
 	async delete(params: {
 		where: Prisma.RepositoryWhereUniqueInput;
-	}): Promise<Repository> {
+	}): Promise<RepositoryDetailed> {
 		const { where } = params;
 		return await this.prisma.repository.delete({ where });
 	}
 
-	async findByOwnerId(ownerId: number): Promise<Repository[]> {
-		return await this.prisma.repository.findMany({ where: { ownerId }});
+	async findByOwnerId(owner_id: number): Promise<RepositoryDetailed[]> {
+		return await this.prisma.repository.findMany({ where: { owner_id } });
 	}
 }

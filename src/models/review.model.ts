@@ -1,11 +1,11 @@
 import type { PullRequest, UserBasic } from ".";
 
-export interface Commit {
+export interface ReviewDetailed {
 	id: number;
-	sha: string;
-	message: string;
+	body: string;
 	created_at: Date;
-	pull_request: PullRequest;
+	updated_at: Date;
+	pull_request: PullRequest[];
 	pull_request_id: number;
 	author: UserBasic;
 	author_id: number;

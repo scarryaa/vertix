@@ -1,15 +1,33 @@
+import type { CollaboratorDetailed, Issue, License, Organization, ProgrammingLanguage, PullRequest, Star, Tag, UserBasic } from ".";
+
 export type VisibilityType = "public" | "private";
 
-export interface Repository {
+export interface RepositoryDetailed {
 	id: number;
 	name: string;
 	description: string | null;
 	visibility: VisibilityType | string;
-	createdAt: Date;
-	updatedAt: Date;
-	ownerId: number;
-	language: string | null;
-	licenseId: number | null;
-	tagId: number | null;
-	organizationId: number | null;
+	created_at: Date;
+	updated_at: Date;
+	owner: UserBasic;
+	owner_id: number;
+	issues: Issue[];
+	stars: Star[];
+	programming_languages: ProgrammingLanguage[] | null;
+	collaborators: CollaboratorDetailed;
+	license: License | null;
+	license_id: number | null;
+	tag: Tag | null;
+	tag_id: number | null;
+	organization: Organization | null;
+	organization_id: number | null;
+	pull_requests: PullRequest[];
 }
+
+export type CreateRepository = Pick<
+  RepositoryDetailed,
+  "name" | "visibility" | "owner_id"
+> &
+  Partial<Pick<RepositoryDetailed, "description" | "license" | "organization">> & {
+    programming_languages?: ProgrammingLanguage[];
+  };

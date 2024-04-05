@@ -1,12 +1,11 @@
 module.exports = {
-    transform: {
-        '^.+\\.(ts|tsx)$': 'ts-jest',
-    },
-    transformIgnorePatterns: [
-        'node_modules/(?!' + 
-            [
-                'node-fetch',
-            ].join('|') +
-        ')',
-    ],
+	transform: {
+		"^.+\\.(ts|tsx)$": [
+			"ts-jest",
+			{
+				tsconfig: "./tsconfig.json",
+			},
+		],
+	},
+	transformIgnorePatterns: [`node_modules/(?!${["node-fetch"].join("|")})`],
 };

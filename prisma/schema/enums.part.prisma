@@ -1,0 +1,98 @@
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PullRequestStatus {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+enum RepositoryVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum Language {
+  ENGLISH
+  SPANISH
+  FRENCH
+  GERMAN
+  ITALIAN
+  PORTUGUESE
+  RUSSIAN
+  CHINESE
+  JAPANESE
+  KOREAN
+  ARABIC
+  HINDI
+}
+
+enum ProgrammingLanguage {
+  JAVASCRIPT
+  TYPESCRIPT
+  PYTHON
+  RUBY
+  JAVA
+  GO
+  C
+  CPP
+  CSHARP
+  SWIFT
+  RUST
+  KOTLIN
+  PHP
+  SCALA
+  CLOJURE
+  HASKELL
+  ERLANG
+  ELIXIR
+  PERL
+  GROOVY
+  BASH
+  R
+  MATLAB
+  OBJECTIVE_C
+  ASSEMBLY
+  LISP
+}
+
+enum Timezone {
+  UTC
+  EST
+  PST
+  CST
+  MST
+  AEST
+  AEDT
+  IST
+  JST
+  CET
+  EET
+  GMT
+}
+
+enum NotificationType {
+  ISSUE_COMMENT
+  PULL_REQUEST_COMMENT
+  PULL_REQUEST_REVIEW
+  PULL_REQUEST_REVIEW_COMMENT
+  MENTION
+  REPOSITORY_WATCH
+  REPOSITORY_STAR
+  REPOSITORY_FORK
+}
+
+enum OrganizationMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}

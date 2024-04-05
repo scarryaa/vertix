@@ -50,7 +50,7 @@ export async function createRepository(
 	}
 
 	// Create repository
-	const newRepository: Repository = await repositoryService.createRepository(
+	const newRepository: Repository = await repositoryService.create(
 		ownerId,
 		{
 			name,
@@ -96,7 +96,7 @@ export async function getAllRepositories(
 	const parsedSkip = skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
 
 	const { repositories, totalCount } =
-		await repositoryService.getAllRepositories({
+		await repositoryService.getAll({
 			limit: parsedLimit,
 			ownerId: parsedOwnerId,
 			page: parsedPage,
@@ -111,7 +111,7 @@ export async function getAllRepositories(
 	}
 
 	const response: GetRepositoriesResponse = {
-		repositories: repositories.map((repo) => ({
+		repositories: repositories.map((repo: any) => ({
 			...repo,
 			description: repo.description ?? null,
 			visibility: repo.visibility as "public" | "private",
@@ -141,7 +141,7 @@ export async function getRepository(
 	handleValidations(reply, validations);
 
 	// Otherwise, we can proceed
-	const repository = await repositoryService.findRepositoryById(Number(id));
+	const repository = await repositoryService.findById(Number(id));
 
 	if (!repository) {
 		return reply.code(404).send({ message: "Repository not found" });
@@ -194,7 +194,7 @@ export async function updateRepository(
 		return reply.code(400).send({ message: `No fields provided for update. Supported fields are: ${supportedFieldsForUpdate.join(', ')}` });
 	}
 
-	const updatedRepository = await repositoryService.updateRepository(
+	const updatedRepository = await repositoryService.update(
 		Number(id),
 		Number(ownerId),
 		dataToUpdate,
@@ -221,7 +221,7 @@ export async function deleteRepository(
 
 	handleValidations(reply, validations);
 
-	await repositoryService.deleteRepository(Number(id), Number(userId));
+	await repositoryService.delete(Number(id), Number(userId));
 
 	return reply.code(204).send();
 }

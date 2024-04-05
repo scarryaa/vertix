@@ -1,11 +1,11 @@
-import type { Member, Repository } from ".";
+import type { Member, RepositoryDetailed } from ".";
 
 export interface Organization {
 	id: number;
 	name: string;
 	description: string | null;
-	createdAt: Date;
-	updatedAt: Date;
+	created_at: Date;
+	updated_at: Date;
 	members: Member[];
-	repositories: Repository[];
+	repositories: RepositoryDetailed[];
 }
