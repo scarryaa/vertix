@@ -3,13 +3,23 @@ import type { CollaboratorRepository } from "../repositories/collaborator.reposi
 import type { RepositoryRepository } from "../repositories/repository.repository";
 import { UnauthorizedError } from "../utils/errors";
 
+export type ServiceRepositoryInclude<T> = {
+	[K in keyof T]?: boolean | ServiceRepositoryArgs<T[K]>;
+};
+
+type ServiceRepositoryArgs<T> = {
+	select?: {
+		[K in keyof T]?: boolean;
+	};
+};
+
 export class RepositoryService {
 	constructor(
 		private repoRepo: RepositoryRepository,
 		private collabRepo: CollaboratorRepository,
 	) {}
 
-	async findRepositoryById(id: number): Promise<Repository | null> {
+	async findRepositoryById(id: number): Promise<Repository | undefined> {
 		return await this.repoRepo.findById(id);
 	}
 
@@ -20,25 +30,25 @@ export class RepositoryService {
 		visibility?: "public" | "private";
 		ownerId?: number;
 		skip?: number;
-	  }): Promise<{ repositories: Repository[]; totalCount: number }> {
+	}): Promise<{ repositories: Repository[]; totalCount: number }> {
 		const { limit, page, search, visibility, ownerId, skip } = options;
-	  
+
 		const parsedPage = Math.max(1, page || 1);
 		const parsedLimit = Math.min(100, Math.max(1, limit || 20));
-		const parsedSkip = skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
-	  
+		const parsedSkip =
+			skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
+
 		const { repositories, totalCount } = await this.repoRepo.findAll({
 			limit: parsedLimit,
 			ownerId: ownerId,
 			page: parsedPage,
 			search: search,
 			skip: skip,
-			visibility: visibility
+			visibility: visibility,
 		});
-	  
+
 		return { repositories, totalCount };
-	  }
-	  
+	}
 
 	async createRepository(
 		userId: number,

@@ -24,6 +24,7 @@ describe("Repository Controller", () => {
 		// Create owner
 		const user = await prisma.user.create({
 			data: {
+				name: "test user",
 				username: "testuser",
 				email: "testuser@example.com",
 				password: "password",

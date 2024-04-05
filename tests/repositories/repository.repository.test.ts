@@ -6,8 +6,14 @@ jest.mock("@prisma/client", () => {
 	};
 });
 
-import { type Prisma, PrismaClient, type Repository } from "@prisma/client";
+import {
+	type Prisma,
+	PrismaClient,
+	type Repository,
+	type User,
+} from "@prisma/client";
 import { createRepository } from "../../src/controllers/repository.controller";
+import { Role } from "../../src/models";
 import { RepositoryRepository } from "../../src/repositories/repository.repository";
 
 describe("RepositoryRepository", () => {
@@ -26,6 +32,18 @@ describe("RepositoryRepository", () => {
 
 	describe("findById", () => {
 		it("should find a repository by id", async () => {
+			// Create the user
+			const user: Prisma.UserCreateInput = {
+				email: "user@test.com",
+				name: "user",
+				password: "password",
+				role: Role,
+				username: "username",
+			};
+
+			const createdUser = await prismaMock.user.create({ data: user });
+			console.log(createdUser);
+
 			// Define the repository data
 			const repositoryData: Prisma.RepositoryCreateInput = {
 				name: "Test Repository",
@@ -51,7 +69,8 @@ describe("RepositoryRepository", () => {
 			});
 			expect(prismaMock.repository.findUnique).toHaveBeenCalledWith({
 				where: { id: createdRepository.id },
-			});
+				include: {},
+			  });
 		});
 
 		it("should return undefined when repository by id not found", async () => {

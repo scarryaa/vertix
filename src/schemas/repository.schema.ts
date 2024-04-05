@@ -32,7 +32,7 @@ const getRepositoriesSchema = z.object({
 	search: z.string().optional(),
 	visibility: z.enum(["public", "private"]).optional(),
 	ownerId: z.string().optional(),
-	skip: z.number().optional()
+	skip: z.number().optional(),
 });
 
 const getRepositoriesResponseSchema = z.object({
@@ -57,7 +57,7 @@ export type GetRepositoryInput = z.infer<typeof getRepositorySchema>;
 export type GetRepositoryResponse = z.infer<typeof getRepositoryResponseSchema>;
 
 const updateRepositorySchema = z.object({
-    id: z.string(),
+	id: z.string(),
 	name: z.string().optional(),
 	description: z.string().max(255).optional(),
 	visibility: z.enum(["public", "private"]).optional(),
@@ -80,7 +80,10 @@ export type UpdateRepositoryResponse = z.infer<
 >;
 
 const deleteRepositorySchema = z.object({
-    id: z.string({ required_error: "id is required.", invalid_type_error: "id must be a number."})
+	id: z.string({
+		required_error: "id is required.",
+		invalid_type_error: "id must be a number.",
+	}),
 });
 
 export type DeleteRepositoryInput = z.infer<typeof deleteRepositorySchema>;
@@ -95,7 +98,7 @@ export const { schemas: repositorySchemas, $ref } = buildJsonSchemas(
 		getRepositoryResponse: getRepositoryResponseSchema,
 		updateRepository: updateRepositorySchema,
 		updateRepositoryResponse: updateRepositoryResponseSchema,
-        deleteRepository: deleteRepositorySchema,
+		deleteRepository: deleteRepositorySchema,
 	},
 	{ $id: "repositorySchemas" },
 );

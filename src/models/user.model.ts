@@ -10,38 +10,34 @@ import type {
 	UserPreference,
 } from ".";
 
-export enum Role {
-    ADMIN = 0,
-    MODERATOR = 1,
-    USER = 2
-}
+export const Role: "USER" | "ADMIN" | "MODERATOR" = "USER";
 
 export interface User {
-	role: Role;
-	id: number;
+	role: typeof Role;
+	id?: number;
 	username: string;
-	email: string;
-	name: string | null;
-	avatar: string | null;
-	bio: string | null;
-	createdAt: Date;
-	updatedAt: Date;
-	repositories: Repository[];
-	followers: Follow[];
-	following: Follow[];
-	issues: Issue[];
-	stars: Star[];
 	password: string;
-	publicEmail: string | null;
-	preferences: UserPreference | null;
-	userPreferenceId: number | null;
-	collaborators: Collaborator[];
-	comments: Comment[];
-	notifications: Notification[];
-	memberships: Member[];
-	pullRequests: PullRequest[];
-	pullRequestsAuthored: PullRequest[];
-	commits: Commit[];
-	PullRequest: PullRequest | null;
-	pullRequestId: number | null;
+	email: string;
+	name: string;
+	avatar?: string;
+	bio?: string;
+	createdAt?: Date;
+	updatedAt?: Date;
+	repositories?: Repository[];
+	followers?: Follow[];
+	following?: Follow[];
+	issues?: Issue[];
+	stars?: Star[];
+	publicEmail?: string;
+	preferences?: UserPreference;
+	userPreferenceId?: number;
+	collaborators?: Collaborator[];
+	comments?: Comment[];
+	notifications?: Notification[];
+	memberships?: Member[];
+	pullRequests?: PullRequest[];
+	pullRequestsAuthored?: PullRequest[];
+	commits?: Commit[];
+	pullRequest?: PullRequest;
+	pullRequestId?: number;
 }

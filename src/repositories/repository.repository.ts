@@ -1,5 +1,17 @@
 import type { Prisma, PrismaClient, Repository } from "@prisma/client";
 import type { Repository as RepositoryModel } from "../models";
+import { Role as ModelRole, type Role } from "../models/user.model";
+
+type RepositoryInclude = {
+	owner?: boolean;
+	issues?: boolean;
+	stars?: boolean;
+	collaborator?: boolean;
+	license?: boolean;
+	tag?: boolean;
+	organization?: boolean;
+	pullRequest?: boolean;
+};
 
 export class RepositoryRepository {
 	private readonly prisma: PrismaClient;
@@ -8,8 +20,94 @@ export class RepositoryRepository {
 		this.prisma = prisma;
 	}
 
-	async findById(id: number): Promise<RepositoryModel | null> {
-		return this.prisma.repository.findUnique({ where: { id } });
+	async findById(
+		id: number,
+		include?: RepositoryInclude,
+	): Promise<RepositoryModel | undefined> {
+		const includeOpts: Prisma.RepositoryInclude = {};
+
+		if (include?.issues) {
+			includeOpts.issues = {
+				select: {
+					id: true,
+					title: true,
+					repository: true,
+					author: true,
+					Comment: true,
+				},
+			};
+		}
+
+		if (include?.stars) {
+			includeOpts.stars = {
+				select: {
+					id: true,
+				},
+			};
+		}
+
+		if (include?.owner) {
+			includeOpts.owner = {
+				select: {
+					role: true,
+				},
+			};
+		}
+
+		if (include?.collaborator) {
+			includeOpts.collaborator = {
+				select: {
+					id: true,
+				},
+			};
+		}
+
+		if (include?.license) {
+			includeOpts.license = {
+				select: {
+					id: true,
+				},
+			};
+		}
+
+		if (include?.organization) {
+			includeOpts.organization = {
+				select: {
+					id: true,
+				},
+			};
+		}
+
+		if (include?.pullRequest) {
+			includeOpts.pullRequest = {
+				select: {
+					id: true,
+				},
+			};
+		}
+
+		if (include?.tag) {
+			includeOpts.tag = {
+				select: {
+					id: true,
+				},
+			};
+		}
+
+		const res = await this.prisma.repository.findUnique({
+			where: { id },
+			include: { ...includeOpts },
+		});
+
+		if (!res) {
+			return undefined;
+		}
+
+		return {
+			...res,
+			// biome-ignore lint/suspicious/noExplicitAny: cannot cast to enum
+			...(include?.owner && { owner: res.owner as any }),
+		};
 	}
 
 	async findByOwner(ownerId: number): Promise<RepositoryModel[]> {

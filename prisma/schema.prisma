@@ -7,19 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  MODERATOR
-  USER
-}
-
 // User model representing users of the website
 model User {
-  role      Role     @default(USER)
+  role      String   @default("USER") @map("USER|ADMIN|MODERATOR")
   id        Int      @id @default(autoincrement())
   username  String   @unique // Unique username for each user
   email     String   @unique // Unique email address for each user
-  name      String? // Full name of the user
+  name      String // Full name of the user
   avatar    String? // URL of the user's avatar image
   bio       String? // Short bio or description of the user
   createdAt DateTime @default(now())
@@ -80,14 +74,14 @@ model Repository {
   issues         Issue[]
   stars          Star[]
   language       String?
-  Collaborator   Collaborator[]
-  License        License?       @relation(fields: [licenseId], references: [id])
+  collaborator   Collaborator[]
+  license        License?       @relation(fields: [licenseId], references: [id])
   licenseId      Int?
-  Tag            Tag?           @relation(fields: [tagId], references: [id])
+  tag            Tag?           @relation(fields: [tagId], references: [id])
   tagId          Int?
-  Organization   Organization?  @relation(fields: [organizationId], references: [id])
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
   organizationId Int?
-  PullRequest    PullRequest[]
+  pullRequest    PullRequest[]
 }
 
 model License {

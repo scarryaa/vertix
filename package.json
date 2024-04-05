@@ -8,7 +8,7 @@
     "test": "pnpm jest",
     "db-seed": "tsc prisma/seed.ts && cat prisma/seed.js | node --input-type=\"commonjs\" && rm prisma/seed.js",
     "db-reset": "prisma db push --force-reset",
-    "db-migration": "prisma migrate dev $npm_config_name"
+    "db-migration": "prisma migrate dev --name $npm_config_name"
   },
   "keywords": [
     "vertix",
