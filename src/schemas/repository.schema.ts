@@ -32,6 +32,7 @@ const getRepositoriesSchema = z.object({
 	search: z.string().optional(),
 	visibility: z.enum(["public", "private"]).optional(),
 	ownerId: z.string().optional(),
+	skip: z.number().optional()
 });
 
 const getRepositoriesResponseSchema = z.object({

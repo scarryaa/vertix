@@ -175,12 +175,7 @@ describe("RepositoryRepository", () => {
 		});
 
 		it("should return an empty array when all repositories not found", async () => {
-			const foundRepositories = await repositoryRepository.findAll({
-				where: {
-					id: 1,
-					OR: [{ id: 2 }],
-				},
-			});
+			const foundRepositories = await repositoryRepository.findAll({});
 
 			expect(foundRepositories.repositories).toEqual([]);
 			expect(foundRepositories.totalCount).toBe(0);
@@ -232,7 +227,7 @@ describe("RepositoryRepository", () => {
 
 			// Act
 			const { repositories, totalCount } = await repositoryRepository.findAll({
-				where: { ownerId: 999 },
+				ownerId: 999,
 			});
 
 			// Assert
@@ -244,19 +239,19 @@ describe("RepositoryRepository", () => {
 			// Arrange
 			const repositoryData: Prisma.RepositoryCreateManyInput[] = [
 				{
-					name: "Repository 1",
+					name: "repository-1",
 					description: "Test repository 1",
 					visibility: "public",
 					ownerId: 1,
 				},
 				{
-					name: "Repository 2",
+					name: "repository-2",
 					description: "Test repository 2",
 					visibility: "private",
 					ownerId: 1,
 				},
 				{
-					name: "Repository 3",
+					name: "repository-3",
 					description: "Test repository 3",
 					visibility: "public",
 					ownerId: 2,
@@ -266,13 +261,18 @@ describe("RepositoryRepository", () => {
 				await repositoryRepository.createMany(repositoryData);
 
 			// Act
+			const limit = 2;
+			const page = 1;
 			const { repositories, totalCount } = await repositoryRepository.findAll({
-				take: 2,
+				limit,
+				page,
 			});
 
 			// Assert
-			expect(repositories).toHaveLength(2);
+			expect(repositories).toHaveLength(limit);
 			expect(totalCount).toBe(repositoryData.length);
+			expect(repositories[0].name).toBe("repository-1");
+			expect(repositories[1].name).toBe("repository-2");
 		});
 
 		it("should handle 'skip' correctly", async () => {

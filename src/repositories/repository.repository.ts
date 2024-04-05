@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient, Repository } from "@prisma/client";
+import type { Repository as RepositoryModel } from "../models";
 
 export class RepositoryRepository {
 	private readonly prisma: PrismaClient;
@@ -7,37 +8,65 @@ export class RepositoryRepository {
 		this.prisma = prisma;
 	}
 
-	async findById(id: number): Promise<Repository | null> {
+	async findById(id: number): Promise<RepositoryModel | null> {
 		return this.prisma.repository.findUnique({ where: { id } });
 	}
 
-	async findByOwner(ownerId: number): Promise<Repository[]> {
+	async findByOwner(ownerId: number): Promise<RepositoryModel[]> {
 		return this.prisma.repository.findMany({ where: { ownerId } });
 	}
 
-	async findAll(params: {
-		where?: Prisma.RepositoryWhereInput;
-		take?: number;
+	async findAll(options: {
+		limit?: number;
+		page?: number;
+		search?: string;
+		visibility?: "public" | "private";
+		ownerId?: number;
 		skip?: number;
 	}): Promise<{ repositories: Repository[]; totalCount: number }> {
-		const { where, take, skip } = params;
-		return {
-			repositories: await this.prisma.repository.findMany({
-				where,
-				take,
-				skip,
-			}),
-			totalCount: await this.prisma.repository.count(),
-		};
+		const { limit, page, search, visibility, ownerId, skip } = options;
+		// biome-ignore lint/suspicious/noExplicitAny: need any here
+		const whereClause: any = {};
+
+		if (search) {
+			whereClause.OR = [
+				{ name: { contains: search, mode: "insensitive" } },
+				{ description: { contains: search, mode: "insensitive" } },
+			];
+		}
+
+		if (ownerId !== undefined) {
+			whereClause.ownerId = ownerId;
+		}
+
+		if (visibility !== undefined) {
+			whereClause.visibility = visibility;
+		}
+
+		const parsedPage = Math.max(1, page || 1);
+		const parsedLimit = Math.min(100, Math.max(1, limit || 20));
+		const parsedSkip = skip || 0;
+
+		const repositories = await this.prisma.repository.findMany({
+			where: whereClause,
+			take: parsedLimit,
+			skip: parsedSkip,
+		});
+
+		const totalCount = await this.prisma.repository.count({
+			where: whereClause,
+		});
+
+		return { repositories, totalCount };
 	}
 
-	async create(data: Prisma.RepositoryCreateInput): Promise<Repository> {
+	async create(data: Prisma.RepositoryCreateInput): Promise<RepositoryModel> {
 		return this.prisma.repository.create({ data });
 	}
 
 	async createMany(
 		data: Prisma.RepositoryCreateManyInput[],
-	): Promise<Repository[]> {
+	): Promise<RepositoryModel[]> {
 		const batchPayload = await this.prisma.repository.createMany({ data });
 
 		const createdIds = batchPayload.count
@@ -58,13 +87,13 @@ export class RepositoryRepository {
 	async update(
 		id: number,
 		data: Prisma.RepositoryUpdateInput,
-	): Promise<Repository> {
+	): Promise<RepositoryModel> {
 		return this.prisma.repository.update({ where: { id }, data });
 	}
 
 	async delete(params: {
 		where: Prisma.RepositoryWhereUniqueInput;
-	}): Promise<Repository> {
+	}): Promise<RepositoryModel> {
 		const { where } = params;
 		return this.prisma.repository.delete({ where });
 	}

@@ -1,5 +1,5 @@
-import type { Prisma, Repository } from "@prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import type { Repository } from "../models";
 import type {
 	GetRepositoriesInput,
 	GetRepositoriesResponse,
@@ -74,7 +74,7 @@ export async function getAllRepositories(
 ) {
 	// @TODO check/filter visibility
 	try {
-		const { limit, page, search, visibility, ownerId } = req.query;
+		const { limit, page, search, visibility, ownerId, skip } = req.query;
 
 		// Validate the various params (since zod isn't supported here)
 		const validations = [
@@ -83,9 +83,7 @@ export async function getAllRepositories(
 				? validateAllowedValues(visibility, ["public", "private"], "visibility")
 				: null,
 			// ownerId can be optional
-			ownerId
-				? validateType(Number(ownerId) || undefined, 0, "ownerId")
-				: null,
+			ownerId ? validateType(Number(ownerId) || undefined, 0, "ownerId") : null,
 			// page can be optional
 			page
 				? validateRange(Number(page), 1, Number.POSITIVE_INFINITY, "page")
@@ -102,14 +100,17 @@ export async function getAllRepositories(
 		const parsedPage = Math.max(1, Number(page) || 1);
 		const parsedLimit = Math.min(100, Math.max(1, Number(limit) || 20));
 		const parsedOwnerId = ownerId ? Number(ownerId) : undefined;
+		const parsedSkip = skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
 
 		const { repositories, totalCount } =
-			await repositoryService.getAllRepositories(
-				parsedLimit,
-				parsedPage,
-				search,
-				visibility,
-				parsedOwnerId,
+			await repositoryService.getAllRepositories({
+				limit: parsedLimit,
+				ownerId: parsedOwnerId,
+				page: parsedPage,
+				search: search,
+				skip: parsedSkip,
+				visibility: visibility
+			}
 			);
 
 		// Check if repositories is empty
@@ -120,6 +121,7 @@ export async function getAllRepositories(
 		const response: GetRepositoriesResponse = {
 			repositories: repositories.map((repo) => ({
 				...repo,
+				description: repo.description ?? null,
 				visibility: repo.visibility as "public" | "private",
 			})),
 			totalCount,

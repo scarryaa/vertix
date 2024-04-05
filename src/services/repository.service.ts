@@ -1,5 +1,4 @@
-import type { Prisma, Repository } from "@prisma/client";
-
+import type { Repository } from "../models";
 import type { CollaboratorRepository } from "../repositories/collaborator.repository";
 import type { RepositoryRepository } from "../repositories/repository.repository";
 import { UnauthorizedError } from "../utils/errors";
@@ -14,42 +13,32 @@ export class RepositoryService {
 		return await this.repoRepo.findById(id);
 	}
 
-	async getAllRepositories(
-		limit: number | undefined,
-		page: number | undefined,
-		search: string | undefined,
-		visibility: "public" | "private" | undefined,
-		ownerId: number | undefined,
-	): Promise<{ repositories: Repository[]; totalCount: number }> {
-		const whereClause: Prisma.RepositoryWhereInput = {};
-
-		if (search) {
-			whereClause.OR = [
-				{ name: { contains: search, mode: "insensitive" } },
-				{ description: { contains: search, mode: "insensitive" } },
-			];
-		}
-
-		if (ownerId !== undefined) {
-			whereClause.ownerId = ownerId;
-		}
-
-		if (visibility !== undefined) {
-			whereClause.visibility = visibility;
-		}
-
+	async getAllRepositories(options: {
+		limit?: number;
+		page?: number;
+		search?: string;
+		visibility?: "public" | "private";
+		ownerId?: number;
+		skip?: number;
+	  }): Promise<{ repositories: Repository[]; totalCount: number }> {
+		const { limit, page, search, visibility, ownerId, skip } = options;
+	  
 		const parsedPage = Math.max(1, page || 1);
 		const parsedLimit = Math.min(100, Math.max(1, limit || 20));
-		const skip = (parsedPage - 1) * parsedLimit;
-
+		const parsedSkip = skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
+	  
 		const { repositories, totalCount } = await this.repoRepo.findAll({
-			where: whereClause,
-			take: parsedLimit,
-			skip,
+			limit: parsedLimit,
+			ownerId: ownerId,
+			page: parsedPage,
+			search: search,
+			skip: skip,
+			visibility: visibility
 		});
-
+	  
 		return { repositories, totalCount };
-	}
+	  }
+	  
 
 	async createRepository(
 		userId: number,
