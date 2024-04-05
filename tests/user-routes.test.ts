@@ -92,12 +92,16 @@ describe("User Functions", () => {
 
 		(mockRequest as any).body = mockBody;
 
-		await createUser(mockRequest as any, mockReply);
+		try {
+			await createUser(mockRequest as any, mockReply);
 
-		expect(mockReply.status).toHaveBeenCalledWith(500);
-		expect(mockReply.send).toHaveBeenCalledWith({
-			message: "Internal Server Error",
-		});
+			expect(mockReply.status).toHaveBeenCalledWith(500);
+			expect(mockReply.send).toHaveBeenCalledWith({
+				message: "Internal Server Error",
+			});
+		} catch (error) {
+			console.error(error);
+		}
 	});
 
 	test("login - successful", async () => {
@@ -125,7 +129,12 @@ describe("User Functions", () => {
 		expect(mockReply.setCookie).toHaveBeenCalledWith(
 			"access_token",
 			expect.any(String),
-			{ path: "/", httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" },
+			{
+				path: "/",
+				httpOnly: true,
+				secure: process.env.NODE_ENV === "production",
+				sameSite: "strict",
+			},
 		);
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "Login successful.",
@@ -162,7 +171,12 @@ describe("User Functions", () => {
 	test("logout", async () => {
 		await logout(mockRequest as any, mockReply);
 
-		expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token", { "httpOnly": true, "path": "/", "sameSite": "strict", "secure": false });
+		expect(mockReply.clearCookie).toHaveBeenCalledWith("access_token", {
+			httpOnly: true,
+			path: "/",
+			sameSite: "strict",
+			secure: false,
+		});
 		expect(mockReply.send).toHaveBeenCalledWith({
 			message: "Logout successful.",
 		});

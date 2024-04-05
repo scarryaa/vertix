@@ -1,6 +1,3 @@
-import assert from "node:assert";
-import fjwt from "@fastify/jwt";
-import rateLimit from "@fastify/rate-limit";
 import bcrypt from "bcrypt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { LoginUserInput, UserInput } from "../schemas/user.schema";

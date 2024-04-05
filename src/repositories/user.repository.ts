@@ -45,8 +45,9 @@ type UserWithRelations = Omit<
 	pullRequestId: number | null;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: obj must be any
-function isUserWithRelations(obj: any): obj is UserWithRelations {
+function isUserWithRelations(obj: {
+	[k: string]: unknown;
+}): obj is UserWithRelations {
 	return (
 		"followers" in obj &&
 		"following" in obj &&
@@ -69,6 +70,7 @@ interface UserRepository
 		User,
 		Prisma.UserCreateInput,
 		Prisma.UserUpdateInput,
+		Prisma.UserCreateManyInput,
 		{ where: Prisma.UserWhereUniqueInput }
 	> {}
 
@@ -133,16 +135,25 @@ export class UserRepositoryImpl implements UserRepository {
 		return { items: users, totalCount };
 	}
 
-	create(data: Prisma.UserCreateInput): Promise<Partial<User>> {
-		return this.prisma.user.create({ data });
+	async create(data: Prisma.UserCreateInput): Promise<Partial<User>> {
+		return await this.prisma.user.create({ data });
 	}
 
-	update(id: number | undefined, data: Prisma.UserUpdateInput): Promise<Partial<User>> {
-		return this.prisma.user.update({ where: { id }, data });
+	async createMany(data: Prisma.UserCreateManyInput[]): Promise<number> {
+		return (await this.prisma.user.createMany({ data })).count;
 	}
 
-	delete(params: { where: Prisma.UserWhereUniqueInput }): Promise<Partial<User>> {
+	async update(
+		id: number | undefined,
+		data: Prisma.UserUpdateInput,
+	): Promise<Partial<User>> {
+		return await this.prisma.user.update({ where: { id }, data });
+	}
+
+	async delete(params: { where: Prisma.UserWhereUniqueInput }): Promise<
+		Partial<User>
+	> {
 		const { where } = params;
-		return this.prisma.user.delete({ where });
+		return await this.prisma.user.delete({ where });
 	}
 }

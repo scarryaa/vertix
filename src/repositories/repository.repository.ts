@@ -16,6 +16,7 @@ interface RepositoryRepository
 		Repository,
 		Prisma.RepositoryCreateInput,
 		Prisma.RepositoryUpdateInput,
+		Prisma.RepositoryCreateManyInput,
 		{ where: Prisma.RepositoryWhereUniqueInput }
 	> {}
 
@@ -85,20 +86,29 @@ export class RepositoryRepositoryImpl implements RepositoryRepository {
 	}
 
 	async create(data: Prisma.RepositoryCreateInput): Promise<Repository> {
-		return this.prisma.repository.create({ data });
+		return await this.prisma.repository.create({ data });
+	}
+
+	async createMany(data: Prisma.RepositoryCreateManyInput[]): Promise<number> {
+		const res = await this.prisma.repository.createMany({ data });
+		return res.count;
 	}
 
 	async update(
 		id: number,
 		data: Prisma.RepositoryUpdateInput,
 	): Promise<Repository> {
-		return this.prisma.repository.update({ where: { id }, data });
+		return await this.prisma.repository.update({ where: { id }, data });
 	}
 
 	async delete(params: {
 		where: Prisma.RepositoryWhereUniqueInput;
 	}): Promise<Repository> {
 		const { where } = params;
-		return this.prisma.repository.delete({ where });
+		return await this.prisma.repository.delete({ where });
+	}
+
+	async findByOwnerId(ownerId: number): Promise<Repository[]> {
+		return await this.prisma.repository.findMany({ where: { ownerId }});
 	}
 }

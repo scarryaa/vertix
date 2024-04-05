@@ -6,11 +6,7 @@ jest.mock("@prisma/client", () => {
 	};
 });
 
-import {
-	type Prisma,
-	PrismaClient,
-} from "@prisma/client";
-import { Role } from "../../src/models";
+import { type Prisma, PrismaClient } from "@prisma/client";
 import { RepositoryRepositoryImpl } from "../../src/repositories/repository.repository";
 
 describe("RepositoryRepository", () => {
@@ -34,12 +30,11 @@ describe("RepositoryRepository", () => {
 				email: "user@test.com",
 				name: "user",
 				password: "password",
-				role: Role,
+				role: "USER",
 				username: "username",
 			};
 
 			const createdUser = await prismaMock.user.create({ data: user });
-			console.log(createdUser);
 
 			// Define the repository data
 			const repositoryData: Prisma.RepositoryCreateInput = {
@@ -67,7 +62,7 @@ describe("RepositoryRepository", () => {
 			expect(prismaMock.repository.findUnique).toHaveBeenCalledWith({
 				where: { id: createdRepository.id },
 				include: {},
-			  });
+			});
 		});
 
 		it("should return undefined when repository by id not found", async () => {
@@ -81,19 +76,19 @@ describe("RepositoryRepository", () => {
 		it("should find all by ownerId", async () => {
 			const repositoriesToCreate: Prisma.RepositoryCreateManyInput[] = [
 				{
-					name: "Repository 1",
+					name: "repository-1",
 					description: "This is the first repository",
 					visibility: "public",
 					ownerId: 1,
 				},
 				{
-					name: "Repository 2",
+					name: "repository-2",
 					description: "This is the second repository",
 					visibility: "private",
 					ownerId: 2,
 				},
 				{
-					name: "Repository 3",
+					name: "repository-3",
 					description: "This is the third repository",
 					visibility: "public",
 					ownerId: 1,
@@ -103,17 +98,17 @@ describe("RepositoryRepository", () => {
 			await repositoryRepository.createMany(repositoriesToCreate);
 
 			// get by owner
-			const repositories = await repositoryRepository.findByOwner(1);
+			const repositories = await repositoryRepository.findByOwnerId(1);
 			expect(repositories).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({
-						name: "Repository 1",
+						name: "repository-1",
 						description: "This is the first repository",
 						visibility: "public",
 						ownerId: 1,
 					}),
 					expect.objectContaining({
-						name: "Repository 3",
+						name: "repository-3",
 						description: "This is the third repository",
 						visibility: "public",
 						ownerId: 1,
@@ -125,7 +120,7 @@ describe("RepositoryRepository", () => {
 
 	describe("findAll", () => {
 		it("should return an empty array there are no repositories with given ownerId", async () => {
-			const repositories = await repositoryRepository.findByOwner(1);
+			const repositories = await repositoryRepository.findByOwnerId(1);
 			expect(repositories).toBeInstanceOf(Array);
 			expect(repositories).toHaveLength(0);
 		});
@@ -157,9 +152,8 @@ describe("RepositoryRepository", () => {
 			await repositoryRepository.createMany(repositoriesToCreate);
 
 			// Get all repositories
-			const { repositories, totalCount } = await repositoryRepository.findAll(
-				{},
-			);
+			const { items: repositories, totalCount } =
+				await repositoryRepository.findAll({});
 
 			// Assert the repositories and total count
 			expect(repositories.length).toBe(3);
@@ -191,10 +185,11 @@ describe("RepositoryRepository", () => {
 		});
 
 		it("should return an empty array when all repositories not found", async () => {
-			const foundRepositories = await repositoryRepository.findAll({});
+			const { items: foundRepositories, totalCount } =
+				await repositoryRepository.findAll({});
 
-			expect(foundRepositories.repositories).toEqual([]);
-			expect(foundRepositories.totalCount).toBe(0);
+			expect(foundRepositories).toEqual([]);
+			expect(totalCount).toBe(0);
 		});
 
 		it("should return a valid array when 'where' is undefined", async () => {
@@ -214,17 +209,16 @@ describe("RepositoryRepository", () => {
 				},
 			];
 
-			const createdRepositories =
+			const numCreatedRepositories =
 				await repositoryRepository.createMany(repositoryData);
 
 			// Act
-			const { repositories, totalCount } = await repositoryRepository.findAll(
-				{},
-			);
+			const { items: repositories, totalCount } =
+				await repositoryRepository.findAll({});
 
 			// Assert
-			expect(repositories).toHaveLength(createdRepositories.length);
-			expect(totalCount).toBe(createdRepositories.length);
+			expect(repositories).toHaveLength(numCreatedRepositories);
+			expect(totalCount).toBe(numCreatedRepositories);
 		});
 
 		it("should return an empty array when 'where' doesn't match anything", async () => {
@@ -242,9 +236,10 @@ describe("RepositoryRepository", () => {
 			await repositoryRepository.create(repositoryData);
 
 			// Act
-			const { repositories, totalCount } = await repositoryRepository.findAll({
-				ownerId: 999,
-			});
+			const { items: repositories, totalCount } =
+				await repositoryRepository.findAll({
+					ownerId: 999,
+				});
 
 			// Assert
 			expect(repositories).toHaveLength(0);
@@ -279,16 +274,17 @@ describe("RepositoryRepository", () => {
 			// Act
 			const limit = 2;
 			const page = 1;
-			const { repositories, totalCount } = await repositoryRepository.findAll({
-				limit,
-				page,
-			});
+			const { items: repositories, totalCount } =
+				await repositoryRepository.findAll({
+					limit,
+					page,
+				});
 
 			// Assert
 			expect(repositories).toHaveLength(limit);
 			expect(totalCount).toBe(repositoryData.length);
-			expect(repositories[0].name).toBe("repository-1");
-			expect(repositories[1].name).toBe("repository-2");
+			expect(repositories[0]?.name).toBe("repository-1");
+			expect(repositories[1]?.name).toBe("repository-2");
 		});
 
 		it("should handle 'skip' correctly", async () => {
@@ -317,9 +313,10 @@ describe("RepositoryRepository", () => {
 				await repositoryRepository.createMany(repositoryData);
 
 			// Act
-			const { repositories, totalCount } = await repositoryRepository.findAll({
-				skip: 1,
-			});
+			const { items: repositories, totalCount } =
+				await repositoryRepository.findAll({
+					skip: 1,
+				});
 
 			// Assert
 			expect(repositories).toHaveLength(repositoryData.length - 1);
@@ -403,14 +400,16 @@ describe("RepositoryRepository", () => {
 				},
 			];
 
-			const createdRepositories =
-				await repositoryRepository.createMany(repositoryData);
-			expect(createdRepositories).toEqual(
-				repositoryData.map((repo, index) => ({
+			const repoCount = await repositoryRepository.createMany(repositoryData);
+
+			const createdRepositories = await repositoryRepository.findAll({});
+			expect(createdRepositories).toEqual({
+				totalCount: repositoryData.length,
+				items: repositoryData.map((repo, index) => ({
 					...repo,
 					id: index + 1,
 				})),
-			);
+			});
 		});
 	});
 
