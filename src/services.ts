@@ -1,20 +1,40 @@
-import { CollaboratorRepository } from "./repositories/collaborator.repository";
-import { RepositoryBasicRepositoryImpl } from "./repositories/repository-basic.repository";
-import { UserRepositoryImpl } from "./repositories/user.repository";
-import { CollaboratorService } from "./services/collaborator.service";
-import { RepositoryService } from "./services/repository.service";
-import { UserService } from "./services/user.service";
+import { env } from "node:process";
+import { Authenticator } from "./authenticators/base.authenticator";
+import type { RepositoryBasic } from "./models";
+import { PrismaRepository } from "./repositories/base.repository";
+import { RepositoryBasicRepository } from "./repositories/repository-basic.repository";
+import {
+	RepositoryService,
+	type RepositoryServiceConfig,
+} from "./services/base-repository.service";
 import prisma from "./utils/prisma";
+import { Validator } from "./validators/base.validator";
 
-const userRepo = new UserRepositoryImpl(prisma);
-const collaboratorRepo = new CollaboratorRepository(prisma);
-const repositoryRepo = new RepositoryBasicRepositoryImpl(prisma);
+const supportedFields: (keyof RepositoryBasic)[] = [
+	"description",
+	"id",
+	"name",
+	"owner_id",
+	"visibility",
+];
 
-const userService = new UserService(userRepo);
-const collaboratorService = new CollaboratorService(collaboratorRepo);
-const repositoryService = new RepositoryService(
-	repositoryRepo,
-	collaboratorRepo,
+const requiredFields: (keyof RepositoryBasic)[] = ["id", "name"];
+
+const authenticator = new Authenticator(env.JWT_SECRET ?? "");
+const validator = new Validator<RepositoryBasic>(
+	requiredFields,
+	supportedFields,
 );
+const repositoryBasic = new RepositoryBasicRepository(prisma);
 
-export { repositoryService, userService, collaboratorService };
+const repositoryConfig: RepositoryServiceConfig<RepositoryBasic> = {
+	repository: repositoryBasic,
+	authenticator,
+	validator,
+	requiredFields: requiredFields,
+	supportedFields: supportedFields,
+};
+
+export const repositoryService = new RepositoryService<RepositoryBasic>(
+	repositoryConfig,
+);

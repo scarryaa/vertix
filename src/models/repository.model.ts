@@ -10,13 +10,19 @@ import type {
 	UserBasic,
 } from ".";
 
-export type VisibilityType = "public" | "private";
+export type TVisibility = "public" | "private";
+
+export interface RepositoryIdentifier {
+	id?: number;
+	name?: string;
+	
+  }
 
 export interface RepositoryDetailed {
 	id: number;
 	name: string;
 	description: string | null;
-	visibility: VisibilityType | string;
+	visibility: TVisibility | string;
 	created_at: Date;
 	updated_at: Date;
 	owner: UserBasic;
@@ -50,6 +56,10 @@ interface OwnerConnectInput {
 	id: number;
 }
 
+export interface RepositoryCreator {
+	create(data: RepositoryCreateInput): Promise<RepositoryBasic>;
+}
+
 export type RepositoryCreateInput = Pick<
 	RepositoryDetailed,
 	"name" | "visibility" | "owner"
@@ -62,13 +72,8 @@ export type RepositoryCreateInput = Pick<
 	};
 
 export type RepositoryUpdateInput = Partial<
-	Pick<
+	Omit<
 		RepositoryDetailed,
-		| "name"
-		| "description"
-		| "visibility"
-		| "license"
-		| "organization"
-		| "programming_languages"
+		"id" | "created_at" | "updated_at" | "owner" | "owner_id"
 	>
 >;

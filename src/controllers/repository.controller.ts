@@ -21,11 +21,11 @@ import {
 	validateType,
 } from "../utils/validation";
 
-const supportedFieldsForUpdate = [
+const supportedFieldsForUpdate: (keyof RepositoryBasic)[] = [
 	"name",
 	"description",
 	"visibility",
-	"ownerId",
+	"owner_id",
 ];
 const MAX_DESCRIPTION_LENGTH = 255;
 
@@ -56,12 +56,13 @@ export async function createRepository(
 
 	// Create repository
 	const newRepository: RepositoryBasic = await repositoryService.create(
-		ownerId,
 		{
 			name,
 			description,
 			visibility,
+			owner_id: ownerId,
 		},
+		req.headers.authorization || "",
 	);
 
 	return reply.code(201).send(newRepository);
@@ -71,7 +72,6 @@ export async function getAllRepositories(
 	req: FastifyRequest<{ Querystring: GetRepositoriesInput }>,
 	reply: FastifyReply,
 ) {
-	// @TODO check/filter visibility
 	const { limit, page, search, visibility, ownerId, skip } = req.query;
 
 	// Validate the various params (since zod isn't supported here)
@@ -80,7 +80,7 @@ export async function getAllRepositories(
 		visibility
 			? validateAllowedValues(visibility, ["public", "private"], "visibility")
 			: null,
-		// ownerId can be optional
+		// owner_id can be optional
 		ownerId ? validateType(Number(ownerId) || undefined, 0, "ownerId") : null,
 		// page can be optional
 		page
@@ -95,45 +95,40 @@ export async function getAllRepositories(
 	handleValidations(reply, validations);
 
 	// If we passed validation, we can continue
-	const parsedPage = Math.max(1, Number(page) || 1);
-	const parsedLimit = Math.min(100, Math.max(1, Number(limit) || 20));
-	const parsedOwnerId = ownerId ? Number(ownerId) : undefined;
-	const parsedSkip = skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
-
-	const { repositories, totalCount } = await repositoryService.getAll({
-		limit: parsedLimit,
-		ownerId: parsedOwnerId,
-		page: parsedPage,
-		search: search,
-		skip: parsedSkip,
-		visibility: visibility,
+	const repositories = await repositoryService.getAll({
+		limit: Number(limit),
+		page: Number(page),
+		search: {},
+		skip,
 	});
 
 	// Check if repositories is empty
-	if (totalCount === 0 || repositories === null) {
+	if (repositories.length === 0) {
 		throw new NotFoundError("No repositories found");
 	}
 
 	const response: GetRepositoriesResponse = {
-		repositories: repositories.map((repo: any) => ({
+		repositories: repositories.map((repo) => ({
 			...repo,
 			description: repo.description ?? null,
 			visibility: repo.visibility as "public" | "private",
+			ownerId: Number(ownerId),
+			createdAt: new Date(),
+			updatedAt: new Date(),
 		})),
-		totalCount,
-		page: parsedPage,
-		limit: parsedLimit,
+		totalCount: repositories.length,
+		page: Number(page) || 1,
+		limit: Number(limit) || 20,
 	};
 
 	return reply.code(200).send(response);
 }
 
 export async function getRepository(
-	req: FastifyRequest<{ Querystring: { id: GetRepositoryInput } }>,
+	req: FastifyRequest<{ Params: { id: GetRepositoryInput } }>,
 	reply: FastifyReply,
 ) {
-	// @TODO check repository visibility
-	const { id } = req.query;
+	const { id } = req.params;
 
 	// Validate the various params (since zod isn't supported here)
 	const validations = [
@@ -145,7 +140,7 @@ export async function getRepository(
 	handleValidations(reply, validations);
 
 	// Otherwise, we can proceed
-	const repository = await repositoryService.findById(Number(id));
+	const repository = await repositoryService.getById(Number(id));
 
 	if (!repository) {
 		return reply.code(404).send({ message: "Repository not found" });
@@ -160,23 +155,16 @@ export async function updateRepository(
 	}>,
 	reply: FastifyReply,
 ) {
-	// only owners of the repo can update
 	const { id, name, description, visibility, ownerId } = req.body;
 
-	const idNum = Number(id);
-	const ownerIdNum = Number(ownerId);
-
 	const validations = [
-		validateRange(idNum, 1, Number.POSITIVE_INFINITY, "id"),
-		validateType(idNum ?? undefined, 0, "id"),
-		validateRange(ownerIdNum, 1, Number.POSITIVE_INFINITY, "ownerId"),
-		validateType(ownerIdNum ?? undefined, 0, "ownerId"),
+		validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
+		validateType(Number(id), 0, "id"),
 	];
 
 	handleValidations(reply, validations);
 
-	// If validated, we can continue
-	const dataToUpdate: Record<string, unknown> = {};
+	const dataToUpdate: Partial<RepositoryBasic> = {};
 
 	if (name !== undefined) {
 		dataToUpdate.name = name;
@@ -191,45 +179,32 @@ export async function updateRepository(
 	}
 
 	if (ownerId !== undefined) {
-		dataToUpdate.ownerId = ownerId;
-	}
-
-	if (Object.keys(dataToUpdate).length === 0) {
-		return reply.code(400).send({
-			message: `No fields provided for update. Supported fields are: ${supportedFieldsForUpdate.join(
-				", ",
-			)}`,
-		});
+		dataToUpdate.owner_id = ownerId;
 	}
 
 	const updatedRepository = await repositoryService.update(
 		Number(id),
-		Number(ownerId),
 		dataToUpdate,
+		req.headers.authorization || "",
 	);
 
 	return reply.code(200).send(updatedRepository);
 }
 
 export async function deleteRepository(
-	req: FastifyRequest<{ Body: { id: string; userId: string } }>,
+	req: FastifyRequest<{ Body: { id: number } }>,
 	reply: FastifyReply,
 ) {
-	const { id, userId } = req.body;
-
-	const idNum = Number(id);
-	const userIdNum = Number(userId);
+	const { id } = req.body;
 
 	const validations = [
-		validateRange(idNum, 1, Number.POSITIVE_INFINITY, "id"),
-		validateType(idNum || undefined, 0, "id"),
-		validateRange(userIdNum, 1, Number.POSITIVE_INFINITY, "userId"),
-		validateType(userIdNum || undefined, 0, "userId"),
+		validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
+		validateType(Number(id) || undefined, 0, "id"),
 	];
 
 	handleValidations(reply, validations);
 
-	await repositoryService.delete(Number(id), Number(userId));
+	await repositoryService.delete(Number(id), req.headers.authorization || "");
 
 	return reply.code(204).send();
 }

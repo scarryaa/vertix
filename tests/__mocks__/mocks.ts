@@ -3,7 +3,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { type DeepMockProxy, mockDeep } from "jest-mock-extended";
 import { CollaboratorRepository } from "../../src/repositories/collaborator.repository";
 import { RepositoryRepositoryImpl } from "../../src/repositories/repository-basic.repository";
-import { RepositoryService } from "../../src/services/repository.service";
+import { RepositoryService } from "../../src/services/base-repository.service";
 
 export const mockRequest = {} as unknown as FastifyRequest;
 export const mockReply = {
