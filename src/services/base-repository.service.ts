@@ -1,3 +1,4 @@
+import fastifyCookie from "@fastify/cookie";
 import type { Authenticator } from "../authenticators/base.authenticator";
 import { UserRole } from "../models";
 import type { IRepository } from "../repositories/base.repository";
@@ -77,16 +78,16 @@ export class RepositoryService<TModel> {
 		entityData: Partial<TModel>,
 		authToken: string,
 	): Promise<TModel> {
-		// @TODO update auth
-		this.authenticate(authToken, []);
+		this.authenticate(authToken, [UserRole.USER]);
+		// @TODO check if user is owner of repo or contributor
 		this.validate(ValidationAction.UPDATE, entityData);
 
 		return this.repository.update(id, entityData);
 	}
 
 	async delete(id: number, authToken: string): Promise<void> {
-		// @TODO update auth
-		this.authenticate(authToken, []);
+		this.authenticate(authToken, [UserRole.USER]);
+		// @TODO check if user is owner of repo
 
 		await this.repository.delete(id);
 	}
@@ -100,13 +101,15 @@ export class RepositoryService<TModel> {
 		);
 	}
 
-	private authenticate(token: string, roles: string[]): void {
-		const isAuthenticated = this.authenticator.authenticate(token, roles);
-		if (!isAuthenticated) {
-			throw new UnauthorizedError(
-				"You are not authorized to perform this action.",
-			);
-		}
+	private authenticate(
+		token: string,
+		requiredRoles: UserRole[],
+	): { userId: number; role: UserRole } {
+		const { userId, role } = this.authenticator.authenticate(
+			token,
+			requiredRoles,
+		);
+		return { userId, role: UserRole[role] };
 	}
 
 	private validate(

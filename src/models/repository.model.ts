@@ -15,8 +15,7 @@ export type TVisibility = "public" | "private";
 export interface RepositoryIdentifier {
 	id?: number;
 	name?: string;
-	
-  }
+}
 
 export interface RepositoryDetailed {
 	id: number;

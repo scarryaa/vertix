@@ -1,16 +1,16 @@
 {
-    "compilerOptions": {
-        "target": "ESNext",
-        "lib": ["ESNext"],
-        "module": "NodeNext",
-        "resolveJsonModule": true,
-        "outDir": "./dist",
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "typeRoots": ["./node_modules/@types", "./types"],
-        "strictNullChecks": true,
-        "noUncheckedIndexedAccess": true
-    },
-    "include": ["src/**/*", "./types", "tests"]
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["ESNext"],
+		"module": "NodeNext",
+		"resolveJsonModule": true,
+		"outDir": "./dist",
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"strict": true,
+		"typeRoots": ["./node_modules/@types", "./types"],
+		"strictNullChecks": true,
+		"noUncheckedIndexedAccess": true
+	},
+	"include": ["src/**/*", "./types", "tests"]
 }

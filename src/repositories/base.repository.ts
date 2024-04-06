@@ -43,6 +43,6 @@ export class PrismaRepository<T> implements IRepository<T> {
 
 	async getAll(options: QueryOptions<T>): Promise<T[]> {
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
-		return await (this.prisma as any)[this.model].getMany(options);
+		return await (this.prisma as any)[this.model].findMany({});
 	}
 }

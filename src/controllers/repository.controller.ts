@@ -1,3 +1,4 @@
+import assert from "node:assert";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RepositoryBasic } from "../models";
 import type {
@@ -33,7 +34,12 @@ export async function createRepository(
 	req: FastifyRequest<{ Body: RepositoryInput }>,
 	reply: FastifyReply,
 ) {
+	// Get params and check auth
 	const { name, ownerId, description, visibility } = req.body;
+	const authToken = req.cookies.access_token;
+	if (!authToken) {
+		return reply.status(401).send({ message: "Authentication required." });
+	}
 
 	// Validate input data
 	if (!isRepositoryNameValid(name)) {
@@ -55,6 +61,8 @@ export async function createRepository(
 	}
 
 	// Create repository
+	const unsignedToken = reply.unsignCookie(authToken).value;
+	assert(unsignedToken, "Unsigned cookie token is invalid!");
 	const newRepository: RepositoryBasic = await repositoryService.create(
 		{
 			name,
@@ -62,7 +70,7 @@ export async function createRepository(
 			visibility,
 			owner_id: ownerId,
 		},
-		req.headers.authorization || "",
+		unsignedToken,
 	);
 
 	return reply.code(201).send(newRepository);

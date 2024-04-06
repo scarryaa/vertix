@@ -1,3 +1,4 @@
+import assert from "node:assert";
 import { env } from "node:process";
 import { Authenticator } from "./authenticators/base.authenticator";
 import type { RepositoryBasic } from "./models";
@@ -18,9 +19,10 @@ const supportedFields: (keyof RepositoryBasic)[] = [
 	"visibility",
 ];
 
-const requiredFields: (keyof RepositoryBasic)[] = ["id", "name"];
+const requiredFields: (keyof RepositoryBasic)[] = ["name"];
 
-const authenticator = new Authenticator(env.JWT_SECRET ?? "");
+assert(process.env.JWT_SECRET, "JWT Secret missing!");
+const authenticator = new Authenticator(process.env.JWT_SECRET);
 const validator = new Validator<RepositoryBasic>(
 	requiredFields,
 	supportedFields,

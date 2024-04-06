@@ -1,22 +1,27 @@
-import type { JWT } from "@fastify/jwt";
-import type { FastifyInstance, FastifyPluginAsync, FastifyPluginOptions, FastifyRequest } from "fastify";
+import type {
+	FastifyInstance,
+	FastifyPluginAsync,
+	FastifyPluginOptions,
+	FastifyRequest,
+} from "fastify";
 
 export interface CustomRequest {
-	jwt: JWT;
+	user?: {
+		id: number;
+		role: string;
+	};
 }
 
 declare module "fastify" {
 	interface FastifyRequest extends CustomRequest {}
 }
 
-export interface CustomInstance extends FastifyInstance {
-	jwt: JWT;
+export interface AuthenticateInstance extends FastifyInstance {
+	// @TODO fix this typing
 	authenticate?: any;
 }
 
-export interface CustomInstanceWithAuthenticate extends FastifyInstance {
-	authenticate: any;
-}
-
-export interface UserRoutesOptions extends FastifyPluginAsync {
+export interface UserRoutesOptions
+	extends FastifyPluginAsync<FastifyPluginOptions> {
+	(instance: AuthenticateInstance): Promise<void>;
 }

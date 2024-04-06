@@ -37,7 +37,7 @@ describe("RepositoryRepository", () => {
 				tag_id: null,
 				id: 1,
 				owner_id: 1,
-				programming_languages: []
+				programming_languages: [],
 			});
 
 			const foundRepository = await repositoryRepository.findById(1);
@@ -437,7 +437,7 @@ describe("RepositoryRepository", () => {
 				organization_id: null,
 				owner_id: 1,
 				tag_id: null,
-				description: null
+				description: null,
 			};
 
 			mockContext.prisma.repository.update.mockResolvedValueOnce(

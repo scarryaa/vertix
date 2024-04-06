@@ -1,5 +1,7 @@
+import assert from "node:assert";
 import bcrypt from "bcrypt";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import jwt from "jsonwebtoken";
 import type { LoginUserInput, UserInput } from "../schemas/user.schema";
 import prisma from "../utils/prisma";
 
@@ -47,21 +49,22 @@ export async function login(
 ) {
 	try {
 		const { email, password } = req.body;
-
 		const user = await prisma.user.findUnique({ where: { email } });
 
 		if (!user || !(await bcrypt.compare(password, user.password))) {
 			return reply.status(401).send({ message: "Invalid email or password." });
 		}
 
-		const payload = { id: user.id, email: user.email, name: user.name };
-		const token = await reply.jwtSign(payload);
+		const payload = { id: user.id, role: user.role };
+		assert(process.env.JWT_SECRET, "JWT Secret missing!");
+		const token = jwt.sign(payload, process.env.JWT_SECRET);
 
 		reply.setCookie("access_token", token, {
-			path: "/",
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
 			sameSite: "strict",
+			path: "/",
+			signed: true,
 		});
 
 		return reply.send({ message: "Login successful." });
@@ -105,6 +108,7 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
 			sameSite: "strict",
+			signed: true,
 		});
 
 		return reply.send({ message: "Logout successful." });
@@ -113,8 +117,7 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
 	}
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: suppress biome error
-export default async function userRoutes(fastify: FastifyInstance, _opts: any) {
+export default async function userRoutes(fastify: FastifyInstance) {
 	fastify.post("/register", createUser);
 	fastify.post("/login", login);
 	fastify.get("/users", getAllUsers);

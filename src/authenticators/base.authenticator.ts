@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+import type { UserRole } from "../models";
+import type { JwtPayload } from "../utils/types";
 
 export class Authenticator {
 	private readonly secretKey: string;
@@ -7,19 +9,22 @@ export class Authenticator {
 		this.secretKey = secretKey;
 	}
 
-	authenticate(token: string, requiredRoles: string[]): boolean {
+	authenticate(
+		token: string,
+		requiredRoles: UserRole[],
+	): { userId: number; role: UserRole } {
 		try {
-			const decoded = jwt.verify(token, this.secretKey) as { role: string };
-			if (requiredRoles.includes(decoded.role)) {
-				// User has the required role
-				return true;
+			const decoded = jwt.verify(token, this.secretKey) as JwtPayload;
+			const { userId, role } = decoded;
+
+			if (requiredRoles.includes(role)) {
+				return { userId, role };
 			}
 
-			console.error("User does not have the required role");
-			return false;
+			throw new Error("User does not have the required role");
 		} catch (error) {
 			console.error("Authentication error:", error);
-			return false;
+			throw new Error("Authentication failed");
 		}
 	}
 }

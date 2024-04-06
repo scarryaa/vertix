@@ -1,19 +1,20 @@
 import assert from "node:assert";
 import { env } from "node:process";
 import fCookie from "@fastify/cookie";
-import fjwt, { type FastifyJWT } from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
 import fastify, {
 	type FastifyInstance,
 	type FastifyReply,
 	type FastifyRequest,
 } from "fastify";
+import jwt from "jsonwebtoken";
 import type { CustomRequest } from "../types/request";
 import { errorHandler } from "./middlewares/error.middleware";
 import { repositoryRoutes } from "./routes/repository.routes";
 import { userRoutes } from "./routes/user.routes";
 import { repositorySchemas } from "./schemas/repository.schema";
 import { userSchemas } from "./schemas/user.schema";
+import type { JwtPayload } from "./utils/types";
 
 type ServerConfig = {
 	port: number;
@@ -47,40 +48,37 @@ class VortexServer {
 			keyGenerator: (req) => req.ip,
 		});
 
-		// add jwt, cookie
-		assert(process.env.JWT_SECRET, "JWT_SECRET missing");
-		this.app.register(fjwt, {
-			secret: process.env.JWT_SECRET ?? "",
-			cookie: {
-				cookieName: "access_token",
-				signed: false,
-			},
-		});
-		this.app.addHook("preHandler", (req, res, next) => {
-			req.jwt = this.app.jwt;
-			return next();
-		});
+		// add cookie
+		assert(env.COOKIE_SECRET, "Cookie secret not found");
+
 		this.app.register(fCookie, {
 			secret: env.COOKIE_SECRET,
 			hook: "preHandler",
 		});
 
-		assert(env.JWT_SECRET, "JWT secret not found");
-		assert(env.COOKIE_SECRET, "Cookie secret not found");
-
 		this.app.decorate(
 			"authenticate",
 			async (req: FastifyRequest, reply: FastifyReply) => {
-				const token = req.cookies.access_token;
-
+				const token = req.unsignCookie(req.cookies.access_token ?? "").value;
 				if (!token) {
 					return reply
 						.status(401)
 						.send({ message: "Authentication required." });
 				}
-				// @ts-ignore
-				const decoded = req.jwt.verify<FastifyJWT["user"]>(token);
-				req.user = decoded;
+
+				try {
+					assert(process.env.JWT_SECRET, "JWT Secret missing!");
+					const decoded = jwt.verify(
+						token,
+						process.env.JWT_SECRET,
+					) as unknown as JwtPayload;
+					req.user = {
+						id: decoded.userId,
+						role: decoded.role,
+					};
+				} catch (error) {
+					return reply.status(401).send({ message: "Invalid token." });
+				}
 			},
 		);
 
@@ -95,8 +93,8 @@ class VortexServer {
 
 		const listeners = ["SIGINT", "SIGTERM"];
 		for (let i = 0; i < listeners.length; i++) {
-			const signal = listeners[i];
-			process.on(signal as any, async () => {
+			const signal = listeners[i] ?? "";
+			process.on(signal, async () => {
 				await this.app.close();
 				process.exit(0);
 			});

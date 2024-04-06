@@ -8,18 +8,18 @@ const app = fastify();
 let server: FastifyInstance;
 
 beforeAll(async () => {
-	await app.register(import('@fastify/rate-limit'), {
+	await app.register(import("@fastify/rate-limit"), {
 		max: 5,
-		timeWindow: '1 minute'
-	  })
-	
+		timeWindow: "1 minute",
+	});
+
 	app.get(
 		"/health_check",
 		async (request: FastifyRequest, reply: FastifyReply) => {
 			return { status: "OK" };
-		}
+		},
 	);
-	
+
 	server = app;
 	await server.listen({ port: 9000 });
 });

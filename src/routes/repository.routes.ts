@@ -1,5 +1,5 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
-import type { CustomInstance } from "../../types/request";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { AuthenticateInstance } from "../../types/request";
 import {
 	createRepository,
 	deleteRepository,
@@ -10,7 +10,7 @@ import {
 import { $ref } from "../schemas/repository.schema";
 
 export const repositoryRoutes = async function repositoryRoutes(
-	app: CustomInstance,
+	app: AuthenticateInstance,
 ) {
 	app.get("/", (req: FastifyRequest, reply: FastifyReply) => {
 		reply.send({

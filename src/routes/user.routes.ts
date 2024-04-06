@@ -1,5 +1,8 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
-import type { CustomInstance, UserRoutesOptions } from "../../types/request";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type {
+	AuthenticateInstance,
+	UserRoutesOptions,
+} from "../../types/request";
 import {
 	createUser,
 	getAllUsers,
@@ -9,11 +12,11 @@ import {
 import { $ref } from "../schemas/user.schema";
 
 export const userRoutes: UserRoutesOptions = async function userRoutes(
-	app: CustomInstance,
+	app: AuthenticateInstance,
 ) {
 	app.get(
 		"/",
-		{ preHandler: [app.authenticate] },
+		{ preHandler: [app.authenticate ?? []] },
 		(req: FastifyRequest, reply: FastifyReply) => {
 			reply.send({
 				message: "This is the default route for the 'users' endpoint.",

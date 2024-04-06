@@ -1,4 +1,4 @@
-import { ProgrammingLanguage } from "../models";
+import { ProgrammingLanguage, type UserRole } from "../models";
 
 export type KeysOfType<T> = keyof {
 	[K in keyof T as T[K] extends never ? never : K]: K;
@@ -35,3 +35,8 @@ export const convertProgrammingLanguageToDisplayName: Record<
 	[ProgrammingLanguage.ASSEMBLY]: "Assembly",
 	[ProgrammingLanguage.LISP]: "Lisp",
 };
+
+export interface JwtPayload {
+	userId: number;
+	role: UserRole;
+}
