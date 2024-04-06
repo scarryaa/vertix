@@ -2,7 +2,7 @@ import assert from "node:assert";
 import { env } from "node:process";
 import fCookie from "@fastify/cookie";
 import fjwt, { type FastifyJWT } from "@fastify/jwt";
-import rateLimit from '@fastify/rate-limit'
+import rateLimit from "@fastify/rate-limit";
 import fastify, {
 	type FastifyInstance,
 	type FastifyReply,
@@ -45,11 +45,11 @@ class VortexServer {
 		this.app.register(rateLimit, {
 			max: 100,
 			timeWindow: "1 minute",
-			keyGenerator: (req) => req.ip
-		})
+			keyGenerator: (req) => req.ip,
+		});
 
 		// add jwt, cookie
-		assert(process.env.JWT_SECRET, "JWT_SECRET missing")
+		assert(process.env.JWT_SECRET, "JWT_SECRET missing");
 		this.app.register(fjwt, {
 			secret: process.env.JWT_SECRET ?? "",
 			cookie: {

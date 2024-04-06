@@ -80,24 +80,19 @@ export async function getAllUsers(req: FastifyRequest, reply: FastifyReply) {
 				name: true,
 				avatar: true,
 				bio: true,
-				createdAt: true,
-				updatedAt: true,
-				publicEmail: true,
-				preferences: {
-					select: {
-						showPublicEmail: true,
-					},
-				},
+				created_at: true,
+				updated_at: true,
+				public_email: true,
 			},
 		});
 
-		const usersWithEmail = users.map((user) => {
-			const { preferences, email, publicEmail, ...rest } = user;
-			const showPublicEmail = preferences?.showPublicEmail || false;
-			return showPublicEmail ? { ...rest, publicEmail } : rest;
-		});
+		// const usersWithEmail = users.map((user) => {
+		// 	const { email, public_email, ...rest } = user;
+		// 	const showPublicEmail = preferences?.showPublicEmail || false;
+		// 	return showPublicEmail ? { ...rest, publicEmail } : rest;
+		// });
 
-		return reply.status(200).send(usersWithEmail);
+		return reply.status(200).send([]);
 	} catch (error) {
 		throw new Error("INTERNAL_SERVER_ERROR");
 	}

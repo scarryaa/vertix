@@ -6,7 +6,7 @@ export * from "./issue-assignee.model";
 export * from "./issue.model";
 export * from "./license.model";
 export * from "./member.model";
-export * from './notification-data.model';
+export * from "./notification-data.model";
 export * from "./notification.model";
 export * from "./organization.model";
 export * from "./pull-request.model";

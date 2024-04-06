@@ -1,4 +1,10 @@
-import type { Commit, PullRequestStatus, RepositoryDetailed, ReviewDetailed, UserBasic } from ".";
+import type {
+	Commit,
+	PullRequestStatus,
+	RepositoryDetailed,
+	ReviewDetailed,
+	UserBasic,
+} from ".";
 
 export interface PullRequest {
 	id: number;

@@ -1,4 +1,4 @@
-import type { Organization, OrganizationRole, UserBasic } from ".";
+import type { Organization, OrganizationMemberRole, UserBasic } from ".";
 
 export interface Member {
 	id: number;
@@ -6,5 +6,5 @@ export interface Member {
 	organization_id: number;
 	user: UserBasic;
 	user_id: number;
-	role: OrganizationRole;
+	role: OrganizationMemberRole;
 }

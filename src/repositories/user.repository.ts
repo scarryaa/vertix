@@ -1,19 +1,20 @@
 import type { Prisma, PrismaClient, User as PrismaUser } from "@prisma/client";
-import type {
-	Collaborator,
-	Commit,
-	Follow,
-	Issue,
-	Member,
-	PullRequest,
-	Star,
-	User,
+import {
+	type CollaboratorDetailed,
+	type Commit,
+	type Follow,
+	type Issue,
+	type Member,
+	type PullRequest,
+	type Star,
+	type UserBasic,
+	UserRole,
 } from "../models";
 import type {
-	BaseRepository,
 	FindAllOptions,
-	RepositoryInclude,
-} from "./base.repository";
+	IRepository,
+	IncludeOptions,
+} from "./repository.interface";
 import { buildUserIncludeOptions } from "./utils/repository.utils";
 
 type UserWithRelations = Omit<
@@ -34,7 +35,7 @@ type UserWithRelations = Omit<
 	following: Follow[];
 	issues: Issue[];
 	stars: Star[];
-	collaborators: Collaborator[];
+	collaborators: CollaboratorDetailed[];
 	comments: Comment[];
 	notifications: Notification[];
 	memberships: Member[];
@@ -66,12 +67,13 @@ function isUserWithRelations(obj: {
 }
 
 interface UserRepository
-	extends BaseRepository<
-		User,
+	extends IRepository<
+		UserBasic,
 		Prisma.UserCreateInput,
 		Prisma.UserUpdateInput,
 		Prisma.UserCreateManyInput,
-		{ where: Prisma.UserWhereUniqueInput }
+		Prisma.UserWhereUniqueInput,
+		Prisma.UserWhereInput
 	> {}
 
 export class UserRepositoryImpl implements UserRepository {
@@ -83,37 +85,37 @@ export class UserRepositoryImpl implements UserRepository {
 
 	async findById(
 		id: number | undefined,
-		include?: RepositoryInclude<User>,
-	): Promise<User | undefined> {
-		const includeOpts: Prisma.UserInclude = buildUserIncludeOptions(include);
+		include?: IncludeOptions<UserBasic>,
+	): Promise<UserBasic | undefined> {
+		// const includeOpts: Prisma.UserInclude = buildUserIncludeOptions(include);
 
-		const res = await this.prisma.user.findUnique({
-			where: { id },
-			include: includeOpts,
-		});
+		// const res = await this.prisma.user.findUnique({
+		// 	where: { id },
+		// 	include: includeOpts,
+		// });
 
-		if (!res) return undefined;
+		// if (!res) return undefined;
 
-		if (isUserWithRelations(res)) {
-			const { _count, ...userWithRelations } = res;
-			return { ...userWithRelations };
-		}
+		// if (isUserWithRelations(res)) {
+		// 	const { _count, ...userWithRelations } = res;
+		// 	return { ...userWithRelations };
+		// }
 
-		throw new Error("Unexpected data structure from Prisma");
+		// throw new Error("Unexpected data structure from Prisma");
+		throw new Error("Method not implemented.");
 	}
 
 	async findAll(
-		options: FindAllOptions<User>,
-	): Promise<{ items: Partial<User>[]; totalCount: number }> {
+		options: FindAllOptions<UserBasic, Prisma.UserWhereInput>,
+	): Promise<{ items: UserBasic[]; totalCount: number }> {
 		const { limit, page, search, skip } = options;
-		const whereClause: Prisma.UserWhereUniqueInput =
-			{} as Prisma.UserWhereUniqueInput;
+		const whereClause: Prisma.UserWhereInput = {};
 
 		if (search) {
 			whereClause.OR = [
 				{ name: { contains: search, mode: "insensitive" } },
 				{ username: { contains: search, mode: "insensitive" } },
-				{ publicEmail: { contains: search, mode: "insensitive" } },
+				{ public_email: { contains: search, mode: "insensitive" } },
 				// @TODO include more fields?
 			];
 		}
@@ -126,17 +128,51 @@ export class UserRepositoryImpl implements UserRepository {
 			where: whereClause,
 			take: parsedLimit,
 			skip: parsedSkip,
+			select: {
+				id: true,
+				name: true,
+				username: true,
+				public_email: true,
+				updated_at: true,
+				created_at: true,
+				email: true,
+				avatar: true,
+				bio: true,
+				repositories: {
+					include: {
+						collaborators: true,
+						issues: true,
+						license: true,
+						owner: true,
+						tag: true,
+						stars: true,
+						pull_requests: true,
+						organization: true,
+					},
+				},
+			},
 		});
 
 		const totalCount = await this.prisma.user.count({
 			where: whereClause,
 		});
 
-		return { items: users, totalCount };
+		const items = users.map((user) => ({
+			...user,
+			role: UserRole.USER,
+			id: user.id ?? null,
+			repositories: [],
+		}));
+
+		return { items, totalCount };
 	}
 
-	async create(data: Prisma.UserCreateInput): Promise<Partial<User>> {
-		return await this.prisma.user.create({ data });
+	async create(data: Prisma.UserCreateInput): Promise<UserBasic> {
+		return {
+			...(await this.prisma.user.create({ data })),
+			repositories: [],
+			role: UserRole.USER,
+		};
 	}
 
 	async createMany(data: Prisma.UserCreateManyInput[]): Promise<number> {
@@ -146,14 +182,21 @@ export class UserRepositoryImpl implements UserRepository {
 	async update(
 		id: number | undefined,
 		data: Prisma.UserUpdateInput,
-	): Promise<Partial<User>> {
-		return await this.prisma.user.update({ where: { id }, data });
+	): Promise<UserBasic> {
+		return {
+			...(await this.prisma.user.update({ where: { id }, data })),
+			role: UserRole.USER,
+			repositories: [],
+		};
 	}
 
 	async delete(params: { where: Prisma.UserWhereUniqueInput }): Promise<
-		Partial<User>
+		Partial<UserBasic>
 	> {
 		const { where } = params;
-		return await this.prisma.user.delete({ where });
+		return {
+			...(await this.prisma.user.delete({ where })),
+			role: UserRole.USER,
+		};
 	}
 }

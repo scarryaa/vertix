@@ -6,13 +6,13 @@ export function isRepositoryNameValid(name: string): boolean {
 }
 
 export async function checkRepositoryExists(
-    name: string,
-    ownerId: number,
+	name: string,
+	ownerId: number,
 ): Promise<boolean> {
-    const existingRepository = await prisma.repository.findFirst({
-        where: {
-            AND: [{ name }, { ownerId }],
-        },
-    });
-    return !!existingRepository;
+	const existingRepository = await prisma.repository.findFirst({
+		where: {
+			AND: [{ name }, { owner_id: ownerId }],
+		},
+	});
+	return !!existingRepository;
 }

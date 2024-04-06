@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { Repository } from "../models";
+import type { RepositoryBasic } from "../models";
 import type {
 	GetRepositoriesInput,
 	GetRepositoriesResponse,
@@ -21,7 +21,12 @@ import {
 	validateType,
 } from "../utils/validation";
 
-const supportedFieldsForUpdate = ['name', 'description', 'visibility', 'ownerId'];
+const supportedFieldsForUpdate = [
+	"name",
+	"description",
+	"visibility",
+	"ownerId",
+];
 const MAX_DESCRIPTION_LENGTH = 255;
 
 export async function createRepository(
@@ -50,7 +55,7 @@ export async function createRepository(
 	}
 
 	// Create repository
-	const newRepository: Repository = await repositoryService.create(
+	const newRepository: RepositoryBasic = await repositoryService.create(
 		ownerId,
 		{
 			name,
@@ -95,15 +100,14 @@ export async function getAllRepositories(
 	const parsedOwnerId = ownerId ? Number(ownerId) : undefined;
 	const parsedSkip = skip !== undefined ? skip : (parsedPage - 1) * parsedLimit;
 
-	const { repositories, totalCount } =
-		await repositoryService.getAll({
-			limit: parsedLimit,
-			ownerId: parsedOwnerId,
-			page: parsedPage,
-			search: search,
-			skip: parsedSkip,
-			visibility: visibility,
-		});
+	const { repositories, totalCount } = await repositoryService.getAll({
+		limit: parsedLimit,
+		ownerId: parsedOwnerId,
+		page: parsedPage,
+		search: search,
+		skip: parsedSkip,
+		visibility: visibility,
+	});
 
 	// Check if repositories is empty
 	if (totalCount === 0 || repositories === null) {
@@ -191,7 +195,11 @@ export async function updateRepository(
 	}
 
 	if (Object.keys(dataToUpdate).length === 0) {
-		return reply.code(400).send({ message: `No fields provided for update. Supported fields are: ${supportedFieldsForUpdate.join(', ')}` });
+		return reply.code(400).send({
+			message: `No fields provided for update. Supported fields are: ${supportedFieldsForUpdate.join(
+				", ",
+			)}`,
+		});
 	}
 
 	const updatedRepository = await repositoryService.update(

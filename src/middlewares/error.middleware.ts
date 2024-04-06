@@ -26,11 +26,9 @@ export const errorHandler = (
 		});
 	} else if (error.name && error.name === "FastifyError") {
 		// If it's a Fastify error
-		reply
-			.code((error as FastifyError).statusCode ?? 500)
-			.send({
-				error: { code: (error as FastifyError).code, message: error.message },
-			});
+		reply.code((error as FastifyError).statusCode ?? 500).send({
+			error: { code: (error as FastifyError).code, message: error.message },
+		});
 	} else {
 		// If it's a standard Error or other error
 		console.error(error.message);

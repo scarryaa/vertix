@@ -1,6 +1,6 @@
 import type { Prisma, Repository } from "@prisma/client";
 import { any } from "jest-mock-extended";
-import { RepositoryRepositoryImpl } from "../../src/repositories/repository.repository";
+import { RepositoryBasicRepository } from "../../src/repositories/repository-basic.repository";
 import {
 	type Context,
 	type MockContext,
@@ -8,7 +8,7 @@ import {
 } from "../__mocks__/mocks";
 
 describe("RepositoryRepository", () => {
-	let repositoryRepository: RepositoryRepositoryImpl;
+	let repositoryRepository: RepositoryBasicRepository;
 	let mockContext: MockContext;
 	let ctx: Context;
 
@@ -16,7 +16,7 @@ describe("RepositoryRepository", () => {
 		mockContext = createMockContext();
 		ctx = mockContext as Context;
 
-		repositoryRepository = new RepositoryRepositoryImpl(ctx.prisma);
+		repositoryRepository = new RepositoryBasicRepository(ctx.prisma);
 	});
 
 	afterEach(async () => {
@@ -37,7 +37,7 @@ describe("RepositoryRepository", () => {
 				tag_id: null,
 				id: 1,
 				owner_id: 1,
-				language: null,
+				programming_languages: []
 			});
 
 			const foundRepository = await repositoryRepository.findById(1);
@@ -432,7 +432,7 @@ describe("RepositoryRepository", () => {
 				visibility: "private",
 				created_at: new Date(),
 				updated_at: new Date(),
-				language: null,
+				programming_languages: [],
 				license_id: null,
 				organization_id: null,
 				owner_id: 1,

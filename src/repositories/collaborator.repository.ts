@@ -23,9 +23,9 @@ export class CollaboratorRepository {
 	): Promise<Collaborator | null> {
 		const collaborator = await this.prisma.collaborator.findUnique({
 			where: {
-				repositoryId_userId: {
-					repositoryId,
-					userId,
+				repository_id_user_id: {
+					repository_id: repositoryId,
+					user_id: userId,
 				},
 			},
 		});

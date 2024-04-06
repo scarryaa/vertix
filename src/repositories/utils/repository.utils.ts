@@ -1,4 +1,5 @@
-import type { Prisma } from "@prisma/client";
+import { type Prisma, ProgrammingLanguage } from "@prisma/client";
+import { ProgrammingLanguage as ProgrammingLanguageEnum } from "../../models";
 
 type IncludeOptions<T extends Record<string, unknown>> = {
 	[K in keyof T]?: {
@@ -8,7 +9,7 @@ type IncludeOptions<T extends Record<string, unknown>> = {
 	};
 };
 
-function buildUserIncludeOptions<T extends Record<string, unknown>>(
+export function buildUserIncludeOptions<T extends Record<string, unknown>>(
 	include?: T,
 ): Prisma.RepositoryInclude {
 	const includeOpts: IncludeOptions<T> = {};
@@ -23,5 +24,3 @@ function buildUserIncludeOptions<T extends Record<string, unknown>>(
 
 	return includeOpts;
 }
-
-export { buildUserIncludeOptions };

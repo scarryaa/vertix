@@ -1,4 +1,14 @@
-import type { CollaboratorDetailed, Issue, License, Organization, ProgrammingLanguage, PullRequest, Star, Tag, UserBasic } from ".";
+import type {
+	CollaboratorDetailed,
+	Issue,
+	License,
+	Organization,
+	ProgrammingLanguage,
+	PullRequest,
+	Star,
+	Tag,
+	UserBasic,
+} from ".";
 
 export type VisibilityType = "public" | "private";
 
@@ -24,10 +34,41 @@ export interface RepositoryDetailed {
 	pull_requests: PullRequest[];
 }
 
-export type CreateRepository = Pick<
-  RepositoryDetailed,
-  "name" | "visibility" | "owner_id"
+export interface RepositoryBasic
+	extends Pick<
+		RepositoryDetailed,
+		| "name"
+		| "description"
+		| "visibility"
+		| "owner_id"
+		| "created_at"
+		| "updated_at"
+		| "id"
+	> {}
+
+interface OwnerConnectInput {
+	id: number;
+}
+
+export type RepositoryCreateInput = Pick<
+	RepositoryDetailed,
+	"name" | "visibility" | "owner"
 > &
-  Partial<Pick<RepositoryDetailed, "description" | "license" | "organization">> & {
-    programming_languages?: ProgrammingLanguage[];
-  };
+	Partial<
+		Pick<RepositoryDetailed, "description" | "license" | "organization">
+	> & {
+		programming_languages?: ProgrammingLanguage[];
+		owner: OwnerConnectInput;
+	};
+
+export type RepositoryUpdateInput = Partial<
+	Pick<
+		RepositoryDetailed,
+		| "name"
+		| "description"
+		| "visibility"
+		| "license"
+		| "organization"
+		| "programming_languages"
+	>
+>;

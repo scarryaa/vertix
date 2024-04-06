@@ -39,7 +39,6 @@ export interface UserDetailed {
 	programming_languages: ProgrammingLanguage[];
 	timezone: Timezone;
 	status: UserStatus;
-	user_preferences_id: number;
 
 	// Events
 	last_login_at: Date | null;
