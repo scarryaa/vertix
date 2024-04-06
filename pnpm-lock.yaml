@@ -11,6 +11,9 @@ dependencies:
   '@fastify/env':
     specifier: ^4.3.0
     version: 4.3.0
+  '@fastify/formbody':
+    specifier: ^7.4.0
+    version: 7.4.0
   '@fastify/rate-limit':
     specifier: ^9.1.0
     version: 9.1.0
@@ -547,6 +550,13 @@ packages:
     resolution: {integrity: sha512-aZAXGYo6m22Fk1zZzEUKBvut/CIIQe/BapEORnxiD5Qr0kPHqqI69NtEMCme74h+at72sPhbkb4ZrLd1W3KRLA==}
     dependencies:
       fast-json-stringify: 5.13.0
+    dev: false
+
+  /@fastify/formbody@7.4.0:
+    resolution: {integrity: sha512-H3C6h1GN56/SMrZS8N2vCT2cZr7mIHzBHzOBa5OPpjfB/D6FzP9mMpE02ZzrFX0ANeh0BAJdoXKOF2e7IbV+Og==}
+    dependencies:
+      fast-querystring: 1.1.2
+      fastify-plugin: 4.5.1
     dev: false
 
   /@fastify/merge-json-schemas@0.1.1:

@@ -3,7 +3,7 @@ import z from "zod";
 
 const repositorySchema = z.object({
 	name: z.string(),
-	ownerId: z.number(),
+	owner_id: z.number(),
 	description: z.string().max(255).optional(),
 	visibility: z.enum(["public", "private"]),
 });
@@ -11,11 +11,11 @@ const repositorySchema = z.object({
 const repositoryResponseSchema = z.object({
 	id: z.number(),
 	name: z.string(),
-	ownerId: z.number(),
+	owner_id: z.number(),
 	description: z.string().nullable(),
 	visibility: z.enum(["public", "private"]),
-	createdAt: z.date(),
-	updatedAt: z.date(),
+	created_at: z.date(),
+	updated_at: z.date(),
 });
 
 export type RepositoryInput = z.infer<typeof repositorySchema>;
@@ -31,13 +31,13 @@ const getRepositoriesSchema = z.object({
 	page: z.string().min(1).optional().default("1"),
 	search: z.string().optional(),
 	visibility: z.enum(["public", "private"]).optional(),
-	ownerId: z.string().optional(),
+	owner_id: z.string().optional(),
 	skip: z.number().optional(),
 });
 
 const getRepositoriesResponseSchema = z.object({
 	repositories: z.array(repositoryResponseSchema),
-	totalCount: z.number(),
+	total_count: z.number(),
 	limit: z.number(),
 	page: z.number(),
 });
@@ -61,7 +61,7 @@ const updateRepositorySchema = z.object({
 	name: z.string().optional(),
 	description: z.string().max(255).optional(),
 	visibility: z.enum(["public", "private"]).optional(),
-	ownerId: z.number().optional(),
+	owner_id: z.number().optional(),
 });
 
 const updateRepositoryResponseSchema = z.object({
@@ -69,9 +69,9 @@ const updateRepositoryResponseSchema = z.object({
 	name: z.string(),
 	description: z.string().optional(),
 	visibility: z.string(),
-	ownerId: z.number(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
+	owner_id: z.number(),
+	created_at: z.string(),
+	updatted_at: z.string(),
 });
 
 export type UpdateRepositoryInput = z.infer<typeof updateRepositorySchema>;

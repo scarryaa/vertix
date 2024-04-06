@@ -1,6 +1,7 @@
 import assert from "node:assert";
 import { env } from "node:process";
 import fCookie from "@fastify/cookie";
+import formbody from "@fastify/formbody";
 import rateLimit from "@fastify/rate-limit";
 import fastify, {
 	type FastifyInstance,
@@ -33,6 +34,8 @@ class VortexServer {
 	}
 
 	async setup() {
+		this.app.register(formbody);
+
 		this.app.get("/health_check", (req: CustomRequest, res) => {
 			res.send({ message: "Success" });
 		});

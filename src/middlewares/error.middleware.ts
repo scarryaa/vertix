@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
-import { BaseError, NotFoundError } from "../utils/errors";
+import { NotFoundError } from "../utils/errors";
+import { BaseError } from "../utils/errors/base.error";
 
 export const errorHandler = (
 	error: Error,
@@ -24,6 +25,11 @@ export const errorHandler = (
 				data: error.data,
 			},
 		});
+	} else if (error && (error as FastifyError).code === "FST_ERR_VALIDATION") {
+		// If it's a Fastify validation error
+		reply.code((error as FastifyError).statusCode ?? 500).send({
+			error: { code: (error as FastifyError).code, message: error.message },
+		});
 	} else if (error.name && error.name === "FastifyError") {
 		// If it's a Fastify error
 		reply.code((error as FastifyError).statusCode ?? 500).send({
@@ -31,7 +37,7 @@ export const errorHandler = (
 		});
 	} else {
 		// If it's a standard Error or other error
-		console.error(error.message);
+		console.error(error);
 		reply.code(500).send({
 			error: { code: "INTERNAL_SERVER_ERROR" },
 		});

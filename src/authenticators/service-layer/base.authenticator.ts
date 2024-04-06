@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
-import type { UserRole } from "../models";
-import type { JwtPayload } from "../utils/types";
+import type { UserRole } from "../../models";
+import { UnauthorizedError } from "../../utils/errors";
+import type { JwtPayload } from "../../utils/types";
 
 export class Authenticator {
 	private readonly secretKey: string;
@@ -21,7 +22,7 @@ export class Authenticator {
 				return { userId, role };
 			}
 
-			throw new Error("User does not have the required role");
+			throw new UnauthorizedError("User does not have the required role.");
 		} catch (error) {
 			console.error("Authentication error:", error);
 			throw new Error("Authentication failed");

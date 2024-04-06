@@ -50,7 +50,7 @@ export const userRoutes: UserRoutesOptions = async function userRoutes(
 		login,
 	);
 
-	app.delete("/logout", { preHandler: [app.authenticate] }, logout);
+	app.post("/logout", { preHandler: [app.authenticate] }, logout);
 
 	app.get("/getUsers", { preHandler: [] }, getAllUsers);
 

@@ -1,5 +1,4 @@
 import type { FastifyReply } from "fastify";
-import { replyWithError } from "./messages";
 
 export type ValidationError = {
 	type: "type" | "range" | "value";
@@ -81,7 +80,7 @@ export const handleValidations = (
 	if (filteredValidations.length > 0) {
 		const firstErr = filteredValidations[0];
 
-		if (firstErr) replyWithError(reply, firstErr.message);
+		if (firstErr) throw new Error(firstErr.message);
 		return true;
 	}
 	return false;

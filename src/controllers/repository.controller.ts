@@ -1,4 +1,3 @@
-import assert from "node:assert";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RepositoryBasic } from "../models";
 import type {
@@ -8,8 +7,15 @@ import type {
 	RepositoryInput,
 	UpdateRepositoryInput,
 } from "../schemas/repository.schema";
-import { repositoryService } from "../services";
-import { NotFoundError } from "../utils/errors/not-found.error";
+import { repositoryRepositoryService } from "../services";
+import {
+	InvalidRepositoryNameError,
+	InvalidTokenError,
+	MissingTokenError,
+	RepositoryAlreadyExistsError,
+	RepositoryNotFoundError,
+} from "../utils/errors";
+import { UserDoesNotExistError } from "../utils/errors/user.error";
 import {
 	checkRepositoryExists,
 	isRepositoryNameValid,
@@ -22,12 +28,6 @@ import {
 	validateType,
 } from "../utils/validation";
 
-const supportedFieldsForUpdate: (keyof RepositoryBasic)[] = [
-	"name",
-	"description",
-	"visibility",
-	"owner_id",
-];
 const MAX_DESCRIPTION_LENGTH = 255;
 
 export async function createRepository(
@@ -35,43 +35,43 @@ export async function createRepository(
 	reply: FastifyReply,
 ) {
 	// Get params and check auth
-	const { name, ownerId, description, visibility } = req.body;
+	const { name, owner_id, description, visibility } = req.body;
 	const authToken = req.cookies.access_token;
+
 	if (!authToken) {
-		return reply.status(401).send({ message: "Authentication required." });
+		throw new MissingTokenError();
 	}
 
 	// Validate input data
 	if (!isRepositoryNameValid(name)) {
-		return reply.code(400).send({ message: "Invalid repository name" });
+		throw new InvalidRepositoryNameError();
 	}
 
 	// Check if repository already exists
-	if (await checkRepositoryExists(name, ownerId)) {
-		return reply.code(409).send({
-			message: "Repository with this name and owner already exists",
-		});
+	if (await checkRepositoryExists(name, owner_id)) {
+		throw new RepositoryAlreadyExistsError();
 	}
 
 	// Check if owner exists
-	if (!(await checkOwnerExists(ownerId))) {
-		return reply.code(404).send({
-			message: "Owner with provided id does not exist",
-		});
+	if (!(await checkOwnerExists(owner_id))) {
+		throw new UserDoesNotExistError(" ");
 	}
 
 	// Create repository
 	const unsignedToken = reply.unsignCookie(authToken).value;
-	assert(unsignedToken, "Unsigned cookie token is invalid!");
-	const newRepository: RepositoryBasic = await repositoryService.create(
-		{
-			name,
-			description,
-			visibility,
-			owner_id: ownerId,
-		},
-		unsignedToken,
-	);
+	if (!unsignedToken) {
+		throw new InvalidTokenError();
+	}
+	const newRepository: RepositoryBasic =
+		await repositoryRepositoryService.create(
+			{
+				name,
+				description,
+				visibility,
+				owner_id: owner_id,
+			},
+			unsignedToken,
+		);
 
 	return reply.code(201).send(newRepository);
 }
@@ -80,7 +80,7 @@ export async function getAllRepositories(
 	req: FastifyRequest<{ Querystring: GetRepositoriesInput }>,
 	reply: FastifyReply,
 ) {
-	const { limit, page, search, visibility, ownerId, skip } = req.query;
+	const { limit, page, search, visibility, owner_id, skip } = req.query;
 
 	// Validate the various params (since zod isn't supported here)
 	const validations = [
@@ -89,7 +89,7 @@ export async function getAllRepositories(
 			? validateAllowedValues(visibility, ["public", "private"], "visibility")
 			: null,
 		// owner_id can be optional
-		ownerId ? validateType(Number(ownerId) || undefined, 0, "ownerId") : null,
+		owner_id ? validateType(Number(owner_id) || undefined, 0, "ownerId") : null,
 		// page can be optional
 		page
 			? validateRange(Number(page), 1, Number.POSITIVE_INFINITY, "page")
@@ -103,7 +103,7 @@ export async function getAllRepositories(
 	handleValidations(reply, validations);
 
 	// If we passed validation, we can continue
-	const repositories = await repositoryService.getAll({
+	const repositories = await repositoryRepositoryService.getAll({
 		limit: Number(limit),
 		page: Number(page),
 		search: {},
@@ -112,7 +112,7 @@ export async function getAllRepositories(
 
 	// Check if repositories is empty
 	if (repositories.length === 0) {
-		throw new NotFoundError("No repositories found");
+		throw new RepositoryNotFoundError("No repositories found.");
 	}
 
 	const response: GetRepositoriesResponse = {
@@ -120,11 +120,11 @@ export async function getAllRepositories(
 			...repo,
 			description: repo.description ?? null,
 			visibility: repo.visibility as "public" | "private",
-			ownerId: Number(ownerId),
+			ownerId: Number(owner_id),
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		})),
-		totalCount: repositories.length,
+		total_count: repositories.length,
 		page: Number(page) || 1,
 		limit: Number(limit) || 20,
 	};
@@ -148,10 +148,10 @@ export async function getRepository(
 	handleValidations(reply, validations);
 
 	// Otherwise, we can proceed
-	const repository = await repositoryService.getById(Number(id));
+	const repository = await repositoryRepositoryService.getById(Number(id));
 
 	if (!repository) {
-		return reply.code(404).send({ message: "Repository not found" });
+		throw new RepositoryNotFoundError();
 	}
 
 	return reply.code(200).send(repository);
@@ -163,7 +163,10 @@ export async function updateRepository(
 	}>,
 	reply: FastifyReply,
 ) {
-	const { id, name, description, visibility, ownerId } = req.body;
+	const { id, name, description, visibility, owner_id } = req.body;
+	const authToken = req.cookies.access_token;
+
+	if (!authToken) throw new MissingTokenError();
 
 	const validations = [
 		validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
@@ -186,14 +189,19 @@ export async function updateRepository(
 		dataToUpdate.visibility = visibility;
 	}
 
-	if (ownerId !== undefined) {
-		dataToUpdate.owner_id = ownerId;
+	if (owner_id !== undefined) {
+		dataToUpdate.owner_id = owner_id;
 	}
 
-	const updatedRepository = await repositoryService.update(
+	const unsignedToken = reply.unsignCookie(authToken).value;
+	if (!unsignedToken) {
+		throw new InvalidTokenError();
+	}
+
+	const updatedRepository = await repositoryRepositoryService.update(
 		Number(id),
 		dataToUpdate,
-		req.headers.authorization || "",
+		unsignedToken,
 	);
 
 	return reply.code(200).send(updatedRepository);
@@ -204,6 +212,9 @@ export async function deleteRepository(
 	reply: FastifyReply,
 ) {
 	const { id } = req.body;
+	const authToken = req.cookies.access_token;
+
+	if (!authToken) throw new MissingTokenError();
 
 	const validations = [
 		validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
@@ -212,7 +223,12 @@ export async function deleteRepository(
 
 	handleValidations(reply, validations);
 
-	await repositoryService.delete(Number(id), req.headers.authorization || "");
+	const unsignedToken = reply.unsignCookie(authToken).value;
+	if (!unsignedToken) {
+		throw new InvalidTokenError();
+	}
+
+	await repositoryRepositoryService.delete(Number(id), unsignedToken);
 
 	return reply.code(204).send();
 }

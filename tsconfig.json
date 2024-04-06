@@ -10,7 +10,8 @@
 		"strict": true,
 		"typeRoots": ["./node_modules/@types", "./types"],
 		"strictNullChecks": true,
-		"noUncheckedIndexedAccess": true
+		"noUncheckedIndexedAccess": true,
+		"experimentalDecorators": true
 	},
 	"include": ["src/**/*", "./types", "tests"]
 }
