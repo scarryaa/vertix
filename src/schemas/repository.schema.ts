@@ -1,45 +1,39 @@
 import { buildJsonSchemas } from "fastify-zod";
 import z from "zod";
 
-const repositorySchema = z.object({
-	name: z.string(),
-	owner_id: z.number(),
+const createRepositorySchema = z.object({
+	name: z.string().max(64).min(3),
 	description: z.string().max(255).optional(),
 	visibility: z.enum(["public", "private"]),
 });
 
-const repositoryResponseSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	owner_id: z.number(),
+const createRepositoryReponseSchema = z.object({
+	id: z.coerce.number().min(1),
+	name: z.string().max(64).min(3),
+	owner_id: z.coerce.number().min(1),
 	description: z.string().nullable(),
 	visibility: z.enum(["public", "private"]),
 	created_at: z.date(),
 	updated_at: z.date(),
 });
 
-export type RepositoryInput = z.infer<typeof repositorySchema>;
-export type RepositoryResponse = z.infer<typeof repositoryResponseSchema>;
+export type RepositoryInput = z.infer<typeof createRepositorySchema>;
+export type RepositoryResponse = z.infer<typeof createRepositoryReponseSchema>;
 
 const getRepositoriesSchema = z.object({
-	limit: z
-		.string()
-		.min(1)
-		.max(100, { message: "Limit must be less than or equal to 100!" })
-		.optional()
-		.default("20"),
-	page: z.string().min(1).optional().default("1"),
+	limit: z.coerce.number().min(1).max(100).optional().default(20),
+	page: z.coerce.number().min(1).default(1),
 	search: z.string().optional(),
 	visibility: z.enum(["public", "private"]).optional(),
-	owner_id: z.string().optional(),
-	skip: z.number().optional(),
+	owner_id: z.coerce.number().min(1).optional(),
+	skip: z.coerce.number().min(0).optional(),
 });
 
 const getRepositoriesResponseSchema = z.object({
-	repositories: z.array(repositoryResponseSchema),
-	total_count: z.number(),
-	limit: z.number(),
-	page: z.number(),
+	repositories: z.array(createRepositoryReponseSchema),
+	total_count: z.coerce.number().min(0).max(100),
+	limit: z.coerce.number().min(1).max(100),
+	page: z.coerce.number().min(1),
 });
 
 export type GetRepositoriesInput = z.infer<typeof getRepositoriesSchema>;
@@ -48,57 +42,87 @@ export type GetRepositoriesResponse = z.infer<
 >;
 
 const getRepositorySchema = z.object({
-	id: z.string().min(0),
+	id: z.coerce.number().min(1),
 });
 
-const getRepositoryResponseSchema = repositoryResponseSchema;
+const getRepositoryResponseSchema = createRepositoryReponseSchema;
 
 export type GetRepositoryInput = z.infer<typeof getRepositorySchema>;
 export type GetRepositoryResponse = z.infer<typeof getRepositoryResponseSchema>;
 
-const updateRepositorySchema = z.object({
-	id: z.string(),
-	name: z.string().optional(),
-	description: z.string().max(255).optional(),
-	visibility: z.enum(["public", "private"]).optional(),
-	owner_id: z.number().optional(),
+const updateRepositoryParamsSchema = z.object({
+	id: z.coerce.number().min(1),
 });
+
+const updateRepositorySchema = z
+	.object({
+		name: z.string().max(64).min(3).optional(),
+		description: z.string().max(255).optional(),
+		visibility: z.enum(["public", "private"]).optional(),
+	})
+	.refine(
+		(data) => data.name || data.description || data.visibility,
+		"At least one of name, description, or visibility must be provided",
+	);
 
 const updateRepositoryResponseSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string().optional(),
-	visibility: z.string(),
-	owner_id: z.number(),
-	created_at: z.string(),
-	updatted_at: z.string(),
+	id: z.coerce.number().min(1),
+	name: z.string().max(64).min(3),
+	description: z.string().max(255).optional(),
+	visibility: z.enum(["public", "private"]).optional(),
+	owner_id: z.coerce.number().min(1),
+	created_at: z.date(),
+	updated_at: z.date(),
 });
 
+export type UpdateRepositoryParams = z.infer<
+	typeof updateRepositoryParamsSchema
+>;
 export type UpdateRepositoryInput = z.infer<typeof updateRepositorySchema>;
 export type UpdateRepositoryResponse = z.infer<
 	typeof updateRepositoryResponseSchema
 >;
 
-const deleteRepositorySchema = z.object({
-	id: z.string({
-		required_error: "id is required.",
-		invalid_type_error: "id must be a number.",
-	}),
+const deleteRepositoryQuerySchema = z.object({
+	owner_id: z.coerce.number().min(1),
 });
 
-export type DeleteRepositoryInput = z.infer<typeof deleteRepositorySchema>;
+const deleteRepositoryParamsSchema = z.object({
+	id: z.coerce.number().min(1),
+});
+
+export type DeleteRepositoryQuery = z.infer<typeof deleteRepositoryQuerySchema>;
+export type DeleteRepositoryParams = z.infer<
+	typeof deleteRepositoryParamsSchema
+>;
+
+export {
+	createRepositorySchema,
+	createRepositoryReponseSchema,
+	getRepositorySchema,
+	getRepositoryResponseSchema,
+	getRepositoriesSchema,
+	getRepositoriesResponseSchema,
+	updateRepositoryParamsSchema,
+	updateRepositorySchema,
+	updateRepositoryResponseSchema,
+	deleteRepositoryParamsSchema,
+	deleteRepositoryQuerySchema,
+};
 
 export const { schemas: repositorySchemas, $ref } = buildJsonSchemas(
 	{
-		repository: repositorySchema,
-		repositoryResponse: repositoryResponseSchema,
+		createRepository: createRepositorySchema,
+		createRepositoryResponse: createRepositoryReponseSchema,
 		getRepositories: getRepositoriesSchema,
 		getRepositoriesResponse: getRepositoriesResponseSchema,
 		getRepository: getRepositorySchema,
 		getRepositoryResponse: getRepositoryResponseSchema,
+		updateRepositoryParamsSchema: updateRepositoryParamsSchema,
 		updateRepository: updateRepositorySchema,
 		updateRepositoryResponse: updateRepositoryResponseSchema,
-		deleteRepository: deleteRepositorySchema,
+		deleteRepositoryParams: deleteRepositoryParamsSchema,
+		deleteRepositoryQuery: deleteRepositoryQuerySchema,
 	},
 	{ $id: "repositorySchemas" },
 );

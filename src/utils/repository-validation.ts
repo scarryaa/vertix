@@ -1,3 +1,5 @@
+import type { RepositoryBasic } from "../models";
+import type { RepositoryResponse } from "../schemas/repository.schema";
 import prisma from "./prisma";
 
 export function isRepositoryNameValid(name: string): boolean {
@@ -5,14 +7,17 @@ export function isRepositoryNameValid(name: string): boolean {
 	return regex.test(name);
 }
 
-export async function checkRepositoryExists(
-	name: string,
-	ownerId: number,
-): Promise<boolean> {
-	const existingRepository = await prisma.repository.findFirst({
-		where: {
-			AND: [{ name }, { owner_id: ownerId }],
-		},
-	});
-	return !!existingRepository;
-}
+export const mapRepositoryResponse = (
+	repository: RepositoryBasic,
+	owner_id: number,
+	created_at: Date,
+	updated_at: Date,
+	visibility?: string,
+): RepositoryResponse => ({
+	...repository,
+	description: repository.description,
+	owner_id,
+	created_at: created_at,
+	visibility: visibility as "public" | "private",
+	updated_at: updated_at,
+});

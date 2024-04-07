@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { ZodError } from "zod";
 import { NotFoundError } from "../utils/errors";
 import { BaseError } from "../utils/errors/base.error";
 
@@ -35,6 +36,10 @@ export const errorHandler = (
 		reply.code((error as FastifyError).statusCode ?? 500).send({
 			error: { code: (error as FastifyError).code, message: error.message },
 		});
+	} else if (error instanceof ZodError) {
+		// If it's a Zod error
+		console.error(error);
+		reply.code(400).send(error.issues[0]);
 	} else {
 		// If it's a standard Error or other error
 		console.error(error);

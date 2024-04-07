@@ -1,6 +1,6 @@
 import type { RepositoryDetailed, UserBasic } from ".";
 
-export interface CollaboratorDetailed {
+export interface ContributorDetailed {
 	id: number;
 	repository: RepositoryDetailed;
 	repository_id: number;

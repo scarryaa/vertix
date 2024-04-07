@@ -4,12 +4,21 @@ import type {
 	FastifyPluginOptions,
 	FastifyRequest,
 } from "fastify";
+import type {
+	RepositoryInput,
+	UpdateRepositoryInput,
+} from "../src/schemas/repository.schema";
 
 export interface CustomRequest {
 	user?: {
-		id: number;
+		user_id: number;
 		role: string;
 	};
+	unsignedToken: string;
+	Params: {
+		id: string;
+	};
+	Body: RepositoryInput;
 }
 
 declare module "fastify" {

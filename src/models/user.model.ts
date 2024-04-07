@@ -1,6 +1,6 @@
 import type {
-	CollaboratorDetailed,
 	Commit,
+	ContributorDetailed,
 	Follow,
 	Issue,
 	IssueAssignee,
@@ -63,7 +63,7 @@ export interface UserDetailed {
 	following: Follow[];
 	issues: Issue[];
 	stars: Star[];
-	collaborators: CollaboratorDetailed[];
+	collaborators: ContributorDetailed[];
 	comments: Comment[];
 	notifications: Notification[];
 	memberships: Member[];
@@ -98,7 +98,7 @@ export interface UserSearchCriteria {
 
 // Stats
 export interface UserStats {
-	userId: number;
+	user_id: number;
 	repositoryCount: number;
 	followerCount: number;
 	followingCount: number;
@@ -106,13 +106,13 @@ export interface UserStats {
 
 // Events
 export interface UserEvent {
-	userId: number;
+	user_id: number;
 	eventType: UserEventType;
 	timestamp: Date;
 }
 
 export interface UserActivity {
-	userId: number;
+	user_id: number;
 	activityType: UserActivityType;
 	timestamp: Date;
 }

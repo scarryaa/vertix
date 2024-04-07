@@ -26,11 +26,14 @@ export class RepositoryService<TModel> {
 		this.repository = config.repository;
 	}
 
-	async getById(id: number): Promise<TModel | null> {
+	async getById(id: number, auth_token?: string): Promise<TModel | null> {
 		return this.repository.getById(id);
 	}
 
-	async getAll(options: QueryOptions<TModel>): Promise<TModel[]> {
+	async getAll(
+		options: QueryOptions<TModel>,
+		auth_token?: string,
+	): Promise<TModel[]> {
 		const { limit, page, skip, search } = options;
 		const parsedLimit = this.parseLimit(limit);
 		const parsedPage = this.parsePage(page);
@@ -45,21 +48,26 @@ export class RepositoryService<TModel> {
 	}
 
 	async create(
-		entityData: Partial<TModel>,
-		authToken: string,
+		entity_data: Partial<TModel>,
+		auth_token?: string,
 	): Promise<TModel> {
-		return this.repository.create(entityData);
+		return this.repository.create(entity_data);
 	}
 
 	async update(
 		id: number,
 		entityData: Partial<TModel>,
-		authToken: string,
+		owner_id?: number,
+		auth_token?: string,
 	): Promise<TModel> {
 		return this.repository.update(id, entityData);
 	}
 
-	async delete(id: number, authToken: string): Promise<void> {
+	async delete(
+		id: number,
+		owner_id?: number,
+		authToken?: string,
+	): Promise<void> {
 		await this.repository.delete(id);
 	}
 

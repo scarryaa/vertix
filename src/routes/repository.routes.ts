@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { AuthenticateInstance } from "../../types/request";
+import { Container } from "../container";
 import {
 	createRepository,
 	deleteRepository,
@@ -7,7 +8,20 @@ import {
 	getRepository,
 	updateRepository,
 } from "../controllers/repository.controller";
-import { $ref } from "../schemas/repository.schema";
+import { validateToken } from "../middlewares/validate-token.middleware";
+import {
+	$ref,
+	type DeleteRepositoryParams,
+	type DeleteRepositoryQuery,
+	type RepositoryInput,
+	type RepositoryResponse,
+	type UpdateRepositoryInput,
+	type UpdateRepositoryParams,
+	type UpdateRepositoryResponse,
+} from "../schemas/repository.schema";
+
+const container = Container.getInstance();
+const repositoryService = container.getRepositoryService();
 
 export const repositoryRoutes = async function repositoryRoutes(
 	app: AuthenticateInstance,
@@ -18,17 +32,23 @@ export const repositoryRoutes = async function repositoryRoutes(
 		});
 	});
 
-	app.post(
+	app.post<{
+		Body: RepositoryInput;
+		Response: {
+			201: RepositoryResponse;
+		};
+	}>(
 		"/create",
 		{
+			preHandler: validateToken,
 			schema: {
-				body: $ref("repository"),
+				body: $ref("createRepository"),
 				response: {
-					201: $ref("repositoryResponse"),
+					201: $ref("createRepositoryResponse"),
 				},
 			},
 		},
-		createRepository,
+		createRepository(repositoryService),
 	);
 
 	app.get(
@@ -40,7 +60,7 @@ export const repositoryRoutes = async function repositoryRoutes(
 				},
 			},
 		},
-		getAllRepositories,
+		getAllRepositories(repositoryService),
 	);
 
 	app.get(
@@ -52,30 +72,48 @@ export const repositoryRoutes = async function repositoryRoutes(
 				},
 			},
 		},
-		getRepository,
+		getRepository(repositoryService),
 	);
 
-	app.post(
-		"/update",
+	app.patch<{
+		Params: UpdateRepositoryParams;
+		Body: UpdateRepositoryInput;
+		Response: {
+			200: UpdateRepositoryResponse;
+		};
+	}>(
+		"/update/:id",
 		{
+			preHandler: validateToken,
 			schema: {
 				body: $ref("updateRepository"),
+				params: $ref("updateRepositoryParamsSchema"),
 				response: {
-					201: $ref("updateRepositoryResponse"),
+					200: $ref("updateRepositoryResponse"),
 				},
 			},
 		},
-		updateRepository,
+		updateRepository(repositoryService),
 	);
 
-	app.post(
-		"/delete",
+	app.post<{
+		Params: DeleteRepositoryParams;
+		Response: {
+			204: undefined;
+		};
+	}>(
+		"/delete/:id",
 		{
+			preHandler: validateToken,
 			schema: {
-				body: $ref("deleteRepository"),
-				response: 204,
+				params: $ref("deleteRepositoryParams"),
+				response: {
+					204: {
+						type: "null",
+					},
+				},
 			},
 		},
-		deleteRepository,
+		deleteRepository(repositoryService),
 	);
 };

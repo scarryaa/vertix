@@ -1,234 +1,159 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RepositoryBasic } from "../models";
-import type {
-	GetRepositoriesInput,
-	GetRepositoriesResponse,
-	GetRepositoryInput,
-	RepositoryInput,
-	UpdateRepositoryInput,
+import {
+	type GetRepositoriesInput,
+	type GetRepositoriesResponse,
+	type GetRepositoryInput,
+	type RepositoryInput,
+	type RepositoryResponse,
+	type UpdateRepositoryInput,
+	createRepositorySchema,
+	deleteRepositoryParamsSchema,
+	getRepositoriesSchema,
+	getRepositorySchema,
+	updateRepositorySchema,
 } from "../schemas/repository.schema";
-import { repositoryRepositoryService } from "../services";
-import {
-	InvalidRepositoryNameError,
-	InvalidTokenError,
-	MissingTokenError,
-	RepositoryAlreadyExistsError,
-	RepositoryNotFoundError,
-} from "../utils/errors";
-import { UserDoesNotExistError } from "../utils/errors/user.error";
-import {
-	checkRepositoryExists,
-	isRepositoryNameValid,
-} from "../utils/repository-validation";
-import { checkOwnerExists } from "../utils/user-validation";
-import {
-	handleValidations,
-	validateAllowedValues,
-	validateRange,
-	validateType,
-} from "../utils/validation";
+import type { RepositoryRepositoryService } from "../services/repository.service";
+import { RepositoryNotFoundError } from "../utils/errors";
+import { mapRepositoryResponse } from "../utils/repository-validation";
 
-const MAX_DESCRIPTION_LENGTH = 255;
+export const createRepository =
+	(repositoryService: RepositoryRepositoryService) =>
+	async (
+		req: FastifyRequest<{ Body?: RepositoryInput }>,
+		reply: FastifyReply,
+	): Promise<RepositoryResponse> => {
+		const { name, description, visibility } = createRepositorySchema.parse(
+			req.body,
+		);
 
-export async function createRepository(
-	req: FastifyRequest<{ Body: RepositoryInput }>,
-	reply: FastifyReply,
-) {
-	// Get params and check auth
-	const { name, owner_id, description, visibility } = req.body;
-	const authToken = req.cookies.access_token;
-
-	if (!authToken) {
-		throw new MissingTokenError();
-	}
-
-	// Validate input data
-	if (!isRepositoryNameValid(name)) {
-		throw new InvalidRepositoryNameError();
-	}
-
-	// Check if repository already exists
-	if (await checkRepositoryExists(name, owner_id)) {
-		throw new RepositoryAlreadyExistsError();
-	}
-
-	// Check if owner exists
-	if (!(await checkOwnerExists(owner_id))) {
-		throw new UserDoesNotExistError(" ");
-	}
-
-	// Create repository
-	const unsignedToken = reply.unsignCookie(authToken).value;
-	if (!unsignedToken) {
-		throw new InvalidTokenError();
-	}
-	const newRepository: RepositoryBasic =
-		await repositoryRepositoryService.create(
+		// Create repository
+		const newRepository = await repositoryService.create(
 			{
 				name,
 				description,
 				visibility,
-				owner_id: owner_id,
 			},
-			unsignedToken,
+			req.unsignedToken,
 		);
 
-	return reply.code(201).send(newRepository);
-}
-
-export async function getAllRepositories(
-	req: FastifyRequest<{ Querystring: GetRepositoriesInput }>,
-	reply: FastifyReply,
-) {
-	const { limit, page, search, visibility, owner_id, skip } = req.query;
-
-	// Validate the various params (since zod isn't supported here)
-	const validations = [
-		// visibility can be optional
-		visibility
-			? validateAllowedValues(visibility, ["public", "private"], "visibility")
-			: null,
-		// owner_id can be optional
-		owner_id ? validateType(Number(owner_id) || undefined, 0, "ownerId") : null,
-		// page can be optional
-		page
-			? validateRange(Number(page), 1, Number.POSITIVE_INFINITY, "page")
-			: null,
-		page ? validateType(Number(page) || undefined, 0, "page") : null,
-		// limit can be optional
-		limit ? validateRange(Number(limit), 1, 100, "limit") : null,
-		limit ? validateType(Number(limit) || undefined, 0, "limit") : null,
-	];
-
-	handleValidations(reply, validations);
-
-	// If we passed validation, we can continue
-	const repositories = await repositoryRepositoryService.getAll({
-		limit: Number(limit),
-		page: Number(page),
-		search: {},
-		skip,
-	});
-
-	// Check if repositories is empty
-	if (repositories.length === 0) {
-		throw new RepositoryNotFoundError("No repositories found.");
-	}
-
-	const response: GetRepositoriesResponse = {
-		repositories: repositories.map((repo) => ({
-			...repo,
-			description: repo.description ?? null,
-			visibility: repo.visibility as "public" | "private",
-			ownerId: Number(owner_id),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		})),
-		total_count: repositories.length,
-		page: Number(page) || 1,
-		limit: Number(limit) || 20,
+		return reply.code(201).send(newRepository);
 	};
 
-	return reply.code(200).send(response);
-}
+export const getAllRepositories =
+	(repositoryService: RepositoryRepositoryService) =>
+	async (
+		req: FastifyRequest<{ Querystring: GetRepositoriesInput }>,
+		reply: FastifyReply,
+	) => {
+		try {
+			const { limit, page, search, visibility, owner_id, skip } =
+				getRepositoriesSchema.parse(req.query);
 
-export async function getRepository(
-	req: FastifyRequest<{ Params: { id: GetRepositoryInput } }>,
-	reply: FastifyReply,
-) {
-	const { id } = req.params;
+			// If we passed validation, we can continue
+			const fetchedRepositories = await repositoryService.getAll({
+				limit: limit,
+				page: page,
+				search: {},
+				skip,
+			});
 
-	// Validate the various params (since zod isn't supported here)
-	const validations = [
-		// id is required
-		validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
-		validateType(Number(id) || undefined, 0, "id"),
-	];
+			// Check if repositories is empty
+			if (fetchedRepositories.length === 0) {
+				throw new RepositoryNotFoundError("No repositories found.");
+			}
 
-	handleValidations(reply, validations);
+			const response: GetRepositoriesResponse = {
+				repositories: fetchedRepositories.map((repo) =>
+					mapRepositoryResponse(
+						repo,
+						repo.owner_id ?? undefined,
+						repo.created_at ?? undefined,
+						repo.updated_at ?? undefined,
+						repo.visibility ?? undefined,
+					),
+				),
+				total_count: fetchedRepositories.length,
+				page: page ?? 1,
+				limit: limit ?? 20,
+			};
 
-	// Otherwise, we can proceed
-	const repository = await repositoryRepositoryService.getById(Number(id));
+			return reply.code(200).send(response);
+		} catch (error) {
+			console.error(error);
+			throw error;
+		}
+	};
 
-	if (!repository) {
-		throw new RepositoryNotFoundError();
-	}
+export const getRepository =
+	(repositoryService: RepositoryRepositoryService) =>
+	async (
+		req: FastifyRequest<{ Querystring: { id: GetRepositoryInput } }>,
+		reply: FastifyReply,
+	) => {
+		const { id } = getRepositorySchema.parse(req.query);
 
-	return reply.code(200).send(repository);
-}
+		// Otherwise, we can proceed
+		const repository = await repositoryService.getById(id);
 
-export async function updateRepository(
-	req: FastifyRequest<{
-		Body: Partial<UpdateRepositoryInput>;
-	}>,
-	reply: FastifyReply,
-) {
-	const { id, name, description, visibility, owner_id } = req.body;
-	const authToken = req.cookies.access_token;
+		if (!repository) {
+			throw new RepositoryNotFoundError();
+		}
 
-	if (!authToken) throw new MissingTokenError();
+		return reply.code(200).send(repository);
+	};
 
-	const validations = [
-		validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
-		validateType(Number(id), 0, "id"),
-	];
+export const updateRepository =
+	(repositoryService: RepositoryRepositoryService) =>
+	async (
+		req: FastifyRequest<{
+			Params: { id: number };
+			Body: UpdateRepositoryInput;
+		}>,
+		reply: FastifyReply,
+	) => {
+		const { id: repository_id } = req.params;
+		const { name, description, visibility } = updateRepositorySchema.parse(
+			req.body,
+		);
 
-	handleValidations(reply, validations);
+		const dataToUpdate: Partial<RepositoryBasic> = {};
 
-	const dataToUpdate: Partial<RepositoryBasic> = {};
+		if (name !== undefined) {
+			dataToUpdate.name = name;
+		}
 
-	if (name !== undefined) {
-		dataToUpdate.name = name;
-	}
+		if (description !== undefined) {
+			dataToUpdate.description = description;
+		}
 
-	if (description !== undefined) {
-		dataToUpdate.description = description;
-	}
+		if (visibility !== undefined) {
+			dataToUpdate.visibility = visibility;
+		}
 
-	if (visibility !== undefined) {
-		dataToUpdate.visibility = visibility;
-	}
+		const updatedRepository = await repositoryService.update(
+			repository_id,
+			dataToUpdate,
+			undefined,
+			req.unsignedToken,
+		);
 
-	if (owner_id !== undefined) {
-		dataToUpdate.owner_id = owner_id;
-	}
+		return reply.code(200).send(updatedRepository);
+	};
 
-	const unsignedToken = reply.unsignCookie(authToken).value;
-	if (!unsignedToken) {
-		throw new InvalidTokenError();
-	}
+export const deleteRepository =
+	(repositoryService: RepositoryRepositoryService) =>
+	async (
+		req: FastifyRequest<{
+			Params: { id: number };
+		}>,
+		reply: FastifyReply,
+	) => {
+		const { id: repository_id } = deleteRepositoryParamsSchema.parse(
+			req.params,
+		);
 
-	const updatedRepository = await repositoryRepositoryService.update(
-		Number(id),
-		dataToUpdate,
-		unsignedToken,
-	);
+		await repositoryService.delete(repository_id, undefined, req.unsignedToken);
 
-	return reply.code(200).send(updatedRepository);
-}
-
-export async function deleteRepository(
-	req: FastifyRequest<{ Body: { id: number } }>,
-	reply: FastifyReply,
-) {
-	const { id } = req.body;
-	const authToken = req.cookies.access_token;
-
-	if (!authToken) throw new MissingTokenError();
-
-	const validations = [
-		validateRange(Number(id), 1, Number.POSITIVE_INFINITY, "id"),
-		validateType(Number(id) || undefined, 0, "id"),
-	];
-
-	handleValidations(reply, validations);
-
-	const unsignedToken = reply.unsignCookie(authToken).value;
-	if (!unsignedToken) {
-		throw new InvalidTokenError();
-	}
-
-	await repositoryRepositoryService.delete(Number(id), unsignedToken);
-
-	return reply.code(204).send();
-}
+		return reply.code(204).send();
+	};

@@ -14,15 +14,11 @@ import { $ref } from "../schemas/user.schema";
 export const userRoutes: UserRoutesOptions = async function userRoutes(
 	app: AuthenticateInstance,
 ) {
-	app.get(
-		"/",
-		{ preHandler: [app.authenticate ?? []] },
-		(req: FastifyRequest, reply: FastifyReply) => {
-			reply.send({
-				message: "This is the default route for the 'users' endpoint.",
-			});
-		},
-	);
+	app.get("/", (req: FastifyRequest, reply: FastifyReply) => {
+		reply.send({
+			message: "This is the default route for the 'users' endpoint.",
+		});
+	});
 
 	app.post(
 		"/register",

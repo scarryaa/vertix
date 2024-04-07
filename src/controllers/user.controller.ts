@@ -52,7 +52,7 @@ export async function login(
 		throw new UnauthorizedError("Invalid email or password.");
 	}
 
-	const payload = { id: user.id, role: user.role };
+	const payload = { user_id: user.id, role: user.role };
 	assert(process.env.JWT_SECRET, "JWT Secret missing!");
 	const token = jwt.sign(payload, process.env.JWT_SECRET);
 
@@ -88,7 +88,7 @@ export async function getAllUsers(req: FastifyRequest, reply: FastifyReply) {
 	// 	return showPublicEmail ? { ...rest, publicEmail } : rest;
 	// });
 
-	return reply.status(200).send([]);
+	return reply.status(200).send(users);
 }
 
 export async function logout(req: FastifyRequest, reply: FastifyReply) {

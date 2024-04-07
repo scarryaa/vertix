@@ -76,7 +76,7 @@ class VortexServer {
 						process.env.JWT_SECRET,
 					) as unknown as JwtPayload;
 					req.user = {
-						id: decoded.userId,
+						user_id: decoded.user_id,
 						role: decoded.role,
 					};
 				} catch (error) {

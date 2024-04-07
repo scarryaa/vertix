@@ -13,13 +13,13 @@ export class Authenticator {
 	authenticate(
 		token: string,
 		requiredRoles: UserRole[],
-	): { userId: number; role: UserRole } {
+	): { user_id: number; role: UserRole } {
 		try {
 			const decoded = jwt.verify(token, this.secretKey) as JwtPayload;
-			const { userId, role } = decoded;
+			const { user_id, role } = decoded;
 
 			if (requiredRoles.includes(role)) {
-				return { userId, role };
+				return { user_id, role };
 			}
 
 			throw new UnauthorizedError("User does not have the required role.");

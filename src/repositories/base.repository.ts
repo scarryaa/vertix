@@ -1,12 +1,15 @@
 import type { PrismaClient } from "@prisma/client";
 import type { QueryOptions } from "../services/base-repository.service";
 
+export type WhereCondition<T> = Partial<T> | ((obj: T) => boolean);
+
 export interface IRepository<T> {
 	getById(id: number): Promise<T | null>;
 	create(data: Partial<T>): Promise<T>;
 	update(id: number, data: Partial<T>): Promise<T>;
 	delete(id: number): Promise<void>;
 	getAll(options: QueryOptions<T>): Promise<T[]>;
+	findOne(where?: WhereCondition<T>): Promise<T | null>;
 }
 
 export class PrismaRepository<T> implements IRepository<T> {
@@ -44,5 +47,17 @@ export class PrismaRepository<T> implements IRepository<T> {
 	async getAll(options: QueryOptions<T>): Promise<T[]> {
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
 		return await (this.prisma as any)[this.model].findMany({});
+	}
+
+	async findOne(where?: WhereCondition<T>): Promise<T | null> {
+		if (typeof where === "function") {
+			// biome-ignore lint/suspicious/noExplicitAny: Must be any
+			return await (this.prisma as any)[this.model].findFirst({
+				where: (obj: never) => where(obj),
+			});
+		}
+
+		// biome-ignore lint/suspicious/noExplicitAny: Must be any
+		return await (this.prisma as any)[this.model].findFirst({ where });
 	}
 }

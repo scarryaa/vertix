@@ -1,5 +1,5 @@
 import type {
-	CollaboratorDetailed,
+	ContributorDetailed,
 	Issue,
 	License,
 	Organization,
@@ -29,7 +29,7 @@ export interface RepositoryDetailed {
 	issues: Issue[];
 	stars: Star[];
 	programming_languages: ProgrammingLanguage[] | null;
-	collaborators: CollaboratorDetailed;
+	contributors: ContributorDetailed[];
 	license: License | null;
 	license_id: number | null;
 	tag: Tag | null;

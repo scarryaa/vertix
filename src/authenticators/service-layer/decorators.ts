@@ -13,20 +13,15 @@ export function Authenticate(
 	) => {
 		const originalMethod = descriptor.value;
 
-		descriptor.value = function (...args: string[]) {
-			const authToken = args[args.length - 1];
-
-			// Authenticate the token and check if the user has the required roles
-			if (!authToken) {
-				throw new InvalidTokenError();
-			}
-
-			const { userId, role } = authenticator.authenticate(
-				authToken,
+		descriptor.value = async function (...args: unknown[]) {
+			// Authenticate the token and check roles
+			const auth_token = args[args.length - 1] as string;
+			const { user_id, role } = authenticator.authenticate(
+				auth_token,
 				requiredRoles,
 			);
 
-			return originalMethod.apply(this, [...args.slice(0, -1), userId, role]);
+			return originalMethod.call(this, ...args);
 		};
 
 		return descriptor;
