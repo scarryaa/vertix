@@ -1,15 +1,42 @@
 import type { PrismaClient } from "@prisma/client";
-import type { QueryOptions } from "../services/base-repository.service";
+import type { Sql } from "@prisma/client/runtime/library";
 
-export type WhereCondition<T> = Partial<T> | ((obj: T) => boolean);
+export type QueryOptions<T> = {
+	skip?: number;
+	take?: number;
+	cursor?: { id: number };
+	where?: WhereCondition<T>;
+};
+
+export type WhereCondition<T> = {
+	[K in keyof T]?:
+		| T[K]
+		| (T[K] extends string
+				? {
+						contains: string;
+					}
+				: T[K] extends Date
+					? {
+							greaterThan?: Date;
+							lessThan?: Date;
+							at?: Date;
+							not?: Date;
+						}
+					: T[K] extends Array<infer U>
+						? {
+								some?: WhereCondition<U>;
+							}
+						: never);
+};
 
 export interface IRepository<T> {
 	getById(id: number): Promise<T | null>;
 	create(data: Partial<T>): Promise<T>;
 	update(id: number, data: Partial<T>): Promise<T>;
 	delete(id: number): Promise<void>;
-	getAll(options: QueryOptions<T>): Promise<T[]>;
 	findOne(where?: WhereCondition<T>): Promise<T | null>;
+	findBy(where: WhereCondition<T>): Promise<T[]>;
+	getAll(options: QueryOptions<T>): Promise<T[]>;
 }
 
 export class PrismaRepository<T> implements IRepository<T> {
@@ -44,20 +71,39 @@ export class PrismaRepository<T> implements IRepository<T> {
 		await (this.prisma as any)[this.model].delete({ where: { id } });
 	}
 
-	async getAll(options: QueryOptions<T>): Promise<T[]> {
+	async getAll(options: {
+		skip?: number;
+		take?: number;
+		cursor?: { id: number };
+		where?: WhereCondition<T>;
+	}): Promise<T[]> {
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
-		return await (this.prisma as any)[this.model].findMany({});
+		return await (this.prisma as any)[this.model].findMany(
+			Object.assign({
+				skip: options.skip,
+				take: options.take,
+				cursor: options.cursor,
+				where: options.where,
+			}),
+		);
 	}
 
 	async findOne(where?: WhereCondition<T>): Promise<T | null> {
-		if (typeof where === "function") {
-			// biome-ignore lint/suspicious/noExplicitAny: Must be any
-			return await (this.prisma as any)[this.model].findFirst({
-				where: (obj: never) => where(obj),
-			});
-		}
-
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
-		return await (this.prisma as any)[this.model].findFirst({ where });
+		return await (this.prisma as any)[this.model].findFirst({
+			where,
+			take: 1,
+			skip: 0,
+			cursor: { id: 0 },
+			orderBy: { id: "asc" },
+			select: { id: true },
+		});
+	}
+
+	async findBy(where: WhereCondition<T>): Promise<T[]> {
+		// biome-ignore lint/suspicious/noExplicitAny: Must be any
+		return await (this.prisma as any)[this.model].findMany({
+			where,
+		});
 	}
 }

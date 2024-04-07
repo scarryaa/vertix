@@ -1,10 +1,13 @@
-import { Authenticator } from "../authenticators/service-layer/base.authenticator";
-import { Authenticate } from "../authenticators/service-layer/decorators";
+import type { Authenticator } from "../authenticators/service-layer/base.authenticator";
 import {
 	type RepositoryBasic,
 	type RepositoryDetailed,
 	UserRole,
 } from "../models";
+import type {
+	QueryOptions,
+	WhereCondition,
+} from "../repositories/base.repository";
 import type { RepositoryBasicRepository } from "../repositories/repository-basic.repository";
 import type { RepositoryDetailedRepository } from "../repositories/repository-detailed.repository";
 import {
@@ -13,10 +16,12 @@ import {
 	UnauthorizedError,
 } from "../utils/errors";
 import { UserDoesNotExistError } from "../utils/errors/user.error";
-import { Validator } from "../validators/service-layer/base.validator";
-import { Validate } from "../validators/service-layer/decorators";
+import type { Validator } from "../validators/service-layer/base.validator";
 import {
-	type QueryOptions,
+	type Validatable,
+	Validate,
+} from "../validators/service-layer/decorators";
+import {
 	RepositoryService,
 	type RepositoryServiceConfig,
 	ValidationAction,
@@ -30,13 +35,16 @@ export interface RepositoryRepositoryServiceConfig {
 	repositoryBasicRepository: RepositoryBasicRepository;
 	repositoryDetailedRepository: RepositoryDetailedRepository;
 	userService: UserService;
+	authenticator: Authenticator;
+	validator: Validator<Repository>;
 }
 
-export class RepositoryRepositoryService extends RepositoryService<Repository> {
-	private static _authenticator: Authenticator = new Authenticator(
-		process.env.JWT_SECRET ?? "",
-	);
-	private static _validator: Validator<Repository> = new Validator();
+export class RepositoryRepositoryService
+	extends RepositoryService<Repository>
+	implements Validatable<Repository>
+{
+	private _authenticator: Authenticator;
+	private _validator: Validator<Repository>;
 
 	private readonly repositoryBasicRepository: RepositoryBasicRepository;
 	private readonly repositoryDetailedRepository: RepositoryDetailedRepository;
@@ -47,27 +55,43 @@ export class RepositoryRepositoryService extends RepositoryService<Repository> {
 		this.repositoryBasicRepository = _config.repositoryBasicRepository;
 		this.repositoryDetailedRepository = _config.repositoryDetailedRepository;
 		this.userService = _config.userService;
+		this._authenticator = _config.authenticator;
+		this._validator = _config.validator;
 	}
 
 	async getById(id: number): Promise<Repository | null> {
+		// Check if repository exists
+		const foundRepository = await this.repositoryBasicRepository.getById(id);
+		if (!foundRepository) {
+			throw new RepositoryNotFoundError();
+		}
+
+		// Get repository details
 		return super.getById(id);
 	}
 
 	async getByIdDetailed(id: number): Promise<RepositoryDetailed | null> {
+		// Check if repository exists
+		const foundRepository = await this.repositoryDetailedRepository.getById(id);
+		if (!foundRepository) {
+			throw new RepositoryNotFoundError();
+		}
+
+		// Get repository details
 		return this.repositoryDetailedRepository.getById(id);
 	}
 
-	getAll(options: QueryOptions<Repository>): Promise<Repository[]> {
-		// @TODO check for options
-		return super.getAll(options);
+	getAll(options: QueryOptions<Repository> = {}): Promise<Repository[]> {
+		return this.repositoryBasicRepository.getAll(options);
 	}
 
-	@Validate<
-		Repository,
-		Validator<Repository>,
-		Promise<Repository>,
-		[Pick<Repository, "name" | "visibility">, string]
-	>(RepositoryRepositoryService.validator, ValidationAction.CREATE, {
+	getAllDetailed(
+		options: QueryOptions<RepositoryDetailed> = {},
+	): Promise<RepositoryDetailed[]> {
+		return this.repositoryDetailedRepository.getAll(options);
+	}
+
+	@Validate<Repository>(ValidationAction.CREATE, "RepositoryValidator", {
 		requiredFields: ["name", "visibility"],
 		supportedFields: ["description", "visibility", "name"],
 		entityDataIndex: 0,
@@ -79,10 +103,9 @@ export class RepositoryRepositoryService extends RepositoryService<Repository> {
 		auth_token: string,
 	): Promise<Repository> {
 		// Perform authentication manually
-		const { user_id, role } =
-			RepositoryRepositoryService.authenticator.authenticate(auth_token, [
-				UserRole.USER,
-			]);
+		const { user_id, role } = this.authenticator.authenticate(auth_token, [
+			UserRole.USER,
+		]);
 
 		// Check if repository already exists
 		if (await this.checkRepositoryExists(entity_data.name, user_id)) {
@@ -98,12 +121,7 @@ export class RepositoryRepositoryService extends RepositoryService<Repository> {
 		return super.create({ ...entity_data, owner_id: user_id });
 	}
 
-	@Validate<
-		Repository,
-		Validator<Repository>,
-		Promise<Repository>,
-		[number, Partial<Repository>, number, string]
-	>(RepositoryRepositoryService.validator, ValidationAction.UPDATE, {
+	@Validate<Repository>(ValidationAction.UPDATE, "RepositoryValidator", {
 		requiredFields: ["description", "name", "owner_id", "visibility"],
 		supportedFields: ["description", "name", "owner_id", "visibility"],
 		entityDataIndex: 1,
@@ -122,12 +140,19 @@ export class RepositoryRepositoryService extends RepositoryService<Repository> {
 			throw new RepositoryNotFoundError();
 		}
 
+		// Check if user exists
+		if (
+			entityData.owner_id &&
+			!(await this.checkOwnerExists(entityData.owner_id))
+		) {
+			throw new UserDoesNotExistError();
+		}
+
 		// Check if user is owner or collaborator
 		// Perform authentication manually
-		const { user_id, role } =
-			RepositoryRepositoryService.authenticator.authenticate(auth_token, [
-				UserRole.USER,
-			]);
+		const { user_id, role } = this.authenticator.authenticate(auth_token, [
+			UserRole.USER,
+		]);
 		const isOwner = await this.checkIsOwnerOrContributor(
 			user_id,
 			repository_id,
@@ -161,10 +186,10 @@ export class RepositoryRepositoryService extends RepositoryService<Repository> {
 
 		// Check if user is owner of repository
 		// Perform authentication manually
-		const { user_id, role } =
-			RepositoryRepositoryService.authenticator.authenticate(auth_token, [
-				UserRole.USER,
-			]);
+		const { user_id } = this.authenticator.authenticate(auth_token, [
+			UserRole.USER,
+		]);
+
 		const isOwner = await this.checkIsOwner(user_id, repository_id);
 		if (!isOwner) {
 			throw new UnauthorizedError();
@@ -173,25 +198,19 @@ export class RepositoryRepositoryService extends RepositoryService<Repository> {
 		return super.delete(repository_id, owner_id, auth_token);
 	}
 
-	static get authenticator(): Authenticator {
-		if (
-			!RepositoryRepositoryService._authenticator ||
-			process.env.JWT_SECRET === ""
-		) {
-			throw new Error("Authenticator is not initialized or secret is empty.");
-		}
-		return RepositoryRepositoryService._authenticator;
+	get authenticator(): Authenticator {
+		return this._authenticator;
 	}
 
-	static get validator(): Validator<Repository> {
-		return RepositoryRepositoryService._validator;
+	get validator(): Validator<Repository> {
+		return this._validator;
 	}
 
 	// Helpers
 
 	async checkRepositoryExists(name: string, ownerId: number): Promise<boolean> {
 		const repository = await this.repositoryBasicRepository.findOne({
-			name,
+			name: name,
 			owner_id: ownerId,
 		});
 		return !!repository;

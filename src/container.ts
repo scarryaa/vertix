@@ -1,3 +1,4 @@
+import { Authenticator } from "./authenticators/service-layer/base.authenticator";
 import type { RepositoryBasic, UserBasic } from "./models";
 import { RepositoryBasicRepository } from "./repositories/repository-basic.repository";
 import { RepositoryDetailedRepository } from "./repositories/repository-detailed.repository";
@@ -9,6 +10,8 @@ import {
 } from "./services/repository.service";
 import { UserService, type UserServiceConfig } from "./services/user.service";
 import prisma from "./utils/prisma";
+import { ServiceLocator } from "./utils/service-locator";
+import { Validator } from "./validators/service-layer/base.validator";
 
 export class Container {
 	private static instance: Container;
@@ -28,6 +31,17 @@ export class Container {
 		};
 		this.userService = new UserService(userConfig);
 
+		if (!process.env.JWT_SECRET) {
+			throw new Error("JWT_SECRET environment variable is not set");
+		}
+		const authenticator = new Authenticator(process.env.JWT_SECRET);
+		const repositoryValidator = new Validator<RepositoryBasic>();
+		const userValidator = new Validator<UserBasic>();
+
+		// Register the validators
+		ServiceLocator.registerValidator("RepositoryValidator", repositoryValidator);
+		ServiceLocator.registerValidator("UserValidator", userValidator);
+
 		const repositoryBasicRepository = new RepositoryBasicRepository(prisma);
 		const repositoryDetailedRepository = new RepositoryDetailedRepository(
 			prisma,
@@ -39,6 +53,8 @@ export class Container {
 			repositoryBasicRepository: repositoryBasicRepository,
 			repositoryDetailedRepository: repositoryDetailedRepository,
 			userService: this.userService,
+			authenticator: authenticator,
+			validator: repositoryValidator,
 		};
 		this.repositoryService = new RepositoryRepositoryService(repositoryConfig);
 	}

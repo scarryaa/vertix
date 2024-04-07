@@ -72,6 +72,21 @@ enum ProgrammingLanguage {
     OBJECTIVE_C @map("Objective-C")
     ASSEMBLY    @map("Assembly")
     LISP        @map("Lisp")
+    LUA         @map("Lua")
+    DART        @map("Dart")
+    COFFEE      @map("CoffeeScript")
+    SCSS        @map("SCSS")    
+    LESS        @map("LESS")
+    STYLUS      @map("Stylus")
+    SASS        @map("Sass")
+    MARKDOWN    @map("Markdown")
+    HTML        @map("HTML")
+    CSS         @map("CSS")
+    XML         @map("XML")
+    JSON        @map("JSON")
+    YAML        @map("YAML")
+    TOML        @map("TOML")
+    SQL         @map("SQL")
 }
 
 enum Timezone {

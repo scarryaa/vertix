@@ -1,11 +1,4 @@
-import type { IRepository } from "../repositories/base.repository";
-
-export interface QueryOptions<TModel> {
-	limit?: number;
-	page?: number;
-	skip?: number;
-	search?: Partial<TModel>;
-}
+import type { IRepository, QueryOptions } from "../repositories/base.repository";
 
 export interface RepositoryServiceConfig<TModel> {
 	repository: IRepository<TModel>;
@@ -34,16 +27,14 @@ export class RepositoryService<TModel> {
 		options: QueryOptions<TModel>,
 		auth_token?: string,
 	): Promise<TModel[]> {
-		const { limit, page, skip, search } = options;
-		const parsedLimit = this.parseLimit(limit);
-		const parsedPage = this.parsePage(page);
-		const parsedSkip = this.parseSkip(parsedPage, parsedLimit, skip);
-
+		const { cursor, skip, take, where } = options;
+		const limit = this.parseLimit(take);
+		const page = this.parsePage(cursor);
+		const skip_count = this.parseSkip(page, limit, skip);
 		return this.repository.getAll({
-			limit: parsedLimit,
-			skip: parsedSkip,
-			page: parsedPage,
-			search,
+			skip: skip_count,
+			take: limit,
+			where,
 		});
 	}
 
@@ -77,8 +68,11 @@ export class RepositoryService<TModel> {
 		return Math.min(100, Math.max(1, limit || 20));
 	}
 
-	private parsePage(page?: number): number {
-		return Math.max(1, page || 1);
+	private parsePage(cursor?: { id: number }): number {
+		if (cursor?.id) {
+			return cursor.id;
+		}
+		return 1;
 	}
 
 	private parseSkip(page: number, limit: number, skip?: number): number {

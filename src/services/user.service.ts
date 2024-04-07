@@ -46,28 +46,19 @@ export class UserService extends RepositoryService<User> {
 	}
 
 	@Authenticate(UserService.authenticator, UserRole.USER)
-	@Validate<User, Validator<User>, Promise<User>, [Partial<User>, string]>(
-		UserService.validator,
-		ValidationAction.CREATE,
-		{
-			requiredFields: ["name", "email", "password"] as UserKeys[],
-			supportedFields: ["name", "email", "password"] as UserKeys[],
-			entityDataIndex: 0,
-			requireAllFields: true, // All fields required for create
-		},
-	)
+	@Validate<User>(ValidationAction.CREATE, "UserValidator", {
+		requiredFields: ["name", "email", "password"] as UserKeys[],
+		supportedFields: ["name", "email", "password"] as UserKeys[],
+		entityDataIndex: 0,
+		requireAllFields: true, // All fields required for create
+	})
 	create(entityData: Partial<User>, authToken: string): Promise<User> {
 		// @TODO additional logic for user creation
 		return super.create(entityData, authToken);
 	}
 
 	@Authenticate(UserService.authenticator, UserRole.USER)
-	@Validate<
-		User,
-		Validator<User>,
-		Promise<User>,
-		[number, Partial<User>, number | undefined, string]
-	>(UserService.validator, ValidationAction.UPDATE, {
+	@Validate<User>(ValidationAction.UPDATE, "UserValidator", {
 		requiredFields: ["name", "email"],
 		supportedFields: ["name", "email"],
 		entityDataIndex: 1,

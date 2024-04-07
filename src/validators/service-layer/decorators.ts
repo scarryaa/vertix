@@ -1,6 +1,7 @@
 import assert from "node:assert";
 import type { ValidationAction } from "../../services/base-repository.service";
 import { ValidationError } from "../../utils/errors";
+import { ServiceLocator } from "../../utils/service-locator";
 import type { Validator } from "./base.validator";
 
 export interface ValidateOptions<TEntity> {
@@ -11,23 +12,26 @@ export interface ValidateOptions<TEntity> {
 	requireAtLeastOneField?: boolean;
 }
 
-export function Validate<
-	TEntity,
-	TValidator extends Validator<TEntity>,
-	TReturn,
-	TArgs extends unknown[],
->(
-	validator: TValidator,
+export interface Validatable<TEntity> {
+	validator: Validator<TEntity>;
+}
+
+export function Validate<TEntity>(
 	validationAction: ValidationAction,
+	validatorKey: string, // The key to identify the validator
 	options: ValidateOptions<TEntity>,
 ) {
 	return (
-		target: object,
+		target: any,
 		propertyKey: string,
-		descriptor: TypedPropertyDescriptor<(...args: TArgs) => TReturn>,
+		descriptor: TypedPropertyDescriptor<any>,
 	) => {
 		const originalMethod = descriptor.value;
-		descriptor.value = function (...args: TArgs): TReturn {
+		descriptor.value = async function (...args: any[]) {
+			// Fetch the validator using the service locator
+			const validator: Validator<TEntity> =
+				ServiceLocator.getValidator<TEntity>(validatorKey);
+
 			let entityData: Partial<TEntity> | undefined;
 			if (
 				options.entityDataIndex !== undefined &&
@@ -75,7 +79,7 @@ export function Validate<
 						missingRequiredFields,
 						unsupportedFields,
 						errorMessage,
-					} = validator.validate(entityData);
+					} = await validator.validate(entityData);
 					if (!isValid) {
 						throw new ValidationError(errorMessage ?? "VALIDATION_ERROR");
 					}
@@ -85,10 +89,7 @@ export function Validate<
 			if (!originalMethod) {
 				throw new Error("Original method is missing!");
 			}
-
-			return originalMethod.apply(this, args);
+			return await originalMethod.apply(this, args);
 		};
-
-		return descriptor as TypedPropertyDescriptor<(...args: TArgs) => TReturn>;
 	};
 }
