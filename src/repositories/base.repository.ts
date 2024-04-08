@@ -79,6 +79,42 @@ export class PrismaRepository<T> implements IRepository<T> {
 	async getAll(options: QueryOptions<T>): Promise<T[]> {
 		const { skip, take, cursor, where, search } = options;
 
+		const baseQuery = this.constructQuery({
+			skip,
+			take,
+			cursor,
+			where,
+			search,
+		});
+
+		// biome-ignore lint/suspicious/noExplicitAny: Must be any
+		return await (this.prisma as any)[this.model].findMany(baseQuery);
+	}
+
+	async findFirst(options: QueryOptions<T>): Promise<T | undefined | null> {
+		const { skip, take, cursor, where, search } = options;
+
+		const baseQuery = this.constructQuery({
+			skip,
+			take,
+			cursor,
+			where,
+			search,
+		});
+
+		// biome-ignore lint/suspicious/noExplicitAny: Must be any
+		return await (this.prisma as any)[this.model].findFirst(baseQuery);
+	}
+
+	constructQuery(options: QueryOptions<T>): {
+		skip?: number;
+		take?: number;
+		cursor?: { id: number };
+		where?: WhereCondition<T>;
+		search?: string;
+	} {
+		const { skip, take, cursor, where, search } = options;
+
 		const baseQuery = {
 			skip,
 			take,
@@ -96,55 +132,25 @@ export class PrismaRepository<T> implements IRepository<T> {
 				},
 			}));
 
-			// biome-ignore lint/suspicious/noExplicitAny: Must be any
-			return await (this.prisma as any)[this.model].findMany({
+			return {
 				...baseQuery,
 				where: {
 					...baseQuery.where,
 					OR: orConditions,
 				},
-			});
-		}
-
-		// biome-ignore lint/suspicious/noExplicitAny: Must be any
-		return await (this.prisma as any)[this.model].findMany(baseQuery);
-	}
-
-	async findFirst(options: QueryOptions<T>): Promise<T | undefined | null> {
-		const { skip, take, cursor, where, search } = options;
-
-		const baseQuery = {
-			skip,
-			take,
-			cursor: cursor?.id ? { id: cursor.id } : undefined,
-			where: {
-				...where,
-			},
-		};
-
-		let orConditions: any[] = [];
-
-		if (search) {
-			orConditions = this.searchableFields.map((field) => ({
-				[field]: {
-					contains: search,
-					mode: "insensitive",
-				},
-			}));
-		}
-
-		if ((where as any).OR) {
-			orConditions = [...orConditions, ...(where as any).OR];
-		}
-
-		if (orConditions.length > 0) {
-			baseQuery.where = {
-				...baseQuery.where,
-				OR: orConditions,
 			};
 		}
 
-		// biome-ignore lint/suspicious/noExplicitAny: Must be any
-		return await (this.prisma as any)[this.model].findFirst(baseQuery);
+		if ((where as any)?.OR) {
+			return {
+				...baseQuery,
+				where: {
+					...baseQuery.where,
+					OR: (where as any).OR,
+				},
+			};
+		}
+
+		return baseQuery;
 	}
 }

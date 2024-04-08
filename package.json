@@ -14,10 +14,14 @@
 		"db-migration": "prisma migrate dev --name $npm_config_name",
 		"db-schema": "cd ./prisma/schema; cat db.part.prisma enums.part.prisma models.part.prisma > ../schema.prisma"
 	},
-	"keywords": ["vertix", "codestash"],
+	"keywords": [
+		"vertix",
+		"codestash"
+	],
 	"author": "scarryaa",
 	"license": "MIT",
 	"dependencies": {
+		"@faker-js/faker": "^8.4.1",
 		"@fastify/cookie": "^9.3.1",
 		"@fastify/env": "^4.3.0",
 		"@fastify/formbody": "^7.4.0",

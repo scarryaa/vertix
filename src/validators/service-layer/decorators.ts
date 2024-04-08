@@ -1,4 +1,3 @@
-import assert from "node:assert";
 import type { ValidationAction } from "../../services/base-repository.service";
 import { ValidationError } from "../../utils/errors";
 import { ServiceLocator } from "../../utils/service-locator";

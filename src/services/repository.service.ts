@@ -182,8 +182,7 @@ export class RepositoryRepositoryService
 			throw new RepositoryNotFoundError();
 		}
 
-		// Check if user is owner of repository
-		// Perform authentication manually
+		// Perform authentication
 		const { user_id } = this.authenticator.authenticate(auth_token, [
 			UserRole.USER,
 		]);
@@ -218,6 +217,16 @@ export class RepositoryRepositoryService
 
 		return true;
 	}
+
+	async checkRepositoryExistsById(id: number): Promise<boolean> {
+		const repository = await this.repositoryBasicRepository.findFirst({
+            where: { id },
+        });
+
+        if (repository === null || repository === undefined) return false;
+
+        return true;
+    }
 
 	async checkOwnerExists(owner_id: number): Promise<boolean> {
 		return this.userService.checkUserExists(owner_id);

@@ -14,6 +14,7 @@ import {
 	type RepositoryBasic,
 	type RepositoryDetailed,
 	type ReviewDetailed,
+	type Star,
 	Timezone,
 	type UserDetailed,
 	UserRole,
@@ -377,4 +378,13 @@ export const generateCommit = (override: Partial<Commit> = {}): Commit => ({
 	message: "Commit Message",
 	pull_request_id: 1,
 	sha: "SHA",
+});
+
+export const generateStar = (override: Partial<Star> = {}): Star => ({
+	id: 1,
+	user_id: 1,
+	repository_id: 1,
+	created_at: new Date(),
+	updated_at: new Date(),
+	...override,
 });

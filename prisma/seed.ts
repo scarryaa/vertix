@@ -1,83 +1,44 @@
+import { faker } from "@faker-js/faker";
+import { PrismaClient } from "@prisma/client";
+
 const prisma = new PrismaClient();
 
 const main = async () => {
-	const alice = await prisma.user.upsert({
-		where: { email: "alice@test.test" },
-		update: {},
-		create: {
-			email: "alice@test.test",
-			name: "Alice",
-			password: "password",
-			username: "alice123",
-			repositories: {
-				create: {
-					name: "typescript",
-					visibility: "public",
-					description: "typescript stuff",
-				},
-			},
-		},
-	});
+	const numberOfUsers = 30;
 
-	const bob = await prisma.user.upsert({
-		where: { email: "bob@test.test" },
-		update: {},
-		create: {
-			email: "bob@test.test",
-			name: "Bob",
-			password: "hunter2",
-			username: "bobbyboy24",
-			publicEmail: "bob@test.test",
-			repositories: {
-				createMany: {
-					data: [
-						{
-							name: "my-awesome-repo",
-							description: "cool stuff!!",
-							visibility: "public",
-						},
-						{
-							name: "go-lang",
-							visibility: "private",
-						},
-					],
-				},
+	for (let i = 0; i < numberOfUsers; i++) {
+		const firstName = faker.person.firstName();
+		await prisma.user.upsert({
+			where: { email: faker.internet.email({ firstName }) },
+			update: {},
+			create: {
+				email: faker.internet.email({ firstName }),
+				name: `${firstName} ${faker.person.lastName()}`,
+				password: faker.internet.password(),
+				username: faker.internet.userName({ firstName }),
 			},
-			preferences: {
-				create: {
-					theme: "dark",
-					showPublicEmail: true,
-				},
-			},
-		},
-	});
+		});
+	}
 
-	const mary = await prisma.user.upsert({
-		where: { email: "mary@test.test" },
-		update: {},
-		create: {
-			email: "mary@test.test",
-			name: "Mary",
-			password: "password",
-			username: "maary",
-			bio: "Hi! This is my profile.",
-			publicEmail: "mary@test.test",
-			preferences: {
-				create: {
-					theme: "dark",
-					showPublicEmail: false,
-				},
+	const numberOfRepositories = 50;
+	for (let i = 0; i < numberOfRepositories; i++) {
+		await prisma.repository.upsert({
+			where: {
+				name: faker.lorem.word(),
+				id: faker.number.int({ max: numberOfRepositories, min: 1 }),
 			},
-		},
-	});
+			update: {},
+			create: {
+				name: faker.lorem.word(),
+				description: faker.lorem.sentence(),
+				visibility: faker.helpers.arrayElement(["public", "private"]),
+				owner_id: faker.number.int({ max: numberOfUsers, min: 1 }),
+			},
+		});
+	}
 };
 
-main()
-	.then(async () => {
-		await prisma.$disconnect();
-	})
-	.catch(async (e) => {
-		console.error(e);
-		await prisma.$disconnect();
-		process.exit(1);
-	});
+main().catch((e) => {
+	console.error(e);
+	process.exit(1);
+});

@@ -489,14 +489,14 @@ describe("RepositoryRepositoryService", () => {
 		});
 
 		it("should throw UnauthorizedError if user is not the owner", async () => {
-			const auth_token = (authenticator.authenticate as any).mockResolvedValue({
+			const auth_token = authenticator.authenticate.mockResolvedValue({
 				user_id: 0,
 				role: UserRole.ADMIN,
-			});
+			} as never);
 			repositoryBasicRepository.findFirst.mockResolvedValue(repository);
 			userService.checkUserExists.mockResolvedValue(false);
 
-			await expect(service.delete(1, undefined, auth_token)).rejects.toThrow(
+			await expect(service.delete(1, undefined, "valid-token")).rejects.toThrow(
 				UnauthorizedError,
 			);
 		});

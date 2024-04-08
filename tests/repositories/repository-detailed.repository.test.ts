@@ -1,5 +1,5 @@
 import type { RepositoryBasic, RepositoryDetailed } from "../../src/models";
-import { RepositoryBasicRepository } from "../../src/repositories/repository-basic.repository";
+import { RepositoryDetailedRepository } from "../../src/repositories/repository-detailed.repository";
 import {
 	type Context,
 	type MockContext,
@@ -8,8 +8,8 @@ import {
 	generateRepositoryDetailed,
 } from "../__mocks__/mocks";
 
-describe("RepositoryRepository", () => {
-	let repositoryRepository: RepositoryBasicRepository;
+describe("RepositoryDetailedRepository", () => {
+	let repositoryDetailedRepository: RepositoryDetailedRepository;
 	let mockContext: MockContext;
 	let ctx: Context;
 	let repository: RepositoryBasic;
@@ -21,7 +21,7 @@ describe("RepositoryRepository", () => {
 		mockContext = createMockContext();
 		ctx = mockContext as Context;
 
-		repositoryRepository = new RepositoryBasicRepository(ctx.prisma);
+		repositoryDetailedRepository = new RepositoryDetailedRepository(ctx.prisma);
 
 		repository = generateRepository();
 		repositoryDetailed = {
@@ -54,7 +54,7 @@ describe("RepositoryRepository", () => {
 				...repositoryDetailed,
 				programming_languages: [],
 			});
-			const result = await repositoryRepository.create(repository);
+			const result = await repositoryDetailedRepository.create(repository);
 			expect(result).toEqual({
 				...repositoryDetailed,
 				programming_languages: [],
@@ -68,7 +68,7 @@ describe("RepositoryRepository", () => {
 				repositoryDetailed,
 			);
 
-			const result = await repositoryRepository.update(1, repository);
+			const result = await repositoryDetailedRepository.update(1, repository);
 			expect(result).toEqual(repositoryDetailed);
 		});
 	});
@@ -79,7 +79,7 @@ describe("RepositoryRepository", () => {
 				repositoryDetailed,
 			);
 
-			const result = await repositoryRepository.delete(repository.id);
+			const result = await repositoryDetailedRepository.delete(repository.id);
 
 			expect(result).toEqual(undefined);
 		});
@@ -91,7 +91,7 @@ describe("RepositoryRepository", () => {
 				repositoriesDetailed,
 			);
 
-			const result = await repositoryRepository.getAll({});
+			const result = await repositoryDetailedRepository.getAll({});
 
 			expect(result).toEqual(repositoriesDetailed);
 		});
@@ -101,7 +101,7 @@ describe("RepositoryRepository", () => {
 				repositoriesDetailed,
 			);
 
-			const result = await repositoryRepository.getAll({
+			const result = await repositoryDetailedRepository.getAll({
 				where: { name: "test-repo" },
 			});
 
@@ -118,7 +118,7 @@ describe("RepositoryRepository", () => {
 				repositoriesDetailed,
 			);
 
-			const result = await repositoryRepository.getAll({
+			const result = await repositoryDetailedRepository.getAll({
 				where: { owner_id: 1 },
 			});
 
@@ -136,7 +136,7 @@ describe("RepositoryRepository", () => {
 			repositoriesDetailed,
 		);
 
-		const result = await repositoryRepository.getAll({
+		const result = await repositoryDetailedRepository.getAll({
 			where: {
 				visibility: "public",
 			},
@@ -155,7 +155,7 @@ describe("RepositoryRepository", () => {
 			repositoriesDetailed,
 		);
 
-		const result = await repositoryRepository.getAll({
+		const result = await repositoryDetailedRepository.getAll({
 			where: {
 				created_at: new Date("2020-01-01"),
 			},

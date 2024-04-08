@@ -84,7 +84,7 @@ export const getAllRepositories =
 
 			return reply.code(200).send(response);
 		} catch (error) {
-			console.error(error);
+			req.log.error(error);
 			throw error;
 		}
 	};

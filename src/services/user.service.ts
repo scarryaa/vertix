@@ -63,7 +63,7 @@ export class UserService extends RepositoryService<User> {
 		// Create a partial user object
 		const partialUser: Partial<UserDetailed> = { ...user };
 
-		// Remove sensitive keys conditionally
+		// Remove sensitive keys
 		partialUser.password = undefined;
 		partialUser.two_factor_enabled = undefined;
 		partialUser.reset_password_token = undefined;

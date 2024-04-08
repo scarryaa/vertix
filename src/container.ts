@@ -1,14 +1,15 @@
-import assert from "node:assert";
 import { Authenticator } from "./authenticators/service-layer/base.authenticator";
-import type { RepositoryBasic, UserBasic } from "./models";
+import type { RepositoryBasic, Star, UserBasic } from "./models";
 import { RepositoryBasicRepository } from "./repositories/repository-basic.repository";
 import { RepositoryDetailedRepository } from "./repositories/repository-detailed.repository";
+import { StarRepository } from "./repositories/star.repository";
 import { UserBasicRepository } from "./repositories/user-basic.repository";
 import { UserDetailedRepository } from "./repositories/user-detailed.repository";
 import {
 	RepositoryRepositoryService,
 	type RepositoryRepositoryServiceConfig,
 } from "./services/repository.service";
+import { StarService, type StarServiceConfig } from "./services/star.service";
 import { UserService, type UserServiceConfig } from "./services/user.service";
 import prisma from "./utils/prisma";
 import { ServiceLocator } from "./utils/service-locator";
@@ -19,6 +20,7 @@ export class Container {
 
 	private repositoryService: RepositoryRepositoryService;
 	private userService: UserService;
+	private _starService: StarService;
 
 	private constructor() {
 		if (!process.env.JWT_SECRET) {
@@ -58,12 +60,25 @@ export class Container {
 		};
 		this.repositoryService = new RepositoryRepositoryService(repositoryConfig);
 
+		const starAuthenticator = new Authenticator(process.env.JWT_SECRET);
+		const starValidator = new Validator<Star>();
+		const starRepository = new StarRepository(prisma);
+		const starConfig: StarServiceConfig = {
+			authenticator: starAuthenticator,
+			starRepository: starRepository,
+			validator: starValidator,
+			userService: this.userService,
+			repositoryService: this.repositoryService,
+		};
+		this._starService = new StarService(starConfig);
+
 		// Register services
 		ServiceLocator.registerValidator("UserValidator", userValidator);
 		ServiceLocator.registerValidator(
 			"RepositoryValidator",
 			repositoryValidator,
 		);
+		ServiceLocator.registerValidator("StarValidator", new Validator<Star>());
 	}
 
 	public static getInstance(): Container {
@@ -80,5 +95,9 @@ export class Container {
 
 	public getUserService(): UserService {
 		return this.userService;
+	}
+
+	public getStarService(): StarService {
+		return this._starService;
 	}
 }

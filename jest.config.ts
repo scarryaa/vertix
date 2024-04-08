@@ -8,4 +8,10 @@ module.exports = {
 		],
 	},
 	transformIgnorePatterns: [`node_modules/(?!${["node-fetch"].join("|")})`],
+	collectCoverageFrom: [
+		"src/**/*.{ts,tsx}",
+        "!**/node_modules/**",
+        "!**/__tests__/**",
+        "!**/__mocks__/**",
+    ],
 };

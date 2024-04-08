@@ -12,8 +12,10 @@ import jwt from "jsonwebtoken";
 import type { CustomRequest } from "../types/request";
 import { errorHandler } from "./middlewares/error.middleware";
 import { repositoryRoutes } from "./routes/repository.routes";
+import { starRoutes } from "./routes/star.routes";
 import { userRoutes } from "./routes/user.routes";
 import { repositorySchemas } from "./schemas/repository.schema";
+import { starSchemas } from "./schemas/star.schema";
 import { userSchemas } from "./schemas/user.schema";
 import type { JwtPayload } from "./utils/types";
 
@@ -42,6 +44,7 @@ class VortexServer {
 
 		this.app.register(userRoutes, { prefix: "/api/users" });
 		this.app.register(repositoryRoutes, { prefix: "/api/repositories" });
+		this.app.register(starRoutes, { prefix: "/api/stars" });
 
 		// add rate limiting, global error handler
 		this.app.setErrorHandler(errorHandler);
@@ -96,6 +99,10 @@ class VortexServer {
 		for (const schema of repositorySchemas) {
 			this.app.addSchema(schema);
 		}
+
+		for (const schema of starSchemas) {
+			this.app.addSchema(schema);
+        }
 
 		const listeners = ["SIGINT", "SIGTERM"];
 		for (let i = 0; i < listeners.length; i++) {
