@@ -4,10 +4,7 @@ import {
 	type RepositoryDetailed,
 	UserRole,
 } from "../models";
-import type {
-	QueryOptions,
-	WhereCondition,
-} from "../repositories/base.repository";
+import type { QueryOptions } from "../repositories/base.repository";
 import type { RepositoryBasicRepository } from "../repositories/repository-basic.repository";
 import type { RepositoryDetailedRepository } from "../repositories/repository-detailed.repository";
 import {
@@ -59,35 +56,28 @@ export class RepositoryRepositoryService
 		this._validator = _config.validator;
 	}
 
-	async getById(id: number): Promise<Repository | null> {
+	async getById(id: number): Promise<Partial<Repository> | null> {
 		// Check if repository exists
-		const foundRepository = await this.repositoryBasicRepository.getById(id);
-		if (!foundRepository) {
+		const repository = await this.repositoryBasicRepository.findFirst({
+			where: { id },
+		});
+
+		if (repository === null || repository === undefined)
 			throw new RepositoryNotFoundError();
-		}
 
-		const repository = await super.getById(id);
-		if (!repository) {
-			return null;
-		}
-
-		const detailedRepository: Repository = {
-			...foundRepository,
-			...repository,
-		};
-
-		return detailedRepository;
+		return repository;
 	}
 
 	async getByIdDetailed(id: number): Promise<RepositoryDetailed | null> {
 		// Check if repository exists
-		const foundRepository = await this.repositoryDetailedRepository.getById(id);
-		if (!foundRepository) {
-			throw new RepositoryNotFoundError();
-		}
+		const repository = await this.repositoryDetailedRepository.findFirst({
+			where: { id },
+		});
 
-		// Get repository details
-		return this.repositoryDetailedRepository.getById(id);
+		if (repository === null || repository === undefined)
+			throw new RepositoryNotFoundError();
+
+		return repository;
 	}
 
 	getAll(options: QueryOptions<Repository> = {}): Promise<Repository[]> {
@@ -145,9 +135,8 @@ export class RepositoryRepositoryService
 	): Promise<Repository | Partial<Repository>> {
 		// Check if repository exists
 		const foundRepository = await this.getById(repository_id);
-		if (!foundRepository) {
+		if (foundRepository === null || foundRepository === undefined)
 			throw new RepositoryNotFoundError();
-		}
 
 		// Check if user exists
 		if (
@@ -217,16 +206,21 @@ export class RepositoryRepositoryService
 
 	// Helpers
 
-	async checkRepositoryExists(name: string, ownerId: number): Promise<boolean> {
-		const repository = await this.repositoryBasicRepository.findOne({
-			name: name,
-			owner_id: ownerId,
+	async checkRepositoryExists(
+		name: string,
+		owner_id: number,
+	): Promise<boolean> {
+		const repository = await this.repositoryBasicRepository.findFirst({
+			where: { name, owner_id },
 		});
-		return !!repository;
+
+		if (repository === null || repository === undefined) return false;
+
+		return true;
 	}
 
-	async checkOwnerExists(ownerId: number): Promise<boolean> {
-		return this.userService.checkUserExists(ownerId);
+	async checkOwnerExists(owner_id: number): Promise<boolean> {
+		return this.userService.checkUserExists(owner_id);
 	}
 
 	async checkIsOwner(
@@ -239,9 +233,9 @@ export class RepositoryRepositoryService
 
 	async checkIsOwnerOrContributor(
 		user_id: number,
-		repositoryId: number,
+		repository_id: number,
 	): Promise<boolean> {
-		const repository = await this.getByIdDetailed(repositoryId);
+		const repository = await this.getByIdDetailed(repository_id);
 		if (!repository) {
 			return false;
 		}

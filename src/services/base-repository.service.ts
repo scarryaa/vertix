@@ -22,13 +22,6 @@ export class RepositoryService<TModel> {
 		this.repository = config.repository;
 	}
 
-	async getById(
-		id: number,
-		auth_token?: string,
-	): Promise<TModel | Partial<TModel> | null> {
-		return this.repository.getById(id);
-	}
-
 	async getAll(
 		options: QueryOptions<TModel>,
 		auth_token?: string,

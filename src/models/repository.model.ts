@@ -28,7 +28,7 @@ export interface RepositoryDetailed {
 	owner_id: number;
 	issues: Issue[];
 	stars: Star[];
-	programming_languages: ProgrammingLanguage[] | null;
+	programming_languages: ProgrammingLanguage[];
 	contributors: ContributorDetailed[];
 	license: License | null;
 	license_id: number | null;

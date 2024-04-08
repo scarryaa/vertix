@@ -63,7 +63,8 @@ describe("UserService", () => {
 		});
 
 		it("should throw UserAlreadyExists error if user already exists", async () => {
-			userBasicRepository.findOne.mockResolvedValue(user);
+			userBasicRepository.findFirst.mockResolvedValue(user);
+
 			await expect(service.create(user, "auth-token")).rejects.toThrow(
 				UserAlreadyExistsError,
 			);
@@ -76,6 +77,7 @@ describe("UserService", () => {
 				...user,
 				password: "hashed-password",
 			});
+			service.getById = jest.fn().mockResolvedValue(user);
 
 			const result = await service.update(
 				user.id,
@@ -94,6 +96,7 @@ describe("UserService", () => {
 
 		it("should update a user and return the updated user", async () => {
 			userDetailedRepository.update.mockResolvedValue(user);
+			service.getById = jest.fn().mockResolvedValue(user);
 
 			const result = await service.update(
 				user.id,
@@ -111,7 +114,7 @@ describe("UserService", () => {
 		});
 
 		it("should throw UserNotFoundError if user does not exist", async () => {
-			userDetailedRepository.getById.mockResolvedValue(null);
+			userDetailedRepository.findFirst.mockResolvedValue(null);
 
 			await expect(
 				service.update(user.id, user, undefined, "auth-token"),
@@ -119,7 +122,7 @@ describe("UserService", () => {
 		});
 
 		it("should throw UnauthorizedError if user is not authorized", async () => {
-			userDetailedRepository.getById.mockResolvedValue(userDetailed);
+			service.getById = jest.fn().mockResolvedValue(user);
 
 			await expect(
 				service.update(
@@ -139,6 +142,7 @@ describe("UserService", () => {
 				user_id: 1,
 				role: UserRole.USER,
 			});
+			service.getById = jest.fn().mockResolvedValue(user);
 
 			const result = await service.delete(user.id, 1, "auth-token");
 
@@ -147,20 +151,23 @@ describe("UserService", () => {
 		});
 
 		it("should throw UserNotFoundError if user does not exist", async () => {
-			userDetailedRepository.getById.mockResolvedValue(null);
+			userDetailedRepository.findFirst.mockResolvedValue(null);
+			authenticator.authenticate.mockReturnValue({
+				user_id: 8,
+				role: UserRole.USER,
+			});
 
 			await expect(service.delete(8, 8, "auth-token")).rejects.toThrow(
 				UserNotFoundError,
 			);
-			expect(userDetailedRepository.getById).toHaveBeenCalledWith(8);
 		});
 
 		it("should throw UnauthorizedError if user is not authorized", async () => {
-			userBasicRepository.getById.mockResolvedValue(user);
 			authenticator.authenticate.mockResolvedValue({
 				user_id: 8,
 				role: UserRole.ADMIN,
 			} as never);
+			service.getById = jest.fn().mockResolvedValue(user);
 
 			await expect(service.delete(1, 0, "invalid-auth-token")).rejects.toThrow(
 				UnauthorizedError,
@@ -170,21 +177,25 @@ describe("UserService", () => {
 
 	describe("checkUserExists", () => {
 		it("should return true if user exists", async () => {
-			userBasicRepository.getById.mockResolvedValue(user);
+			userDetailedRepository.findFirst.mockResolvedValue(userDetailed);
 
 			const result = await service.checkUserExists(1);
 
 			expect(result).toEqual(true);
-			expect(userBasicRepository.getById).toHaveBeenCalledWith(1);
+			expect(userDetailedRepository.findFirst).toHaveBeenCalledWith({
+				where: { id: 1 },
+			});
 		});
 
 		it("should return false if user does not exist", async () => {
-			userBasicRepository.getById.mockResolvedValue(null);
+			userDetailedRepository.findFirst.mockResolvedValue(null);
 
 			const result = await service.checkUserExists(1);
 
 			expect(result).toEqual(false);
-			expect(userBasicRepository.getById).toHaveBeenCalledWith(1);
+			expect(userDetailedRepository.findFirst).toHaveBeenCalledWith({
+				where: { id: 1 },
+			});
 		});
 	});
 });

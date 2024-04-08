@@ -48,9 +48,8 @@ export class UserService extends RepositoryService<User> {
 	}
 
 	async getById(id: number): Promise<Partial<UserDetailed> | null> {
-		const user = await this.userDetailedRepository.getById(id);
-
-		if (user === null) return null;
+		const user = await this.userDetailedRepository.findFirst({ where: { id } });
+		if (user === null || user === undefined) return null;
 
 		// Check if user is deleted
 		if (user?.deleted) {
@@ -108,8 +107,13 @@ export class UserService extends RepositoryService<User> {
 		entityData: Partial<User> & Pick<User, "password">,
 		authToken?: string,
 	): Promise<User> {
-		const existingUser = await this.userBasicRepository.findOne({
-			username: entityData.username,
+		const existingUser = await this.userBasicRepository.findFirst({
+			where: {
+				OR: [
+					{ email: entityData.email },
+					{ username: entityData.username }
+				],
+			},
 		});
 
 		if (existingUser)
@@ -217,7 +221,7 @@ export class UserService extends RepositoryService<User> {
 
 	// Helpers
 	async checkUserExists(user_id: number): Promise<boolean> {
-		const user = await this.userBasicRepository.getById(user_id);
-		return !!user;
+		const user = await this.getById(user_id);
+		return user !== null;
 	}
 }

@@ -17,12 +17,12 @@ import type { UserService } from "../../src/services/user.service";
 import {
 	RepositoryAlreadyExistsError,
 	RepositoryNotFoundError,
+	UnauthorizedError,
 } from "../../src/utils/errors";
 import { UserDoesNotExistError } from "../../src/utils/errors/user.error";
 import { ServiceLocator } from "../../src/utils/service-locator";
 import type { Validator } from "../../src/validators/service-layer/base.validator";
 import {
-	MockAuthenticator,
 	MockValidator,
 	generateComment,
 	generateContributorDetailed,
@@ -36,7 +36,7 @@ describe("RepositoryRepositoryService", () => {
 	let repositoryBasicRepository: jest.Mocked<RepositoryBasicRepository>;
 	let repositoryDetailedRepository: jest.Mocked<RepositoryDetailedRepository>;
 	let userService: jest.Mocked<UserService>;
-	let authenticator: Authenticator;
+	let authenticator: jest.Mocked<Authenticator>;
 	let validator: Validator<unknown>;
 	let repository: RepositoryBasic;
 	let repositoryDetailed: RepositoryDetailed;
@@ -50,7 +50,7 @@ describe("RepositoryRepositoryService", () => {
 		repositoryBasicRepository = mock<RepositoryBasicRepository>();
 		repositoryDetailedRepository = mock<RepositoryDetailedRepository>();
 		userService = mock<UserService>();
-		authenticator = new MockAuthenticator("secret-key");
+		authenticator = mock<Authenticator>();
 		validator = new MockValidator();
 
 		service = new RepositoryRepositoryService({
@@ -81,36 +81,6 @@ describe("RepositoryRepositoryService", () => {
 		comment = generateComment();
 		pullRequest = generatePullRequest();
 		contributor = generateContributorDetailed();
-	});
-
-	describe("getById", () => {
-		it("should return the repository", async () => {
-			repositoryBasicRepository.getById.mockResolvedValue(repository);
-			const result = await service.getById(1);
-			expect(result).toEqual(repository);
-		});
-
-		it("should throw RepositoryNotFoundError if repository does not exist", async () => {
-			repositoryBasicRepository.getById.mockResolvedValue(null);
-			await expect(service.getById(1)).rejects.toThrow(RepositoryNotFoundError);
-		});
-	});
-
-	describe("getByIdDetailed", () => {
-		it("should return the detailed repository", async () => {
-			repositoryDetailedRepository.getById.mockResolvedValue(
-				repositoryDetailed,
-			);
-			const result = await service.getByIdDetailed(1);
-			expect(result).toEqual(repositoryDetailed);
-		});
-
-		it("should throw RepositoryNotFoundError if repository does not exist", async () => {
-			repositoryDetailedRepository.getById.mockResolvedValue(null);
-			await expect(service.getByIdDetailed(1)).rejects.toThrow(
-				RepositoryNotFoundError,
-			);
-		});
 	});
 
 	describe("getAll", () => {
@@ -284,42 +254,52 @@ describe("RepositoryRepositoryService", () => {
 
 	describe("create", () => {
 		it("should create a new repository", async () => {
-			const entityData: RepositoryBasic = {
-				id: 1,
+			const entityData = {
 				name: "Test Repo",
 				visibility: "public",
-				owner_id: 1,
-				created_at: new Date(),
-				updated_at: new Date(),
 				description: "Test Description",
+			};
+			const expectedEntityData = {
+				...entityData,
+				owner_id: undefined,
 			};
 			const authToken = "valid-token";
 
-			repositoryBasicRepository.create.mockResolvedValue(entityData);
+			authenticator.authenticate.mockResolvedValue({
+				user_id: 1,
+				role: UserRole.USER,
+			} as never);
 			userService.checkUserExists.mockResolvedValue(true);
+			service.checkOwnerExists = jest.fn().mockResolvedValue(true);
+			repositoryBasicRepository.create.mockResolvedValue({
+				...expectedEntityData,
+				owner_id: 1,
+				id: 1,
+				created_at: new Date(),
+				updated_at: new Date(),
+			});
 
 			const result = await service.create(entityData, authToken);
 
-			expect(result).toEqual(entityData);
-			expect(repositoryBasicRepository.create).toHaveBeenCalledWith(entityData);
+			expect(result).toMatchObject({ ...expectedEntityData, owner_id: 1 });
+			expect(repositoryBasicRepository.create).toHaveBeenCalledWith(
+				expectedEntityData,
+			);
 		});
 
 		it("should throw RepositoryAlreadyExistsError if repository already exists", async () => {
-			const entityData = { name: "Test Repo", visibility: "public" };
-			const authToken = "valid-token";
-			const existingRepository: RepositoryBasic = {
-				id: 1,
-				created_at: new Date(),
-				description: "Test Description",
-				name: "Test Repo",
-				owner_id: 1,
-				updated_at: new Date(),
+			const entityData = {
+				name: "Existing Repo",
 				visibility: "public",
+				description: "Existing Description",
 			};
+			const authToken = "valid-token";
 
-			userService.checkUserExists.mockResolvedValue(true);
-
-			repositoryBasicRepository.findOne.mockResolvedValue(existingRepository);
+			authenticator.authenticate.mockResolvedValue({
+				user_id: 1,
+				role: UserRole.USER,
+			} as never);
+			service.checkRepositoryExists = jest.fn().mockResolvedValue(true);
 
 			await expect(service.create(entityData, authToken)).rejects.toThrow(
 				RepositoryAlreadyExistsError,
@@ -329,6 +309,9 @@ describe("RepositoryRepositoryService", () => {
 		it("should throw UserDoesNotExistError if owner does not exist", async () => {
 			const entityData = { name: "Test Repo", visibility: "public" };
 			const authToken = "valid-token";
+			authenticator.authenticate = jest
+				.fn()
+				.mockResolvedValue({ user_id: 1, role: UserRole.USER });
 
 			userService.checkUserExists.mockResolvedValue(false);
 
@@ -397,69 +380,70 @@ describe("RepositoryRepositoryService", () => {
 		};
 
 		it("should throw RepositoryNotFoundError if repository does not exist", async () => {
-			repositoryBasicRepository.getById.mockResolvedValue(null);
+			const authToken = "valid-token";
+			repositoryBasicRepository.findFirst.mockResolvedValue(null);
 
 			await expect(
-				service.update(
-					1,
-					{
-						name: "Updated Repo",
-					},
-					undefined,
-					"auth-token",
-				),
+				service.update(1, updatedRepository, undefined, authToken),
 			).rejects.toThrow(RepositoryNotFoundError);
 		});
 
 		it("should update the repository", async () => {
-			repositoryBasicRepository.getById.mockResolvedValue(repository);
-			repositoryDetailedRepository.getById.mockResolvedValue(
-				detailedRepository,
-			);
+			const authToken = "valid-token";
+			const repositoryId = 1;
+			const userId = 1;
+			const updatedRepository = {
+				id: 1,
+				name: "Updated Repo",
+				visibility: "public",
+				owner_id: 1,
+				created_at: new Date(),
+				updated_at: new Date(),
+				description: "Test Description",
+			};
+			const mockRepositoryDetailed = {
+				id: repositoryId,
+				owner_id: userId,
+			};
+			authenticator.authenticate = jest
+				.fn()
+				.mockResolvedValue({ user_id: userId, role: UserRole.USER });
+
+			service.getById = jest.fn().mockResolvedValue(repository);
+			service.checkIsOwnerOrContributor = jest.fn().mockResolvedValue(true);
+			service.checkOwnerExists = jest.fn().mockResolvedValue(true);
 			repositoryBasicRepository.update.mockResolvedValue(updatedRepository);
-			userService.checkUserExists.mockResolvedValue(true);
 
 			const result = await service.update(
-				1,
-				{
-					name: "Updated Repo",
-				},
-				1,
-				"auth-token",
+				repositoryId,
+				updatedRepository,
+				undefined,
+				authToken,
 			);
 
 			expect(result).toEqual(updatedRepository);
-			expect(repositoryBasicRepository.update).toHaveBeenCalledWith(1, {
-				name: "Updated Repo",
-			});
+			expect(repositoryBasicRepository.update).toHaveBeenCalledWith(
+				repositoryId,
+				updatedRepository,
+			);
 		});
 
 		it("should throw UserDoesNotExistError if owner does not exist", async () => {
-			// Arrange
-			const repositoryId = 1;
-			const entityData = { owner_id: 2 };
 			const authToken = "valid-token";
-
-			repositoryBasicRepository.getById.mockResolvedValue(repository);
+			repositoryBasicRepository.findFirst.mockResolvedValue(repository);
 			userService.checkUserExists.mockResolvedValue(false);
 
-			// Act & Assert
 			await expect(
-				service.update(repositoryId, entityData, undefined, authToken),
+				service.update(1, updatedRepository, undefined, authToken),
 			).rejects.toThrow(UserDoesNotExistError);
 		});
 
 		it("should throw RepositoryNotFoundError if repository does not exist", async () => {
-			repositoryBasicRepository.getById.mockResolvedValue(null);
+			const authToken = "valid-token";
+			repositoryBasicRepository.findFirst.mockResolvedValue(null);
+
 			await expect(
-				service.update(
-					1,
-					{
-						name: "Updated Repo",
-					},
-					1,
-					"auth-token",
-				),
+				service.update(1, updatedRepository, undefined, authToken),
 			).rejects.toThrow(RepositoryNotFoundError);
 		});
 	});
@@ -476,18 +460,44 @@ describe("RepositoryRepositoryService", () => {
 		};
 
 		it("should delete the repository", async () => {
-			repositoryBasicRepository.getById.mockResolvedValue(repository);
+			const auth_token = "valid-token";
+			repositoryBasicRepository.findFirst.mockResolvedValue({
+				...repository,
+				id: 1,
+				owner_id: 1,
+			});
 			repositoryBasicRepository.delete.mockResolvedValue();
-			userService.checkUserExists.mockResolvedValue(true);
-			const result = await service.delete(1, 1, "auth-token");
-			expect(result).toBeUndefined();
+			(authenticator.authenticate as jest.Mock).mockResolvedValue({
+				user_id: 1,
+				role: UserRole.USER,
+			});
+			service.checkIsOwner = jest.fn().mockResolvedValue(true);
+
+			const result = await service.delete(1, 1, auth_token);
+
+			expect(result).toEqual(undefined);
 			expect(repositoryBasicRepository.delete).toHaveBeenCalledWith(1);
 		});
 
 		it("should throw RepositoryNotFoundError if repository does not exist", async () => {
-			repositoryBasicRepository.getById.mockResolvedValue(null);
-			await expect(service.delete(1, 1, "auth-token")).rejects.toThrow(
+			const authToken = "valid-token";
+			repositoryBasicRepository.findFirst.mockResolvedValue(null);
+
+			await expect(service.delete(1, undefined, authToken)).rejects.toThrow(
 				RepositoryNotFoundError,
+			);
+		});
+
+		it("should throw UnauthorizedError if user is not the owner", async () => {
+			const auth_token = (authenticator.authenticate as any).mockResolvedValue({
+				user_id: 0,
+				role: UserRole.ADMIN,
+			});
+			repositoryBasicRepository.findFirst.mockResolvedValue(repository);
+			userService.checkUserExists.mockResolvedValue(false);
+
+			await expect(service.delete(1, undefined, auth_token)).rejects.toThrow(
+				UnauthorizedError,
 			);
 		});
 	});
