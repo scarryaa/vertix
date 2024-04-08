@@ -1,10 +1,15 @@
 import type { Comment, IssueAssignee, RepositoryDetailed, UserBasic } from ".";
 
+export enum IssueStatus {
+	OPEN = "OPEN",
+	CLOSED = "CLOSED",
+}
+
 export interface Issue {
 	id: number;
 	title: string;
 	body: string | null;
-	status: string;
+	status: IssueStatus;
 	created_at: Date;
 	updated_at: Date;
 	repository: RepositoryDetailed;

@@ -47,15 +47,19 @@ export const getAllRepositories =
 		reply: FastifyReply,
 	) => {
 		try {
-			const { limit, page, search, visibility, owner_id, skip } =
+			const { cursor, take, owner_id, search, skip, visibility } =
 				getRepositoriesSchema.parse(req.query);
 
 			// If we passed validation, we can continue
 			const fetchedRepositories = await repositoryService.getAll({
-				limit: limit,
-				page: page,
-				search: {},
+				take,
+				cursor: { id: cursor ?? 0 },
+				where: {
+					visibility,
+					owner_id,
+				},
 				skip,
+				search,
 			});
 
 			// Check if repositories is empty
@@ -74,8 +78,8 @@ export const getAllRepositories =
 					),
 				),
 				total_count: fetchedRepositories.length,
-				page: page ?? 1,
-				limit: limit ?? 20,
+				cursor: cursor ?? 1,
+				take,
 			};
 
 			return reply.code(200).send(response);

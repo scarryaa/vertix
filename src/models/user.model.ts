@@ -88,6 +88,9 @@ export interface UserBasic
 		| "bio"
 		| "public_email"
 		| "repositories"
+		| "password"
+		| "deleted"
+		| "deleted_at"
 	> {}
 
 // Search

@@ -1,3 +1,4 @@
+import assert from "node:assert";
 import { Authenticator } from "./authenticators/service-layer/base.authenticator";
 import type { RepositoryBasic, UserBasic } from "./models";
 import { RepositoryBasicRepository } from "./repositories/repository-basic.repository";
@@ -20,6 +21,12 @@ export class Container {
 	private userService: UserService;
 
 	private constructor() {
+		if (!process.env.JWT_SECRET) {
+			throw new Error("JWT_SECRET environment variable is not set");
+		}
+
+		const userAuthenticator = new Authenticator(process.env.JWT_SECRET);
+		const userValidator = new Validator<UserBasic>();
 		const userBasicRepository = new UserBasicRepository(prisma);
 		const userDetailedRepository = new UserDetailedRepository(prisma);
 		const userConfig: UserServiceConfig = {
@@ -28,20 +35,13 @@ export class Container {
 			},
 			userBasicRepository: userBasicRepository,
 			userDetailedRepository: userDetailedRepository,
+			authenticator: userAuthenticator,
+			validator: userValidator,
 		};
 		this.userService = new UserService(userConfig);
 
-		if (!process.env.JWT_SECRET) {
-			throw new Error("JWT_SECRET environment variable is not set");
-		}
-		const authenticator = new Authenticator(process.env.JWT_SECRET);
+		const repositoryAuthenticator = new Authenticator(process.env.JWT_SECRET);
 		const repositoryValidator = new Validator<RepositoryBasic>();
-		const userValidator = new Validator<UserBasic>();
-
-		// Register the validators
-		ServiceLocator.registerValidator("RepositoryValidator", repositoryValidator);
-		ServiceLocator.registerValidator("UserValidator", userValidator);
-
 		const repositoryBasicRepository = new RepositoryBasicRepository(prisma);
 		const repositoryDetailedRepository = new RepositoryDetailedRepository(
 			prisma,
@@ -53,10 +53,17 @@ export class Container {
 			repositoryBasicRepository: repositoryBasicRepository,
 			repositoryDetailedRepository: repositoryDetailedRepository,
 			userService: this.userService,
-			authenticator: authenticator,
+			authenticator: repositoryAuthenticator,
 			validator: repositoryValidator,
 		};
 		this.repositoryService = new RepositoryRepositoryService(repositoryConfig);
+
+		// Register services
+		ServiceLocator.registerValidator("UserValidator", userValidator);
+		ServiceLocator.registerValidator(
+			"RepositoryValidator",
+			repositoryValidator,
+		);
 	}
 
 	public static getInstance(): Container {

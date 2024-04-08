@@ -1,5 +1,5 @@
 import { buildJsonSchemas } from "fastify-zod";
-import z from "zod";
+import z, { any } from "zod";
 
 const createRepositorySchema = z.object({
 	name: z.string().max(64).min(3),
@@ -21,22 +21,25 @@ export type RepositoryInput = z.infer<typeof createRepositorySchema>;
 export type RepositoryResponse = z.infer<typeof createRepositoryReponseSchema>;
 
 const getRepositoriesSchema = z.object({
-	limit: z.coerce.number().min(1).max(100).optional().default(20),
-	page: z.coerce.number().min(1).default(1),
+	take: z.coerce.number().min(1).max(100).optional().default(20),
+	cursor: z.coerce.number().min(1).optional(),
 	search: z.string().optional(),
 	visibility: z.enum(["public", "private"]).optional(),
 	owner_id: z.coerce.number().min(1).optional(),
 	skip: z.coerce.number().min(0).optional(),
+	where: any(),
 });
 
 const getRepositoriesResponseSchema = z.object({
 	repositories: z.array(createRepositoryReponseSchema),
 	total_count: z.coerce.number().min(0).max(100),
-	limit: z.coerce.number().min(1).max(100),
-	page: z.coerce.number().min(1),
+	take: z.coerce.number().min(1).max(100),
+	cursor: z.coerce.number().min(1),
 });
 
-export type GetRepositoriesInput = z.infer<typeof getRepositoriesSchema>;
+export type GetRepositoriesInput = z.infer<typeof getRepositoriesSchema> & {
+	cursor?: { id: number };
+};
 export type GetRepositoriesResponse = z.infer<
 	typeof getRepositoriesResponseSchema
 >;

@@ -23,7 +23,7 @@ function mapQueryOptionsToPrisma<TModel>(queryOptions: QueryOptions<TModel>) {
 	if (queryOptions.select) prismaOptions.select = queryOptions.select;
 	if (queryOptions.where) {
 		for (const key in queryOptions.where) {
-            // @ts-ignore
+			// @ts-ignore
 			prismaOptions.where[key] = queryOptions.where[key];
 		}
 	}

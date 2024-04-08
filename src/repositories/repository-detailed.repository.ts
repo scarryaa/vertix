@@ -4,6 +4,13 @@ import { PrismaRepository } from "./base.repository";
 
 export class RepositoryDetailedRepository extends PrismaRepository<RepositoryDetailed> {
 	constructor(prisma: PrismaClient) {
-		super(prisma, "repository");
+		super(prisma, "repository", [
+			"description",
+			"name",
+			"tag",
+			"programming_languages",
+			"contributors",
+			"owner",
+		]);
 	}
 }

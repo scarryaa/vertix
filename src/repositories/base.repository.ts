@@ -1,28 +1,28 @@
 import type { PrismaClient } from "@prisma/client";
-import type { Sql } from "@prisma/client/runtime/library";
 
 export type QueryOptions<T> = {
 	skip?: number;
 	take?: number;
 	cursor?: { id: number };
 	where?: WhereCondition<T>;
+	search?: string;
 };
 
 export type WhereCondition<T> = {
 	[K in keyof T]?:
-		| T[K]
-		| (T[K] extends string
+		| NonNullable<T[K]>
+		| (NonNullable<T[K]> extends string
 				? {
 						contains: string;
 					}
-				: T[K] extends Date
+				: NonNullable<T[K]> extends Date
 					? {
 							greaterThan?: Date;
 							lessThan?: Date;
 							at?: Date;
 							not?: Date;
 						}
-					: T[K] extends Array<infer U>
+					: NonNullable<T[K]> extends Array<infer U>
 						? {
 								some?: WhereCondition<U>;
 							}
@@ -32,7 +32,7 @@ export type WhereCondition<T> = {
 export interface IRepository<T> {
 	getById(id: number): Promise<T | null>;
 	create(data: Partial<T>): Promise<T>;
-	update(id: number, data: Partial<T>): Promise<T>;
+	update(id: number, data: Partial<T>): Promise<Partial<T> | T>;
 	delete(id: number): Promise<void>;
 	findOne(where?: WhereCondition<T>): Promise<T | null>;
 	findBy(where: WhereCondition<T>): Promise<T[]>;
@@ -40,12 +40,18 @@ export interface IRepository<T> {
 }
 
 export class PrismaRepository<T> implements IRepository<T> {
-	private readonly prisma: PrismaClient;
+	public readonly prisma: PrismaClient;
 	private readonly model: string;
+	private readonly searchableFields: (keyof T)[];
 
-	constructor(prisma: PrismaClient, model: string) {
+	constructor(
+		prisma: PrismaClient,
+		model: string,
+		searchableFields: (keyof T)[],
+	) {
 		this.prisma = prisma;
 		this.model = model;
+		this.searchableFields = searchableFields;
 	}
 
 	async getById(id: number): Promise<T | null> {
@@ -58,7 +64,7 @@ export class PrismaRepository<T> implements IRepository<T> {
 		return await (this.prisma as any)[this.model].create({ data });
 	}
 
-	async update(id: number, data: Partial<T>): Promise<T> {
+	async update(id: number, data: Partial<T>): Promise<Partial<T> | T> {
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
 		return await (this.prisma as any)[this.model].update({
 			where: { id },
@@ -71,21 +77,36 @@ export class PrismaRepository<T> implements IRepository<T> {
 		await (this.prisma as any)[this.model].delete({ where: { id } });
 	}
 
-	async getAll(options: {
-		skip?: number;
-		take?: number;
-		cursor?: { id: number };
-		where?: WhereCondition<T>;
-	}): Promise<T[]> {
-		// biome-ignore lint/suspicious/noExplicitAny: Must be any
-		return await (this.prisma as any)[this.model].findMany(
-			Object.assign({
-				skip: options.skip,
-				take: options.take,
-				cursor: options.cursor,
-				where: options.where,
-			}),
-		);
+	async getAll(options: QueryOptions<T>): Promise<T[]> {
+		const { skip, take, cursor, where, search } = options;
+
+		const baseQuery = {
+			skip,
+			take,
+			cursor: cursor?.id ? { id: cursor.id } : undefined,
+			where: {
+				...where,
+			},
+		};
+
+		if (search) {
+			const orConditions = this.searchableFields.map((field) => ({
+				[field]: {
+					contains: search,
+					mode: "insensitive",
+				},
+			}));
+
+			return await (this.prisma as any)[this.model].findMany({
+				...baseQuery,
+				where: {
+					...baseQuery.where,
+					OR: orConditions,
+				},
+			});
+		}
+
+		return await (this.prisma as any)[this.model].findMany(baseQuery);
 	}
 
 	async findOne(where?: WhereCondition<T>): Promise<T | null> {
@@ -94,7 +115,7 @@ export class PrismaRepository<T> implements IRepository<T> {
 			where,
 			take: 1,
 			skip: 0,
-			cursor: { id: 0 },
+			cursor: { id: 1 },
 			orderBy: { id: "asc" },
 			select: { id: true },
 		});

@@ -1,18 +1,13 @@
 import { mock } from "jest-mock-extended";
-import { Authenticator } from "../../src/authenticators/service-layer/base.authenticator";
+import type { Authenticator } from "../../src/authenticators/service-layer/base.authenticator";
 import {
 	type Comment,
-	type Commit,
 	type ContributorDetailed,
 	ProgrammingLanguage,
 	type PullRequest,
-	PullRequestStatus,
 	type RepositoryBasic,
 	type RepositoryDetailed,
-	Timezone,
-	type UserDetailed,
 	UserRole,
-	UserStatus,
 } from "../../src/models";
 import type { QueryOptions } from "../../src/repositories/base.repository";
 import type { RepositoryBasicRepository } from "../../src/repositories/repository-basic.repository";
@@ -25,35 +20,16 @@ import {
 } from "../../src/utils/errors";
 import { UserDoesNotExistError } from "../../src/utils/errors/user.error";
 import { ServiceLocator } from "../../src/utils/service-locator";
+import type { Validator } from "../../src/validators/service-layer/base.validator";
 import {
-	type ValidationResult,
-	Validator,
-} from "../../src/validators/service-layer/base.validator";
-
-class MockAuthenticator extends Authenticator {
-	constructor(private _secretKey: string) {
-		super(_secretKey);
-		this._secretKey = _secretKey;
-	}
-
-	authenticate(
-		authToken: string,
-		roles: UserRole[],
-	): { user_id: number; role: UserRole } {
-		return { user_id: 1, role: UserRole.USER };
-	}
-}
-
-class MockValidator extends Validator<unknown> {
-	validate(data: unknown): ValidationResult<unknown> {
-		return {
-			errorMessage: undefined,
-			isValid: true,
-			missingRequiredFields: [],
-			unsupportedFields: [],
-		};
-	}
-}
+	MockAuthenticator,
+	MockValidator,
+	generateComment,
+	generateContributorDetailed,
+	generatePullRequest,
+	generateRepository,
+	generateRepositoryDetailed,
+} from "../__mocks__/mocks";
 
 describe("RepositoryRepositoryService", () => {
 	let service: RepositoryRepositoryService;
@@ -62,6 +38,13 @@ describe("RepositoryRepositoryService", () => {
 	let userService: jest.Mocked<UserService>;
 	let authenticator: Authenticator;
 	let validator: Validator<unknown>;
+	let repository: RepositoryBasic;
+	let repositoryDetailed: RepositoryDetailed;
+	let repositories: RepositoryBasic[];
+	let repositoriesDetailed: RepositoryDetailed[];
+	let comment: Comment;
+	let pullRequest: PullRequest;
+	let contributor: ContributorDetailed;
 
 	beforeEach(() => {
 		repositoryBasicRepository = mock<RepositoryBasicRepository>();
@@ -83,19 +66,24 @@ describe("RepositoryRepositoryService", () => {
 
 		// Register with ServiceLocator
 		ServiceLocator.registerValidator("RepositoryValidator", validator);
+
+		repository = generateRepository();
+		repositoryDetailed = generateRepositoryDetailed();
+		repositories = [repository, { ...repository, id: 2, name: "test-repo-2" }];
+		repositoriesDetailed = [
+			repositoryDetailed,
+			{
+				...repositoryDetailed,
+				description: "Detailed Repository 2",
+				name: "Detailed Repository",
+			},
+		];
+		comment = generateComment();
+		pullRequest = generatePullRequest();
+		contributor = generateContributorDetailed();
 	});
 
 	describe("getById", () => {
-		const repository: RepositoryBasic = {
-			id: 1,
-			name: "Test Repo",
-			visibility: "public",
-			owner_id: 1,
-			created_at: new Date(),
-			updated_at: new Date(),
-			description: "Test Description",
-		};
-
 		it("should return the repository", async () => {
 			repositoryBasicRepository.getById.mockResolvedValue(repository);
 			const result = await service.getById(1);
@@ -109,46 +97,12 @@ describe("RepositoryRepositoryService", () => {
 	});
 
 	describe("getByIdDetailed", () => {
-		const detailedRepository: RepositoryDetailed = {
-			contributors: [],
-			issues: [],
-			license: null,
-			license_id: null,
-			organization: null,
-			organization_id: null,
-			owner: {
-				avatar: null,
-				bio: null,
-				created_at: new Date(),
-				updated_at: new Date(),
-				email: "test@test.com",
-				name: "Test User",
-				public_email: null,
-				repositories: [],
-				role: UserRole.USER,
-				id: 1,
-				username: "test-user",
-			},
-			programming_languages: [],
-			pull_requests: [],
-			stars: [],
-			tag: null,
-			tag_id: null,
-			created_at: new Date(),
-			description: "Test Description",
-			id: 1,
-			name: "Updated Repo",
-			owner_id: 1,
-			updated_at: new Date(),
-			visibility: "public",
-		};
-
 		it("should return the detailed repository", async () => {
 			repositoryDetailedRepository.getById.mockResolvedValue(
-				detailedRepository,
+				repositoryDetailed,
 			);
 			const result = await service.getByIdDetailed(1);
-			expect(result).toEqual(detailedRepository);
+			expect(result).toEqual(repositoryDetailed);
 		});
 
 		it("should throw RepositoryNotFoundError if repository does not exist", async () => {
@@ -160,27 +114,6 @@ describe("RepositoryRepositoryService", () => {
 	});
 
 	describe("getAll", () => {
-		const repositories: RepositoryBasic[] = [
-			{
-				id: 1,
-				name: "Test Repo",
-				visibility: "public",
-				owner_id: 1,
-				created_at: new Date(),
-				updated_at: new Date(),
-				description: "Test Description",
-			},
-			{
-				id: 2,
-				name: "Test Repo 2",
-				visibility: "public",
-				owner_id: 1,
-				created_at: new Date(),
-				updated_at: new Date(),
-				description: "Test Description 2",
-			},
-		];
-
 		it("should return all repositories", async () => {
 			repositoryBasicRepository.getAll.mockResolvedValue(repositories);
 			const result = await service.getAll({});
@@ -189,267 +122,17 @@ describe("RepositoryRepositoryService", () => {
 	});
 
 	describe("getAllDetailed", () => {
-		const repository: RepositoryDetailed = {
-			contributors: [],
-			issues: [],
-			license: null,
-			license_id: null,
-			organization: null,
-			organization_id: null,
-			owner: {
-				avatar: null,
-				bio: null,
-				created_at: new Date(),
-				updated_at: new Date(),
-				email: "test@test.com",
-				name: "Test User",
-				public_email: null,
-				repositories: [],
-				role: UserRole.USER,
-				id: 1,
-				username: "test-user",
-			},
-			programming_languages: [],
-			pull_requests: [],
-			stars: [],
-			tag: null,
-			tag_id: null,
-			created_at: new Date(),
-			description: "Test Description",
-			id: 1,
-			name: "Detailed Repo",
-			owner_id: 1,
-			updated_at: new Date(),
-			visibility: "public",
-		};
-
-		const author: UserDetailed = {
-			avatar: null,
-			bio: null,
-			created_at: new Date(),
-			updated_at: new Date(),
-			email: "test@test.com",
-			name: "Test User",
-			public_email: null,
-			repositories: [],
-			role: UserRole.USER,
-			assigned_issues: [],
-			collaborators: [],
-			comments: [],
-			commits: [],
-			deleted_at: null,
-			followers: [],
-			following: [],
-			issues: [],
-			languages: [],
-			last_login_at: null,
-			location: null,
-			memberships: [],
-			notifications: [],
-			password: "test-password",
-			phone: null,
-			preferred_languages: [],
-			programming_languages: [],
-			pull_request_authors: [],
-			pull_requests: [],
-			reviews: [],
-			social_logins: [],
-			stars: [],
-			status: UserStatus.ACTIVE,
-			timezone: Timezone.AEDT,
-			two_factor_enabled: false,
-			user_preferences: {
-				id: 1,
-				show_public_email: false,
-				theme: "light",
-				user_id: 1,
-				user: {
-					avatar: null,
-					bio: null,
-					created_at: new Date(),
-					updated_at: new Date(),
-					email: "test@test.com",
-					name: "Test User",
-					public_email: null,
-					repositories: [],
-					role: UserRole.USER,
-					id: 1,
-					username: "test-user",
-				},
-			},
-			verified_email: false,
-			website: null,
-			reset_password_expires: null,
-			reset_password_token: null,
-			deleted: false,
-			id: 1,
-			username: "test-user",
-		};
-
-		const commentAuthor: ContributorDetailed = {
-			id: 1,
-			repository_id: 1,
-			repository: repository,
-			user_id: 1,
-			user: {
-				avatar: null,
-				bio: null,
-				created_at: new Date(),
-				updated_at: new Date(),
-				email: "test@test.com",
-				name: "Test User",
-				public_email: null,
-				repositories: [],
-				role: UserRole.USER,
-				id: 1,
-				username: "test-user",
-			},
-		};
-		const comment: Comment = {
-			id: 1,
-			created_at: new Date(),
-			updated_at: new Date(),
-			author: {
-				avatar: null,
-				bio: null,
-				created_at: new Date(),
-				updated_at: new Date(),
-				email: "test@test.com",
-				name: "Test User",
-				public_email: null,
-				repositories: [],
-				role: UserRole.USER,
-				id: 1,
-				username: "test-user",
-			},
-			author_id: 1,
-			body: "Test Comment",
-			deleted_user: false,
-			issue_id: null,
-			issue: {
-				id: 1,
-				repository_id: 1,
-				author,
-				comments: [] as Comment[],
-				assignees: [],
-				author_id: 1,
-				body: "Test Comment",
-				created_at: new Date(),
-				repository: repository,
-				status: "open",
-				title: "Test Issue",
-				updated_at: new Date(),
-			},
-			pull_request_id: 1,
-			pull_request: {
-				id: 1,
-				author,
-				authorId: 1,
-				base_branch: "main",
-				closed_at: null,
-				comments: [],
-				commits: [],
-				created_at: new Date(),
-				description: "Test Description",
-				head_branch: "test-branch",
-				merged_at: null,
-				pull_request_assignees: [],
-				repository_id: 1,
-				repository: repository,
-				reviews: [],
-				status: PullRequestStatus.OPEN,
-				title: "Test Pull Request",
-				updated_at: new Date(),
-			},
-		};
-		const commit: Commit = {
-			id: 1,
-			created_at: new Date(),
-			author_id: 1,
-			author,
-			message: "Test Commit",
-			pull_request_id: 1,
-			pull_request: {
-				id: 1,
-				title: "Test Pull Request",
-				description: "Test Description",
-				created_at: new Date(),
-				updated_at: new Date(),
-				repository_id: 1,
-				author,
-				comments: [],
-				authorId: 1,
-				base_branch: "main",
-				closed_at: null,
-				commits: [],
-				head_branch: "test-branch",
-				merged_at: null,
-				pull_request_assignees: [],
-				repository: repository,
-				reviews: [],
-				status: PullRequestStatus.OPEN,
-			},
-			sha: "test-sha",
-		};
-		const pullRequest: PullRequest = {
-			id: 1,
-			title: "Test Pull Request",
-			description: "Test Description",
-			created_at: new Date(),
-			updated_at: new Date(),
-			repository_id: 1,
-			author,
-			comments: [],
-			authorId: 1,
-			base_branch: "master",
-			closed_at: null,
-			commits: [commit],
-			head_branch: "test-branch",
-			merged_at: null,
-			pull_request_assignees: [],
-			repository: repository,
-			reviews: [],
-			status: PullRequestStatus.OPEN,
-		};
-		author.repositories.push(repository);
-		const detailedRepositories: RepositoryDetailed[] = [
-			{
-				...repository,
-				contributors: [commentAuthor],
-				issues: [comment.issue],
-				pull_requests: [pullRequest],
-				stars: [
-					{
-						created_at: new Date(),
-						id: 1,
-						repository_id: 1,
-						repository,
-						updattd_at: new Date(),
-						user_id: 1,
-						user: author,
-					},
-				],
-			},
-			{
-				...repository,
-				contributors: [commentAuthor],
-				issues: [comment.issue],
-				pull_requests: [pullRequest],
-				stars: [],
-			},
-		];
-
-		it("should return all detailed repositories", async () => {
+		it("should return all detailed repositories when no filter is applied", async () => {
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed,
 			);
 			const result = await service.getAllDetailed({});
-			expect(result).toEqual(detailedRepositories);
+			expect(result).toEqual(repositoriesDetailed);
 		});
 
 		it("should return all detailed repositories with pagination", async () => {
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories.slice(1, 2),
+				repositoriesDetailed.slice(1, 2),
 			);
 
 			const result = await service.getAllDetailed({
@@ -457,12 +140,12 @@ describe("RepositoryRepositoryService", () => {
 				skip: 1,
 			});
 
-			expect(result).toEqual(detailedRepositories.slice(1, 2));
+			expect(result).toEqual(repositoriesDetailed.slice(1, 2));
 		});
 
 		it("should return all detailed repositories with filtering by owner", async () => {
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed,
 			);
 			const where: QueryOptions<RepositoryDetailed>["where"] = {
 				id: 1,
@@ -471,7 +154,7 @@ describe("RepositoryRepositoryService", () => {
 				where: {},
 			});
 			expect(result).toEqual(
-				detailedRepositories.filter((repo) => {
+				repositoriesDetailed.filter((repo) => {
 					return repo.owner.username === "test-user";
 				}),
 			);
@@ -479,30 +162,35 @@ describe("RepositoryRepositoryService", () => {
 
 		it("should return all detailed repositories with filtering by programming language", async () => {
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed.filter((repo) => {
+					return repo.programming_languages?.includes(
+						ProgrammingLanguage.JAVASCRIPT,
+					);
+				}),
 			);
+
 			const result = await service.getAllDetailed({
 				where: {
 					programming_languages: [ProgrammingLanguage.JAVASCRIPT],
 				},
 			});
 
-			// expect(result).toEqual(
-			// 	detailedRepositories.filter((repo) => {
-			// 		return repo.programming_languages?.some((language) => {
-			// 			return language === ProgrammingLanguage.JAVASCRIPT;
-			// 		});
-			// 	}),
-			// );
+			expect(result).toEqual(
+				repositoriesDetailed.filter((repo) => {
+					return repo.programming_languages?.includes(
+						ProgrammingLanguage.JAVASCRIPT,
+					);
+				}),
+			);
 		});
 
 		it("should return all detailed repositories with filtering by number of stars", async () => {
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed,
 			);
 			const result = await service.getAllDetailed({});
 			expect(result).toEqual(
-				detailedRepositories.sort((a, b) => {
+				repositoriesDetailed.sort((a, b) => {
 					return b.stars.length - a.stars.length;
 				}),
 			);
@@ -510,7 +198,7 @@ describe("RepositoryRepositoryService", () => {
 
 		it("should return all detailed repositories with filtering by created_at", async () => {
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed,
 			);
 			const result = await service.getAllDetailed({
 				where: {
@@ -520,7 +208,7 @@ describe("RepositoryRepositoryService", () => {
 				},
 			});
 			expect(result).toEqual(
-				detailedRepositories.sort(
+				repositoriesDetailed.sort(
 					(a, b) => b.created_at.getTime() - a.created_at.getTime(),
 				),
 			);
@@ -528,7 +216,7 @@ describe("RepositoryRepositoryService", () => {
 
 		it("should return all detailed repositories with filtering by updated_at", async () => {
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed,
 			);
 			const result = await service.getAllDetailed({
 				where: {
@@ -538,46 +226,58 @@ describe("RepositoryRepositoryService", () => {
 				},
 			});
 			expect(result).toEqual(
-				detailedRepositories.sort(
+				repositoriesDetailed.sort(
 					(a, b) => b.updated_at.getTime() - a.updated_at.getTime(),
 				),
 			);
 		});
 
 		it("should return all detailed repositories with filtering by description", async () => {
+			// NOTE: This method relies on filtering done by the
+			// repositoryDetailedRepository.getAll method.
+			// TThe service.getAllDetailed method just returns the results
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed.filter((repo) => {
+					return repo.description?.includes("test");
+				}),
 			);
+
 			const result = await service.getAllDetailed({
 				where: {
-					description: "Test Repository",
+					description: {
+						contains: "test",
+					},
 				},
 			});
 			expect(result).toEqual(
-				detailedRepositories.filter((repo) => {
-					return repo.description === "Test Description";
+				repositoriesDetailed.filter((repo) => {
+					return repo.description?.includes("test");
 				}),
 			);
 		});
 
 		it("should return all detailed repositories with filtering by name", async () => {
+			// NOTE: This method relies on filtering done by the
+			// repositoryDetailedRepository.getAll method.
+			// TThe service.getAllDetailed method just returns the results
 			repositoryDetailedRepository.getAll.mockResolvedValue(
-				detailedRepositories,
+				repositoriesDetailed.filter((repo) =>
+					repo.name?.toLowerCase().includes("test"),
+				),
 			);
+
 			const result = await service.getAllDetailed({
 				where: {
 					name: {
-						contains: "Test",
+						contains: "test",
 					},
 				},
 			});
 
 			expect(result).toEqual(
-				detailedRepositories.filter((repo) => {
-					return repo.contributors.some((contributor) => {
-						return contributor.user.username === "test-user";
-					});
-				}),
+				repositoriesDetailed.filter((repo) =>
+					repo.name?.toLowerCase().includes("test"),
+				),
 			);
 		});
 	});
@@ -678,6 +378,9 @@ describe("RepositoryRepositoryService", () => {
 				role: UserRole.USER,
 				id: 1,
 				username: "test-user",
+				deleted: false,
+				deleted_at: null,
+				password: "password",
 			},
 			programming_languages: [],
 			pull_requests: [],

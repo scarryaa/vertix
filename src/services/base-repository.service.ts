@@ -1,4 +1,7 @@
-import type { IRepository, QueryOptions } from "../repositories/base.repository";
+import type {
+	IRepository,
+	QueryOptions,
+} from "../repositories/base.repository";
 
 export interface RepositoryServiceConfig<TModel> {
 	repository: IRepository<TModel>;
@@ -19,14 +22,17 @@ export class RepositoryService<TModel> {
 		this.repository = config.repository;
 	}
 
-	async getById(id: number, auth_token?: string): Promise<TModel | null> {
+	async getById(
+		id: number,
+		auth_token?: string,
+	): Promise<TModel | Partial<TModel> | null> {
 		return this.repository.getById(id);
 	}
 
 	async getAll(
 		options: QueryOptions<TModel>,
 		auth_token?: string,
-	): Promise<TModel[]> {
+	): Promise<TModel[] | Partial<TModel[]> | Partial<TModel>[] | undefined> {
 		const { cursor, skip, take, where } = options;
 		const limit = this.parseLimit(take);
 		const page = this.parsePage(cursor);
@@ -50,7 +56,7 @@ export class RepositoryService<TModel> {
 		entityData: Partial<TModel>,
 		owner_id?: number,
 		auth_token?: string,
-	): Promise<TModel> {
+	): Promise<Partial<TModel>> {
 		return this.repository.update(id, entityData);
 	}
 

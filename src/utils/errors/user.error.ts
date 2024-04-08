@@ -22,6 +22,12 @@ export class EmailAlreadyExistsError extends BaseError {
 
 export class UserDoesNotExistError extends BaseError {
 	constructor(message = "The specified user does not exist.") {
+		super(message, "USER_DOES_NOT_EXIST");
+	}
+}
+
+export class UserNotFoundError extends BaseError {
+	constructor(message = "The user you requested could not be found.") {
 		super(message, "USER_NOT_FOUND");
 	}
 }

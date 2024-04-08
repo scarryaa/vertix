@@ -70,7 +70,10 @@ class VortexServer {
 				}
 
 				try {
-					assert(process.env.JWT_SECRET, "JWT Secret missing!");
+					if (!process.env.JWT_SECRET) {
+						throw new Error("JWT secret not found");
+					}
+
 					const decoded = jwt.verify(
 						token,
 						process.env.JWT_SECRET,

@@ -1,5 +1,6 @@
-import type { RepositoryBasic } from "../models";
+import type { RepositoryBasic, UserBasic } from "../models";
 import type { RepositoryResponse } from "../schemas/repository.schema";
+import type { UserResponse } from "../schemas/user.schema";
 import prisma from "./prisma";
 
 export function isRepositoryNameValid(name: string): boolean {
@@ -20,4 +21,19 @@ export const mapRepositoryResponse = (
 	created_at: created_at,
 	visibility: visibility as "public" | "private",
 	updated_at: updated_at,
+});
+
+export const mapUserResponse = (
+	user: UserBasic,
+	created_at: Date,
+	updated_at: Date,
+	index: number,
+	array: UserBasic[],
+): UserResponse => ({
+	created_at,
+	email: user.email,
+	id: user.id,
+	name: user.name,
+	updated_at,
+	username: user.username,
 });

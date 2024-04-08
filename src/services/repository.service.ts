@@ -66,8 +66,17 @@ export class RepositoryRepositoryService
 			throw new RepositoryNotFoundError();
 		}
 
-		// Get repository details
-		return super.getById(id);
+		const repository = await super.getById(id);
+		if (!repository) {
+			return null;
+		}
+
+		const detailedRepository: Repository = {
+			...foundRepository,
+			...repository,
+		};
+
+		return detailedRepository;
 	}
 
 	async getByIdDetailed(id: number): Promise<RepositoryDetailed | null> {
@@ -133,7 +142,7 @@ export class RepositoryRepositoryService
 		entityData: Partial<Repository>,
 		owner_id: number | undefined,
 		auth_token: string,
-	): Promise<Repository> {
+	): Promise<Repository | Partial<Repository>> {
 		// Check if repository exists
 		const foundRepository = await this.getById(repository_id);
 		if (!foundRepository) {
