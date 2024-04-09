@@ -75,7 +75,7 @@ describe("StarService", () => {
 			successfulValidationResult as never,
 		);
 		userService.checkUserExists.mockResolvedValue(true);
-		repositoryService.checkRepositoryExistsById.mockResolvedValue(true);
+		repositoryService.getById.mockResolvedValue(null);
 		starRepository.findFirst.mockResolvedValue(null);
 		starRepository.create.mockResolvedValue(star);
 
@@ -86,7 +86,7 @@ describe("StarService", () => {
 	describe("create", () => {
 		beforeEach(() => {
 			userService.checkUserExists.mockResolvedValue(true);
-			repositoryService.checkRepositoryExistsById.mockResolvedValue(true);
+			repositoryService.getById.mockResolvedValue(repository);
 			starRepository.create.mockResolvedValue(star);
 		});
 
@@ -128,7 +128,7 @@ describe("StarService", () => {
 		});
 
 		it("should throw RepositoryNotFoundError if the repository does not exist", async () => {
-			repositoryService.checkRepositoryExistsById.mockResolvedValue(false);
+			repositoryService.getById.mockResolvedValue(null);
 			let result: Star | null | undefined;
 
 			try {
@@ -143,15 +143,14 @@ describe("StarService", () => {
 			}
 
 			expect(starRepository.create).not.toHaveBeenCalled();
-			expect(repositoryService.checkRepositoryExistsById).toHaveBeenCalledWith(
-				1,
-			);
+			expect(repositoryService.getById).toHaveBeenCalledWith(1);
 			expect(userService.checkUserExists).toHaveBeenCalledWith(1);
 			expect(result).toBeUndefined();
 		});
 
 		it("should throw StarAlreadyExistsError if the star already exists", async () => {
 			starRepository.findFirst.mockResolvedValue(star);
+			repositoryService.getById.mockResolvedValue(repository);
 
 			try {
 				await starService.createStar(
@@ -163,9 +162,7 @@ describe("StarService", () => {
 			} catch (error) {
 				expect(error).toBeInstanceOf(StarAlreadyExistsError);
 			}
-			expect(repositoryService.checkRepositoryExistsById).toHaveBeenCalledWith(
-				1,
-			);
+			expect(repositoryService.getById).toHaveBeenCalledWith(1);
 			expect(userService.checkUserExists).toHaveBeenCalledWith(1);
 			expect(starRepository.findFirst).toHaveBeenCalledWith({
 				where: {
@@ -220,7 +217,7 @@ describe("StarService", () => {
 		beforeEach(() => {
 			starRepository.delete.mockResolvedValue(undefined);
 			userService.checkUserExists.mockResolvedValue(true);
-			repositoryService.checkRepositoryExistsById.mockResolvedValue(true);
+			repositoryService.getById.mockResolvedValue(repository);
 			starRepository.findFirst.mockResolvedValue(star);
 		});
 
@@ -257,13 +254,11 @@ describe("StarService", () => {
 				expect(error).toBeInstanceOf(UnauthorizedError);
 			}
 
-			expect(repositoryService.checkRepositoryExistsById).toHaveBeenCalledWith(
-				1,
-			);
+			expect(repositoryService.getById).toHaveBeenCalledWith(1);
 		});
 
 		it("should throw RepositoryNotFoundError if the repository does not exist", async () => {
-			repositoryService.checkRepositoryExistsById.mockResolvedValue(false);
+			repositoryService.getById.mockResolvedValue(null);
 			starRepository.findFirst.mockResolvedValue(star);
 
 			try {

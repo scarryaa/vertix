@@ -69,21 +69,17 @@ export class StarService {
 	}
 
 	// Adapter method for userService
-	private async findUserFirst(
-		condition: FindCondition,
-	): Promise<null | object> {
+	private async findUserFirst(condition: FindCondition): Promise<boolean> {
 		const exists = await this.userService.checkUserExists(condition.id);
-		return exists ? {} : null;
+		return exists;
 	}
 
 	// Adapter method for repositoryService
 	private async findRepositoryFirst(
 		condition: FindCondition,
-	): Promise<null | object> {
-		const exists = await this.repositoryService.checkRepositoryExistsById(
-			condition.id,
-		);
-		return exists ? {} : null;
+	): Promise<boolean> {
+		const exists = await this.repositoryService.getById(condition.id);
+		return !!exists;
 	}
 
 	// Helpers

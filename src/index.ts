@@ -102,7 +102,7 @@ class VortexServer {
 
 		for (const schema of starSchemas) {
 			this.app.addSchema(schema);
-        }
+		}
 
 		const listeners = ["SIGINT", "SIGTERM"];
 		for (let i = 0; i < listeners.length; i++) {

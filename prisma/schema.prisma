@@ -222,7 +222,7 @@ model Repository {
     organization_id       Int?
     pull_requests         PullRequest[]
 
-    @@index([created_at])
+    @@index([created_at, name, owner_id])
 }
 
 model License {
@@ -307,7 +307,7 @@ model Star {
     id            Int        @id @default(autoincrement())
     created_at    DateTime   @default(now())
     updated_at    DateTime   @updatedAt
-    repository    Repository @relation(fields: [repository_id], references: [id])
+    repository    Repository @relation(fields: [repository_id], references: [id], onDelete: Cascade)
     repository_id Int
     user          User       @relation(fields: [user_id], references: [id])
     user_id       Int

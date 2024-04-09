@@ -2,7 +2,10 @@ import bcrypt from "bcrypt";
 import type { Authenticator } from "../authenticators/service-layer/base.authenticator";
 import { Authenticate } from "../authenticators/service-layer/decorators";
 import { type UserBasic, type UserDetailed, UserRole } from "../models";
-import type { QueryOptions } from "../repositories/base.repository";
+import type {
+	QueryOptions,
+	WhereCondition,
+} from "../repositories/base.repository";
 import type { UserBasicRepository } from "../repositories/user-basic.repository";
 import type { UserDetailedRepository } from "../repositories/user-detailed.repository";
 import { UnauthorizedError } from "../utils/errors";
@@ -109,10 +112,7 @@ export class UserService extends RepositoryService<User> {
 	): Promise<User> {
 		const existingUser = await this.userBasicRepository.findFirst({
 			where: {
-				OR: [
-					{ email: entityData.email },
-					{ username: entityData.username }
-				],
+				OR: [{ email: entityData.email }, { username: entityData.username }],
 			},
 		});
 
@@ -223,5 +223,12 @@ export class UserService extends RepositoryService<User> {
 	async checkUserExists(user_id: number): Promise<boolean> {
 		const user = await this.getById(user_id);
 		return user !== null;
+	}
+	
+	public async verifyUserExists(where: WhereCondition<User>): Promise<void> {
+		const user = await this.userBasicRepository.findFirst({ where });
+		if (!user) {
+			throw new UserDoesNotExistError();
+		}
 	}
 }

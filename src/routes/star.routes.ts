@@ -1,6 +1,10 @@
 import type { AuthenticateInstance } from "../../types/request";
 import { Container } from "../container";
-import { createStar, deleteStar, getStarById } from "../controllers/star.controller";
+import {
+	createStar,
+	deleteStar,
+	getStarById,
+} from "../controllers/star.controller";
 import { validateToken } from "../middlewares/validate-token.middleware";
 import {
 	$ref,

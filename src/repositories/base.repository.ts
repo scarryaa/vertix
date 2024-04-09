@@ -9,31 +9,37 @@ export type QueryOptions<T> = {
 };
 
 export type WhereCondition<T> =
-	| {
-			[K in keyof T]?:
-				| NonNullable<T[K]>
-				| (NonNullable<T[K]> extends string
-						? {
-								contains: string;
-							}
-						: NonNullable<T[K]> extends Date
-							? {
-									greaterThan?: Date;
-									lessThan?: Date;
-									at?: Date;
-									not?: Date;
-								}
-							: NonNullable<T[K]> extends Array<infer U>
-								? {
-										some?: WhereCondition<U>;
-									}
-								: never);
-	  }
-	| {
-			OR?: WhereCondition<T>[];
-			AND?: WhereCondition<T>[];
-			NOT?: WhereCondition<T>[];
-	  };
+  | {
+      [K in keyof T]?:
+        | NonNullable<T[K]>
+        | (NonNullable<T[K]> extends string
+            ? {
+                contains?: string;
+                endsWith?: string;
+                startsWith?: string;
+                not?: string | { contains?: string; endsWith?: string; startsWith?: string; };
+              }
+            : NonNullable<T[K]> extends Date
+            ? {
+                greaterThan?: Date;
+                lessThan?: Date;
+                at?: Date;
+                not?: Date | { greaterThan?: Date; lessThan?: Date; at?: Date; };
+              }
+            : NonNullable<T[K]> extends Array<infer U>
+            ? {
+                some?: WhereCondition<U>;
+                not?: WhereCondition<U>;
+              }
+            : {
+                not?: NonNullable<T[K]> | { equals?: NonNullable<T[K]> }; // Added support for not condition on other types
+              });
+    }
+  | {
+      OR?: WhereCondition<T>[];
+      AND?: WhereCondition<T>[];
+      NOT?: WhereCondition<T> | WhereCondition<T>[];
+    };
 
 export interface IRepository<T> {
 	create(data: Partial<T>): Promise<T>;

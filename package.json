@@ -4,8 +4,9 @@
 	"description": "Vertix server implementation for Codestash",
 	"main": "index.js",
 	"scripts": {
-		"start": "ts-node src/index.ts",
-		"test": "pnpm jest",
+		"start:dev": "export NODE_ENV=development; ts-node src/index.ts ",
+		"start:prod": "export NODE_ENV=production; ts-node src/index.ts ",
+		"test": "export NODE_ENV=test; pnpm jest",
 		"biome:format:fix": "pnpm biome format --write ./",
 		"biome:lint:fix": "pnpm biome lint --apply ./",
 		"biome:fix-all": "pnpm biome:lint:fix; pnpm biome:format:fix",
@@ -14,10 +15,7 @@
 		"db-migration": "prisma migrate dev --name $npm_config_name",
 		"db-schema": "cd ./prisma/schema; cat db.part.prisma enums.part.prisma models.part.prisma > ../schema.prisma"
 	},
-	"keywords": [
-		"vertix",
-		"codestash"
-	],
+	"keywords": ["vertix", "codestash"],
 	"author": "scarryaa",
 	"license": "MIT",
 	"dependencies": {

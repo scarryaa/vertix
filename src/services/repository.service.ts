@@ -1,23 +1,27 @@
 import type { Authenticator } from "../authenticators/service-layer/base.authenticator";
-import {
-	type RepositoryBasic,
-	type RepositoryDetailed,
-	UserRole,
-} from "../models";
-import type { QueryOptions } from "../repositories/base.repository";
+import type { AuthzService } from "../authorization/authorization.service";
+import type { RepositoryBasic, RepositoryDetailed } from "../models";
+import type {
+	QueryOptions,
+	WhereCondition,
+} from "../repositories/base.repository";
 import type { RepositoryBasicRepository } from "../repositories/repository-basic.repository";
 import type { RepositoryDetailedRepository } from "../repositories/repository-detailed.repository";
 import {
+	NotFoundError,
 	RepositoryAlreadyExistsError,
 	RepositoryNotFoundError,
 	UnauthorizedError,
 } from "../utils/errors";
-import { UserDoesNotExistError } from "../utils/errors/user.error";
 import type { Validator } from "../validators/service-layer/base.validator";
 import {
 	type Validatable,
 	Validate,
 } from "../validators/service-layer/decorators";
+import {
+	verifyEntityDoesNotExist,
+	verifyEntityExists,
+} from "../validators/service-layer/util";
 import {
 	RepositoryService,
 	type RepositoryServiceConfig,
@@ -34,6 +38,7 @@ export interface RepositoryRepositoryServiceConfig {
 	userService: UserService;
 	authenticator: Authenticator;
 	validator: Validator<Repository>;
+	authzService: AuthzService;
 }
 
 export class RepositoryRepositoryService
@@ -41,6 +46,7 @@ export class RepositoryRepositoryService
 	implements Validatable<Repository>
 {
 	private _authenticator: Authenticator;
+	private _authzService: AuthzService;
 	private _validator: Validator<Repository>;
 
 	private readonly repositoryBasicRepository: RepositoryBasicRepository;
@@ -54,39 +60,26 @@ export class RepositoryRepositoryService
 		this.userService = _config.userService;
 		this._authenticator = _config.authenticator;
 		this._validator = _config.validator;
+		this._authzService = _config.authzService;
 	}
 
 	async getById(id: number): Promise<Partial<Repository> | null> {
-		// Check if repository exists
-		const repository = await this.repositoryBasicRepository.findFirst({
-			where: { id },
-		});
-
-		if (repository === null || repository === undefined)
-			throw new RepositoryNotFoundError();
-
-		return repository;
+		return this.getRepositoryOrThrow(id, false);
 	}
 
-	async getByIdDetailed(id: number): Promise<RepositoryDetailed | null> {
-		// Check if repository exists
-		const repository = await this.repositoryDetailedRepository.findFirst({
-			where: { id },
-		});
-
-		if (repository === null || repository === undefined)
-			throw new RepositoryNotFoundError();
-
-		return repository;
+	async getByIdDetailed(
+		id: number,
+	): Promise<Partial<RepositoryDetailed> | null> {
+		return this.getRepositoryOrThrow(id, true);
 	}
 
-	getAll(options: QueryOptions<Repository> = {}): Promise<Repository[]> {
+	async getAll(options: QueryOptions<Repository>): Promise<RepositoryBasic[]> {
 		return this.repositoryBasicRepository.getAll(options);
 	}
 
-	getAllDetailed(
-		options: QueryOptions<RepositoryDetailed> = {},
-	): Promise<RepositoryDetailed[]> {
+	async getAllDetailed(
+		options: QueryOptions<RepositoryDetailed>,
+	): Promise<RepositoryDetailed[] | Partial<RepositoryDetailed>[] | undefined> {
 		return this.repositoryDetailedRepository.getAll(options);
 	}
 
@@ -97,27 +90,13 @@ export class RepositoryRepositoryService
 		requireAllFields: true, // All fields required for create
 	})
 	async create(
-		entity_data: Pick<Repository, "name" | "visibility"> &
+		repository_data: Pick<Repository, "name" | "visibility"> &
 			Partial<Pick<Repository, "description">>,
 		auth_token: string,
 	): Promise<Repository> {
-		// Perform authentication manually
-		const { user_id, role } = this.authenticator.authenticate(auth_token, [
-			UserRole.USER,
-		]);
-
-		// Check if repository already exists
-		if (await this.checkRepositoryExists(entity_data.name, user_id)) {
-			throw new RepositoryAlreadyExistsError();
-		}
-
-		// Check if owner exists
-		if (!(await this.checkOwnerExists(user_id))) {
-			throw new UserDoesNotExistError();
-		}
-
-		// Proceed with repository creation
-		return super.create({ ...entity_data, owner_id: user_id });
+		const user_id = await this._authzService.authenticateUser(auth_token);
+		await this.performRepositoryCreationChecks(repository_data, user_id);
+		return await super.create(repository_data, auth_token);
 	}
 
 	@Validate<Repository>(ValidationAction.UPDATE, "RepositoryValidator", {
@@ -133,40 +112,12 @@ export class RepositoryRepositoryService
 		owner_id: number | undefined,
 		auth_token: string,
 	): Promise<Repository | Partial<Repository>> {
-		// Check if repository exists
-		const foundRepository = await this.getById(repository_id);
-		if (foundRepository === null || foundRepository === undefined)
-			throw new RepositoryNotFoundError();
-
-		// Check if user exists
-		if (
-			entityData.owner_id &&
-			!(await this.checkOwnerExists(entityData.owner_id))
-		) {
-			throw new UserDoesNotExistError();
-		}
-
-		// Check if user is owner or collaborator
-		// Perform authentication manually
-		const { user_id, role } = this.authenticator.authenticate(auth_token, [
-			UserRole.USER,
-		]);
-		const isOwner = await this.checkIsOwnerOrContributor(
+		const user_id = await this._authzService.authenticateUser(auth_token);
+		await this.performRepositoryUpdateChecks(
+			entityData,
 			user_id,
 			repository_id,
 		);
-		if (!isOwner) {
-			throw new UnauthorizedError();
-		}
-
-		// Check if name is already taken by owner
-		if (entityData.name && entityData.owner_id) {
-			if (
-				await this.checkRepositoryExists(entityData.name, entityData.owner_id)
-			) {
-				throw new RepositoryAlreadyExistsError();
-			}
-		}
 
 		return super.update(repository_id, entityData, owner_id, auth_token);
 	}
@@ -176,22 +127,8 @@ export class RepositoryRepositoryService
 		owner_id: number | undefined,
 		auth_token: string,
 	): Promise<void> {
-		// Check if repository exists
-		const repository = await this.getById(repository_id);
-		if (!repository) {
-			throw new RepositoryNotFoundError();
-		}
-
-		// Perform authentication
-		const { user_id } = this.authenticator.authenticate(auth_token, [
-			UserRole.USER,
-		]);
-
-		const isOwner = await this.checkIsOwner(user_id, repository_id);
-		if (!isOwner) {
-			throw new UnauthorizedError();
-		}
-
+		const user_id = await this._authzService.authenticateUser(auth_token);
+		await this.performRepositoryDeletionChecks(repository_id, user_id);
 		return super.delete(repository_id, owner_id, auth_token);
 	}
 
@@ -205,54 +142,151 @@ export class RepositoryRepositoryService
 
 	// Helpers
 
-	async checkRepositoryExists(
-		name: string,
-		owner_id: number,
-	): Promise<boolean> {
-		const repository = await this.repositoryBasicRepository.findFirst({
-			where: { name, owner_id },
+	private async performRepositoryCreationChecks(
+		repositoryData: Partial<Repository>,
+		user_id: number,
+	): Promise<void> {
+		// Verify that the user exists
+		await this.userService.verifyUserExists({ id: user_id });
+
+		// Verify that the repository does not already exist
+		await this.verifyRepositoryDoesNotExist({
+			id: repositoryData.id,
+			name: repositoryData.name,
 		});
-
-		if (repository === null || repository === undefined) return false;
-
-		return true;
 	}
 
-	async checkRepositoryExistsById(id: number): Promise<boolean> {
-		const repository = await this.repositoryBasicRepository.findFirst({
-            where: { id },
-        });
-
-        if (repository === null || repository === undefined) return false;
-
-        return true;
-    }
-
-	async checkOwnerExists(owner_id: number): Promise<boolean> {
-		return this.userService.checkUserExists(owner_id);
-	}
-
-	async checkIsOwner(
-		owner_id: number,
-		repository_id: number,
-	): Promise<boolean> {
-		const foundRepository = await this.getById(repository_id);
-		return foundRepository?.owner_id === owner_id;
-	}
-
-	async checkIsOwnerOrContributor(
+	private async performRepositoryUpdateChecks(
+		repositoryData: Partial<Repository>,
 		user_id: number,
 		repository_id: number,
-	): Promise<boolean> {
-		const repository = await this.getByIdDetailed(repository_id);
-		if (!repository) {
-			return false;
-		}
-		return (
-			repository.owner_id === user_id ||
-			repository.contributors?.some(
-				(contributor) => contributor.user_id === user_id,
-			)
+	): Promise<void> {
+		// Make sure user_id is valid
+		this.verifyUserIdIsValid(user_id);
+
+		// Verify user exists
+		await this.userService.verifyUserExists({ id: user_id });
+
+		// Verify repository exists
+		await this.verifyRepositoryExists({ id: repository_id });
+
+		// Verify user is owner or contributor of repository
+		const repository = (await this.getRepositoryOrThrow(
+			repository_id,
+			true,
+		)) as RepositoryDetailed;
+		await this._authzService.throwIfNotRepositoryOwnerOrContributor(
+			user_id,
+			repository,
 		);
+
+		// Check if name is already taken by owner (if name is being updated)
+		if (repositoryData.name && repositoryData.name !== repository.name) {
+			await this.verifyRepositoryNameNotTaken(
+				repositoryData.name,
+				user_id,
+				repository_id,
+			);
+		}
+	}
+
+	private async performRepositoryDeletionChecks(
+		repository_id: number,
+		user_id: number,
+	): Promise<void> {
+		// Verify user exists
+		this.userService.verifyUserExists({ id: user_id });
+
+		// Verify repository exists
+		await this.verifyRepositoryExists({ id: repository_id });
+
+		// Verify user is owner
+		const repository = await this.getRepositoryOrThrow(repository_id, false);
+
+		if (!repository?.owner_id) {
+			throw new Error(`Repository ${repository_id} has no owner`);
+		}
+		await this._authzService.throwIfNotRepositoryOwner(user_id, {
+			owner_id: repository?.owner_id,
+		});
+	}
+
+	private async getRepositoryOrThrow(
+		repository_id: number,
+		detailed: boolean,
+	): Promise<Partial<RepositoryBasic> | RepositoryDetailed | null> {
+		let repository:
+			| Partial<RepositoryBasic>
+			| RepositoryDetailed
+			| null
+			| undefined = null;
+		if (!detailed) {
+			repository = await this.repositoryBasicRepository.findFirst({
+				where: { id: repository_id },
+			});
+		} else {
+			repository = await this.repositoryDetailedRepository.findFirst({
+				where: { id: repository_id },
+			});
+		}
+
+		if (!repository) {
+			throw new RepositoryNotFoundError();
+		}
+		return repository;
+	}
+
+	private async verifyRepositoryExists(
+		where: WhereCondition<Repository>,
+	): Promise<void> {
+		await verifyEntityExists({
+			repository: this.repositoryBasicRepository,
+			condition: where,
+			NotFoundError: RepositoryNotFoundError,
+		});
+	}
+
+	private async verifyRepositoryDoesNotExist(
+		where: WhereCondition<Repository>,
+	): Promise<void> {
+		await verifyEntityDoesNotExist({
+			repository: this.repositoryBasicRepository,
+			condition: where,
+			FoundError: RepositoryAlreadyExistsError,
+		});
+	}
+
+	private isRepositoryDetailed(
+		repository: Partial<Repository>,
+	): repository is RepositoryDetailed {
+		return (
+			(repository as RepositoryDetailed)?.issues !== undefined &&
+			(repository as RepositoryDetailed)?.contributors !== undefined
+		);
+	}
+
+	private async verifyRepositoryNameNotTaken(
+		newName: string,
+		userId: number,
+		repositoryId?: number,
+	): Promise<void> {
+		const existingRepository = await this.repositoryBasicRepository.findFirst({
+			where: {
+				name: newName,
+				owner_id: userId,
+				id: repositoryId ? { not: repositoryId } : undefined,
+			},
+		});
+
+		// Check if an existing repository was found and if it's different from the one being updated
+		if (existingRepository && existingRepository.id !== repositoryId) {
+			throw new RepositoryAlreadyExistsError();
+		}
+	}
+
+	private async verifyUserIdIsValid(userId: number): Promise<void> {
+		if (userId === undefined || userId === null) {
+			throw new UnauthorizedError("User ID cannot be undefined or null");
+		}
 	}
 }

@@ -79,7 +79,7 @@ export class Validator<T> {
 				", ",
 			)}`;
 		}
-
+		
 		return {
 			isValid: missingFields.length === 0,
 			missingRequiredFields:

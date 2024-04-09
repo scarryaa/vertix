@@ -55,6 +55,7 @@ export function Validate<TEntity>(
 						entityData,
 						options.requiredFields || [],
 					);
+
 					if (!allFieldsResult.isValid) {
 						throw new ValidationError(
 							allFieldsResult.errorMessage ?? "MISSING_REQUIRED_FIELDS",

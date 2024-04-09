@@ -1,4 +1,5 @@
 import { Authenticator } from "./authenticators/service-layer/base.authenticator";
+import { AuthzService } from "./authorization/authorization.service";
 import type { RepositoryBasic, Star, UserBasic } from "./models";
 import { RepositoryBasicRepository } from "./repositories/repository-basic.repository";
 import { RepositoryDetailedRepository } from "./repositories/repository-detailed.repository";
@@ -27,7 +28,8 @@ export class Container {
 			throw new Error("JWT_SECRET environment variable is not set");
 		}
 
-		const userAuthenticator = new Authenticator(process.env.JWT_SECRET);
+		const authenticator = new Authenticator(process.env.JWT_SECRET);
+
 		const userValidator = new Validator<UserBasic>();
 		const userBasicRepository = new UserBasicRepository(prisma);
 		const userDetailedRepository = new UserDetailedRepository(prisma);
@@ -37,10 +39,12 @@ export class Container {
 			},
 			userBasicRepository: userBasicRepository,
 			userDetailedRepository: userDetailedRepository,
-			authenticator: userAuthenticator,
+			authenticator,
 			validator: userValidator,
 		};
 		this.userService = new UserService(userConfig);
+
+		const authzService = new AuthzService(authenticator, this.userService);
 
 		const repositoryAuthenticator = new Authenticator(process.env.JWT_SECRET);
 		const repositoryValidator = new Validator<RepositoryBasic>();
@@ -55,16 +59,16 @@ export class Container {
 			repositoryBasicRepository: repositoryBasicRepository,
 			repositoryDetailedRepository: repositoryDetailedRepository,
 			userService: this.userService,
-			authenticator: repositoryAuthenticator,
+			authenticator,
 			validator: repositoryValidator,
+			authzService,
 		};
 		this.repositoryService = new RepositoryRepositoryService(repositoryConfig);
 
-		const starAuthenticator = new Authenticator(process.env.JWT_SECRET);
 		const starValidator = new Validator<Star>();
 		const starRepository = new StarRepository(prisma);
 		const starConfig: StarServiceConfig = {
-			authenticator: starAuthenticator,
+			authenticator,
 			starRepository: starRepository,
 			validator: starValidator,
 			userService: this.userService,
