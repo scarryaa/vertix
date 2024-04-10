@@ -1,3 +1,4 @@
+import * as dotenv from "dotenv";
 import { Authenticator } from "./authenticators/service-layer/base.authenticator";
 import { AuthzService } from "./authorization/authorization.service";
 import type { RepositoryBasic, Star, UserBasic } from "./models";
@@ -6,16 +7,19 @@ import { RepositoryDetailedRepository } from "./repositories/repository-detailed
 import { StarRepository } from "./repositories/star.repository";
 import { UserBasicRepository } from "./repositories/user-basic.repository";
 import { UserDetailedRepository } from "./repositories/user-detailed.repository";
+import { RepositoryAuthorizationService } from "./services/repository/repository-authorization.service";
+import { RepositoryFetchService } from "./services/repository/repository-fetch.service";
+import { RepositoryValidationService } from "./services/repository/repository-validation.service";
 import {
 	RepositoryRepositoryService,
 	type RepositoryRepositoryServiceConfig,
-} from "./services/repository.service";
+	type RepositoryServices,
+} from "./services/repository/repository.service";
 import { StarService, type StarServiceConfig } from "./services/star.service";
 import { UserService, type UserServiceConfig } from "./services/user.service";
 import prisma from "./utils/prisma";
 import { ServiceLocator } from "./utils/service-locator";
 import { Validator } from "./validators/service-layer/base.validator";
-
 export class Container {
 	private static instance: Container;
 
@@ -24,72 +28,140 @@ export class Container {
 	private _starService: StarService;
 
 	private constructor() {
-		if (!process.env.JWT_SECRET) {
-			throw new Error("JWT_SECRET environment variable is not set");
-		}
-
-		const authenticator = new Authenticator(process.env.JWT_SECRET);
+		this.checkEnvironmentVariables();
+		// biome-ignore lint/style/noNonNullAssertion: We make sure that the secret is not null above
+		const authenticator = new Authenticator(process.env.JWT_SECRET!);
 
 		const userValidator = new Validator<UserBasic>();
 		const userBasicRepository = new UserBasicRepository(prisma);
 		const userDetailedRepository = new UserDetailedRepository(prisma);
+		this.userService = this.setupUserService(
+			userBasicRepository,
+			userDetailedRepository,
+			authenticator,
+			userValidator,
+		);
+
+		const authzService = new AuthzService(authenticator, this.userService);
+		this.repositoryService = this.setupRepositoryService(
+			authenticator,
+			authzService,
+			userBasicRepository,
+		);
+
+		const starValidator = new Validator<Star>();
+		const starRepository = new StarRepository(prisma);
+		this._starService = this.setupStarService(
+			authenticator,
+			starRepository,
+			starValidator,
+		);
+
+		this.registerValidators(
+			userValidator,
+			new Validator<RepositoryBasic>(),
+			starValidator,
+		);
+	}
+
+	private async checkEnvironmentVariables(): Promise<void> {
+		process.env.ENVIRONMENT = process.env.NODE_ENV ?? "development";
+		await dotenv.config({ override: true, path: `./.env.${process.env.ENVIRONMENT}` });
+
+		console.log(`Environment: ${process.env.ENVIRONMENT}`);
+		if (!process.env.JWT_SECRET) {
+			throw new Error("JWT_SECRET environment variable is not set");
+		}
+	}
+
+	private setupUserService(
+		userBasicRepository: UserBasicRepository,
+		userDetailedRepository: UserDetailedRepository,
+		authenticator: Authenticator,
+		validator: Validator<UserBasic>,
+	): UserService {
 		const userConfig: UserServiceConfig = {
 			config: {
 				repository: userBasicRepository,
 			},
-			userBasicRepository: userBasicRepository,
-			userDetailedRepository: userDetailedRepository,
+			userBasicRepository,
+			userDetailedRepository,
 			authenticator,
-			validator: userValidator,
+			validator,
 		};
-		this.userService = new UserService(userConfig);
+		return new UserService(userConfig);
+	}
 
-		const authzService = new AuthzService(authenticator, this.userService);
-
-		const repositoryAuthenticator = new Authenticator(process.env.JWT_SECRET);
+	private setupRepositoryService(
+		authenticator: Authenticator,
+		authzService: AuthzService,
+		userBasicRepository: UserBasicRepository,
+	): RepositoryRepositoryService {
 		const repositoryValidator = new Validator<RepositoryBasic>();
 		const repositoryBasicRepository = new RepositoryBasicRepository(prisma);
 		const repositoryDetailedRepository = new RepositoryDetailedRepository(
 			prisma,
 		);
+		const repositoryFetchService = new RepositoryFetchService(
+			repositoryBasicRepository,
+			repositoryDetailedRepository,
+		);
+		const repositoryValidationService = new RepositoryValidationService(
+			repositoryBasicRepository,
+			this.userService,
+		);
+		const repositoryAuthzService = new RepositoryAuthorizationService(
+			authzService,
+		);
 		const repositoryConfig: RepositoryRepositoryServiceConfig = {
 			config: {
 				repository: repositoryBasicRepository,
 			},
-			repositoryBasicRepository: repositoryBasicRepository,
-			repositoryDetailedRepository: repositoryDetailedRepository,
-			userService: this.userService,
-			authenticator,
-			validator: repositoryValidator,
-			authzService,
 		};
-		this.repositoryService = new RepositoryRepositoryService(repositoryConfig);
+		const services: RepositoryServices = {
+			authenticator,
+			repositoryBasicRepository,
+			repositoryDetailedRepository,
+			repositoryFetchService,
+			repositoryValidationService,
+			repositoryAuthzService,
+			validator: repositoryValidator,
+		};
+		return new RepositoryRepositoryService(repositoryConfig, services);
+	}
 
-		const starValidator = new Validator<Star>();
-		const starRepository = new StarRepository(prisma);
+	private setupStarService(
+		authenticator: Authenticator,
+		starRepository: StarRepository,
+		validator: Validator<Star>,
+	): StarService {
 		const starConfig: StarServiceConfig = {
 			authenticator,
-			starRepository: starRepository,
-			validator: starValidator,
+			starRepository,
+			validator,
 			userService: this.userService,
 			repositoryService: this.repositoryService,
 		};
-		this._starService = new StarService(starConfig);
+		return new StarService(starConfig);
+	}
 
-		// Register services
+	private registerValidators(
+		userValidator: Validator<UserBasic>,
+		repositoryValidator: Validator<RepositoryBasic>,
+		starValidator: Validator<Star>,
+	): void {
 		ServiceLocator.registerValidator("UserValidator", userValidator);
 		ServiceLocator.registerValidator(
 			"RepositoryValidator",
 			repositoryValidator,
 		);
-		ServiceLocator.registerValidator("StarValidator", new Validator<Star>());
+		ServiceLocator.registerValidator("StarValidator", starValidator);
 	}
 
 	public static getInstance(): Container {
 		if (!Container.instance) {
 			Container.instance = new Container();
 		}
-
 		return Container.instance;
 	}
 

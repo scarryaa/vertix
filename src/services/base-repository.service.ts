@@ -25,6 +25,7 @@ export class RepositoryService<TModel> {
 	async getAll(
 		options: QueryOptions<TModel>,
 		auth_token?: string,
+		detailed?: boolean,
 	): Promise<TModel[] | Partial<TModel[]> | Partial<TModel>[] | undefined> {
 		const { cursor, skip, take, where } = options;
 		const limit = this.parseLimit(take);

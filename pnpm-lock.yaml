@@ -26,9 +26,6 @@ dependencies:
   bcrypt:
     specifier: ^5.1.1
     version: 5.1.1
-  dotenv:
-    specifier: ^16.4.5
-    version: 16.4.5
   fastify:
     specifier: ^4.26.2
     version: 4.26.2
@@ -61,6 +58,12 @@ devDependencies:
   '@types/node-fetch':
     specifier: ^2.6.11
     version: 2.6.11
+  cross-env:
+    specifier: ^7.0.3
+    version: 7.0.3
+  dotenv:
+    specifier: ^16.4.5
+    version: 16.4.5
   jest:
     specifier: ^29.7.0
     version: 29.7.0(@types/node@16.18.94)(ts-node@10.9.2)
@@ -1574,6 +1577,14 @@ packages:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
     dev: true
 
+  /cross-env@7.0.3:
+    resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
+    engines: {node: '>=10.14', npm: '>=6', yarn: '>=1'}
+    hasBin: true
+    dependencies:
+      cross-spawn: 7.0.3
+    dev: true
+
   /cross-spawn@7.0.3:
     resolution: {integrity: sha512-iRDPJKUPVEND7dHPO8rkbOnPpyDygcDFtWjpeWNCgy8WP2rXcxXL8TskReQl6OrB2G7+UJrags1q15Fudc7G6w==}
     engines: {node: '>= 8'}
@@ -1657,7 +1668,6 @@ packages:
   /dotenv@16.4.5:
     resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
     engines: {node: '>=12'}
-    dev: false
 
   /ecdsa-sig-formatter@1.0.11:
     resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}

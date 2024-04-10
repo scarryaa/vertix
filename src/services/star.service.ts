@@ -14,7 +14,7 @@ import {
 	verifyEntityExists,
 } from "../validators/service-layer/util";
 import { ValidationAction } from "./base-repository.service";
-import type { RepositoryRepositoryService } from "./repository.service";
+import type { RepositoryRepositoryService } from "./repository/repository.service";
 import type { UserService } from "./user.service";
 
 interface FindCondition {

@@ -7,7 +7,7 @@ import {
 	UserRole,
 } from "../../src/models";
 import type { StarRepository } from "../../src/repositories/star.repository";
-import type { RepositoryRepositoryService } from "../../src/services/repository.service";
+import type { RepositoryRepositoryService } from "../../src/services/repository/repository.service";
 import { StarService } from "../../src/services/star.service";
 import type { UserService } from "../../src/services/user.service";
 import {

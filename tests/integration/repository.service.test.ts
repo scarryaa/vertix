@@ -4,14 +4,20 @@ import { mock } from "jest-mock-extended";
 import type { Authenticator } from "../../src/authenticators/service-layer/base.authenticator";
 import type { AuthzService } from "../../src/authorization/authorization.service";
 import {
-	type ContributorDetailed,
 	type RepositoryBasic,
+	type RepositoryDetailed,
 	type UserBasic,
 	UserRole,
 } from "../../src/models";
 import { RepositoryBasicRepository } from "../../src/repositories/repository-basic.repository";
 import { RepositoryDetailedRepository } from "../../src/repositories/repository-detailed.repository";
-import { RepositoryRepositoryService } from "../../src/services/repository.service";
+import { RepositoryAuthorizationService } from "../../src/services/repository/repository-authorization.service";
+import { RepositoryFetchService } from "../../src/services/repository/repository-fetch.service";
+import { RepositoryValidationService } from "../../src/services/repository/repository-validation.service";
+import {
+	RepositoryRepositoryService,
+	type RepositoryServices,
+} from "../../src/services/repository/repository.service";
 import type { UserService } from "../../src/services/user.service";
 import {
 	RepositoryAlreadyExistsError,
@@ -31,6 +37,9 @@ describe("RepositoryService with Prisma", () => {
 	let validator: jest.Mocked<Validator<RepositoryBasic>>;
 	let userService: jest.Mocked<UserService>;
 	let user: UserBasic;
+	let repositoryAuthzService: RepositoryAuthorizationService;
+	let repositoryFetchService: RepositoryFetchService;
+	let repositoryValidationService: RepositoryValidationService;
 
 	beforeAll(async () => {
 		prisma = new PrismaClient();
@@ -40,20 +49,37 @@ describe("RepositoryService with Prisma", () => {
 		authzService = mock<AuthzService>();
 		validator = mock<Validator<RepositoryBasic>>();
 		userService = mock<UserService>();
+		repositoryAuthzService = new RepositoryAuthorizationService(authzService);
+		repositoryFetchService = new RepositoryFetchService(
+			repositoryBasic,
+			repositoryDetailed,
+		);
+		repositoryValidationService = new RepositoryValidationService(
+			repositoryBasic,
+			userService,
+		);
 
-		repositoryService = new RepositoryRepositoryService({
-			authenticator,
-			validator,
-			authzService,
-			config: {
-				repository: repositoryBasic,
-			},
+		const repositoryServices: RepositoryServices = {
 			repositoryBasicRepository: repositoryBasic,
 			repositoryDetailedRepository: repositoryDetailed,
-			userService,
-		});
+			authenticator,
+			repositoryAuthzService,
+			repositoryFetchService,
+			repositoryValidationService,
+			validator,
+		};
+
+		repositoryService = new RepositoryRepositoryService(
+			{
+				config: {
+					repository: repositoryBasic,
+				},
+			},
+			repositoryServices,
+		);
 
 		// Mock conditions
+		// Mock validator responses
 		validator.validateAllFields.mockReturnValue({
 			isValid: true,
 			errorMessage: undefined,
@@ -73,7 +99,7 @@ describe("RepositoryService with Prisma", () => {
 			unsupportedFields: [],
 		});
 
-		// Mock user
+		// Mock user authentication
 		authenticator.authenticate.mockReturnValue({
 			user_id: 1,
 			role: UserRole.USER,
@@ -90,7 +116,7 @@ describe("RepositoryService with Prisma", () => {
 		// Users
 		for (let i = 0; i < 10; i++) {
 			const email = faker.internet.email();
-			const username = `${faker.internet.userName()}${i}`;
+			const username = `${faker.internet.userName()}${i}-${faker.internet.userName()}`;
 
 			await prisma.user.upsert({
 				where: { email: email },
@@ -124,6 +150,8 @@ describe("RepositoryService with Prisma", () => {
 				},
 			});
 		}
+
+		jest.clearAllMocks();
 	});
 
 	afterEach(async () => {
@@ -216,6 +244,13 @@ describe("RepositoryService with Prisma", () => {
 			visibility: "public",
 			owner_id: 1,
 		};
+		authenticator.authenticate.mockResolvedValue({
+			user_id: 1,
+			role: UserRole.USER,
+		} as never);
+		authzService.authenticateUser.mockResolvedValue(1);
+		userService.verifyUserExists.mockResolvedValue();
+
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
 		});
@@ -253,7 +288,7 @@ describe("RepositoryService with Prisma", () => {
 
 	it("should retrieve all repositories", async () => {
 		// Act
-		const repositories = await repositoryService.getAll({});
+		const repositories = await repositoryService.getAll({}, "auth-token");
 
 		// Assert
 		expect(repositories).toBeDefined();
@@ -333,11 +368,6 @@ describe("RepositoryService with Prisma", () => {
 	it("should throw an error when an unauthorized user attempts to update a repository", async () => {
 		// Arrange
 		authzService.authenticateUser.mockResolvedValue(999);
-		authzService.throwIfNotRepositoryOwnerOrContributor.mockImplementation(
-			() => {
-				throw new UnauthorizedError();
-			},
-		);
 		const repositoryData = {
 			name: "base-name",
 			visibility: "public",
@@ -364,7 +394,7 @@ describe("RepositoryService with Prisma", () => {
 
 	it("should throw an error when trying to delete a non-existent repository", async () => {
 		// Arrange
-		const nonExistentRepositoryId = 999;
+		const nonExistentRepositoryId = 9999999;
 
 		// Act & Assert
 		try {
@@ -377,9 +407,9 @@ describe("RepositoryService with Prisma", () => {
 	it("should throw an error when an unauthorized user attempts to delete a repository", async () => {
 		// Arrange
 		authzService.authenticateUser.mockResolvedValue(999);
-		authzService.throwIfNotRepositoryOwner.mockImplementation(() => {
+		repositoryAuthzService.throwIfNotRepositoryOwner = () => {
 			throw new UnauthorizedError();
-		});
+		};
 		const repositoryData = {
 			name: "base-name",
 			visibility: "public",
@@ -456,7 +486,7 @@ describe("RepositoryService with Prisma", () => {
 		const updateData = {
 			name: "same-name",
 		};
-		authzService.throwIfNotRepositoryOwnerOrContributor = jest.fn();
+		repositoryAuthzService.throwIfNotRepositoryOwnerOrContributor = jest.fn();
 
 		// Act
 		await repositoryService.update(
@@ -602,11 +632,13 @@ describe("RepositoryService with Prisma", () => {
 		await expect(
 			repositoryService.update(
 				invalidRepositoryId,
-				{},
+				{
+					name: faker.lorem.sentence(),
+				},
 				undefined,
 				"auth-token",
 			),
-		).rejects.toThrow(Error);
+		).rejects.toThrow(RepositoryNotFoundError);
 	});
 
 	it("should retrieve a repository with detailed information", async () => {
@@ -621,9 +653,10 @@ describe("RepositoryService with Prisma", () => {
 		});
 
 		// Act
-		const repository = await repositoryService.getByIdDetailed(
+		const repository = (await repositoryService.getById(
 			createdRepository.id,
-		);
+			true,
+		)) as RepositoryDetailed;
 
 		// Assert
 		expect(repository).toBeDefined();
@@ -727,8 +760,12 @@ describe("RepositoryService with Prisma", () => {
 	it("should handle deleting a large amount of repositories", async () => {
 		// Arrange
 		authzService.authenticateUser = jest.fn();
-		authzService.throwIfNotRepositoryOwner = jest.fn();
+		repositoryAuthzService.throwIfNotRepositoryOwner = jest.fn();
 		authenticator.authenticate = jest.fn();
+		repositoryValidationService.verifyUserExists = jest.fn();
+		repositoryValidationService.verifyRepositoryNameNotTaken = jest.fn();
+		repositoryValidationService.verifyUserAndRepositoryExist = jest.fn();
+
 		const repositories = [];
 		for (let i = 0; i < 1000; i++) {
 			const repositoryData = {
@@ -736,10 +773,13 @@ describe("RepositoryService with Prisma", () => {
 				visibility: "public",
 				owner_id: 1,
 			};
-			const createdRepository = await repositoryService.create(repositoryData, "auth-token");
+			const createdRepository = await repositoryService.create(
+				repositoryData,
+				"auth-token",
+			);
 			repositories.push(createdRepository);
 		}
-	
+
 		// Act & Assert
 		await Promise.all(
 			repositories.map((repository) =>
@@ -799,8 +839,8 @@ describe("RepositoryService with Prisma", () => {
 		).then(() =>
 			Promise.all(
 				repositories.map((repository) =>
-					// @ts-ignore id will be defined by the db
-					repositoryService.getByIdDetailed(repository.id),
+				    // @ts-ignore id will be defined by the db
+					repositoryService.getById(repository?.id, true),
 				),
 			),
 		);
@@ -846,7 +886,7 @@ describe("RepositoryService with Prisma", () => {
 		return repositoryService
 			.create(repository, "auth-token")
 			.then(() =>
-				repositoryService.getAllDetailed({ where: { name: repository.name } }),
+				repositoryService.getAll({ where: { name: repository.name } }, "auth-token", true),
 			);
 	});
 
@@ -861,9 +901,9 @@ describe("RepositoryService with Prisma", () => {
 
 		// Act
 		return repositoryService.create(repository, "auth-token").then(() =>
-			repositoryService.getAllDetailed({
+			repositoryService.getAll({
 				where: { owner_id: repository.owner_id },
-			}),
+			}, undefined, true),
 		);
 	});
 
@@ -878,9 +918,9 @@ describe("RepositoryService with Prisma", () => {
 
 		// Act
 		return repositoryService.create(repository, "auth-token").then(() =>
-			repositoryService.getAllDetailed({
+			repositoryService.getAll({
 				where: { visibility: repository.visibility },
-			}),
+			}, undefined, true),
 		);
 	});
 

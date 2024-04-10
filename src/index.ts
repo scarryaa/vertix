@@ -3,6 +3,7 @@ import { env } from "node:process";
 import fCookie from "@fastify/cookie";
 import formbody from "@fastify/formbody";
 import rateLimit from "@fastify/rate-limit";
+import * as dotenv from "dotenv";
 import fastify, {
 	type FastifyInstance,
 	type FastifyReply,
