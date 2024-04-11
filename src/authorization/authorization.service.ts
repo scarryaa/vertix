@@ -11,7 +11,7 @@ export class AuthzService {
 		this._userService = userService;
 	}
 
-	async authenticateUser(auth_token: string): Promise<number> {
+	async authenticateUser(auth_token: string): Promise<string> {
 		const { user_id } = this._authenticator.authenticate(auth_token, [
 			UserRole.USER,
 		]);

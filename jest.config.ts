@@ -14,5 +14,5 @@ module.exports = {
 		"!**/__tests__/**",
 		"!**/__mocks__/**",
 	],
-	setupFilesAfterEnv: ['./jest.setup.ts']
+	setupFilesAfterEnv: ["./jest.setup.ts"],
 };

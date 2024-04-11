@@ -73,22 +73,18 @@ class VortexServer {
 						.send({ message: "Authentication required." });
 				}
 
-				try {
-					if (!process.env.JWT_SECRET) {
-						throw new Error("JWT secret not found");
-					}
-
-					const decoded = jwt.verify(
-						token,
-						process.env.JWT_SECRET,
-					) as unknown as JwtPayload;
-					req.user = {
-						user_id: decoded.user_id,
-						role: decoded.role,
-					};
-				} catch (error) {
-					return reply.status(401).send({ message: "Invalid token." });
+				if (!process.env.JWT_SECRET) {
+					throw new Error("JWT secret not found");
 				}
+
+				const decoded = jwt.verify(
+					token,
+					process.env.JWT_SECRET,
+				) as unknown as JwtPayload;
+				req.user = {
+					user_id: decoded.user_id,
+					role: decoded.role,
+				};
 			},
 		);
 

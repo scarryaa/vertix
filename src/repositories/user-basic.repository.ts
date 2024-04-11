@@ -13,7 +13,7 @@ export class UserBasicRepository extends PrismaRepository<UserBasic> {
 		]);
 	}
 
-	async updatePassword(id: number, password: string): Promise<void> {
+	async updatePassword(id: string, password: string): Promise<void> {
 		this.prisma.user.update({
 			where: { id },
 			data: { password },

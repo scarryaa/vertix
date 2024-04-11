@@ -2,6 +2,7 @@ import assert from "node:assert";
 import bcrypt from "bcrypt";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import jwt from "jsonwebtoken";
+import type { UserRole } from "../models";
 import {
 	type CreateUser,
 	type GetUsersQuery,
@@ -14,6 +15,7 @@ import {
 	updateUserSchema,
 } from "../schemas/user.schema";
 import type { UserService } from "../services/user.service";
+import { Session } from "../session/index.session";
 import { UnauthorizedError } from "../utils/errors";
 import { UserNotFoundError } from "../utils/errors/user.error";
 import prisma from "../utils/prisma";
@@ -41,6 +43,9 @@ export const login =
 		const payload = { user_id: user.id, role: user.role };
 		assert(process.env.JWT_SECRET, "JWT Secret missing!");
 		const token = jwt.sign(payload, process.env.JWT_SECRET);
+		// @TODO set these on startup?
+		Session.setAuthToken(token);
+		Session.setUser({ ...user, role: user.role as UserRole });
 
 		reply.setCookie("access_token", token, {
 			httpOnly: true,
@@ -92,7 +97,7 @@ export const getAllUsers =
 export const getUser =
 	(userService: UserService) =>
 	async (
-		req: FastifyRequest<{ Params: { id: number } }>,
+		req: FastifyRequest<{ Params: { id: string } }>,
 		reply: FastifyReply,
 	) => {
 		const { id } = getUserQuerySchema.parse(req.params);
@@ -109,7 +114,7 @@ export const getUser =
 export const updateUser =
 	(userService: UserService) =>
 	async (
-		req: FastifyRequest<{ Params: { id: number }; Body: UpdateUser }>,
+		req: FastifyRequest<{ Params: { id: string }; Body: UpdateUser }>,
 		reply: FastifyReply,
 	) => {
 		const { id } = req.params;
@@ -128,7 +133,7 @@ export const updateUser =
 export const deleteUser =
 	(userService: UserService) =>
 	async (
-		req: FastifyRequest<{ Params: { id: number } }>,
+		req: FastifyRequest<{ Params: { id: string } }>,
 		reply: FastifyReply,
 	) => {
 		const { id } = req.params;

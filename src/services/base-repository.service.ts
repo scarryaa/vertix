@@ -2,9 +2,11 @@ import type {
 	IRepository,
 	QueryOptions,
 } from "../repositories/base.repository";
+import type { FileService } from "./file/file.service";
 
 export interface RepositoryServiceConfig<TModel> {
 	repository: IRepository<TModel>;
+	fileService: FileService;
 }
 
 export enum ValidationAction {
@@ -15,11 +17,18 @@ export enum ValidationAction {
 	GET_ALL = 4,
 }
 
-export class RepositoryService<TModel> {
+interface IModel {
+	id: string;
+	name: string;
+}
+
+export class RepositoryService<TModel extends IModel> {
 	private readonly repository: IRepository<TModel>;
+	private readonly fileService: FileService;
 
 	constructor(private readonly config: RepositoryServiceConfig<TModel>) {
 		this.repository = config.repository;
+		this.fileService = config.fileService;
 	}
 
 	async getAll(
@@ -46,17 +55,17 @@ export class RepositoryService<TModel> {
 	}
 
 	async update(
-		id: number,
+		id: string,
 		entityData: Partial<TModel>,
-		owner_id?: number,
+		owner_id?: string,
 		auth_token?: string,
 	): Promise<Partial<TModel>> {
 		return this.repository.update(id, entityData);
 	}
 
 	async delete(
-		id: number,
-		owner_id?: number,
+		id: string,
+		owner_id?: string,
 		authToken?: string,
 	): Promise<void> {
 		await this.repository.delete(id);

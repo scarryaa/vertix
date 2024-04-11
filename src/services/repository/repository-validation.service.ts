@@ -1,90 +1,75 @@
-import type { RepositoryDetailed } from "../../models";
-import type { WhereCondition } from "../../repositories/base.repository";
 import type { RepositoryBasicRepository } from "../../repositories/repository-basic.repository";
 import {
 	RepositoryAlreadyExistsError,
 	RepositoryNotFoundError,
-	UnauthorizedError,
 } from "../../utils/errors";
+import {
+	UserAlreadyExistsError,
+	UserNotFoundError,
+} from "../../utils/errors/user.error";
+import { Validator } from "../../validators/service-layer/base.validator";
 import type { UserService } from "../user.service";
-import type { Repository } from "./repository.service";
+import type { Repository } from "./types";
 
-export class RepositoryValidationService {
+export class RepositoryValidationService extends Validator<Repository> {
 	constructor(
 		private repositoryBasicRepository: RepositoryBasicRepository,
 		private userService: UserService,
-	) {}
+		private validationService: Validator<Repository>,
+	) {
+		super();
+	}
 
-	async verifyRepositoryNameNotTaken(
-		newName: string,
-		userId: number,
-		repositoryId?: number,
+	async verifyUserAndRepositoryConditions(
+		userId: string | undefined,
+		repositoryId: string | undefined,
+		shouldRepositoryExist: boolean,
 	): Promise<void> {
-		const existingRepository = await this.repositoryBasicRepository.findFirst({
-			where: {
-				name: newName,
-				owner_id: userId,
-				id: repositoryId ? { not: repositoryId } : undefined,
-			},
-		});
+		const serviceName = this.constructor.name;
 
-		// Check if an existing repository was found and if it's different from the one being updated
-		if (existingRepository) {
-			throw new RepositoryAlreadyExistsError();
-		}
-	}
+		this.validationService.verifyPropertyIsDefined(
+			userId,
+			"owner_id",
+			serviceName,
+		);
 
-	async verifyUserExists(userId: number): Promise<void> {
-		await this.userService.verifyUserExists({ id: userId });
-	}
-
-	async verifyRepositoryDoesNotExist(
-		repositoryId: number,
-    ): Promise<void> {
-		await this.checkRepositoryExistence({ id: repositoryId }, false);
-	}
-
-	async verifyUserAndRepositoryExist(
-		repositoryId: number | undefined,
-		userId: number | undefined,
-	): Promise<void> {
-		if (!repositoryId) throw new RepositoryNotFoundError();
-		if (userId === undefined || userId === null) {
-			throw new UnauthorizedError("User ID cannot be undefined or null");
+		// If repositoryId doesn't exist at this point,
+		// it means the user is trying to create a new repository
+		// so we just return.
+		if (!repositoryId) {
+			return;
 		}
 
-		await this.verifyUserExists(userId);
-		await this.checkRepositoryExistence({ id: repositoryId }, true);
+		// Using non-null assertion since we already verified that the props exist
+		await this.validateUserAndRepositoryExistence(
+			repositoryId!,
+			userId!,
+			shouldRepositoryExist,
+		);
 	}
 
-	private async checkRepositoryExistence(
-		where: WhereCondition<Repository>,
+	private async validateUserAndRepositoryExistence(
+		repositoryId: string,
+		userId: string,
 		shouldExist: boolean,
 	): Promise<void> {
-		try {
-			const repository = await this.repositoryBasicRepository.findFirst({
-				where,
-			});
-			const exists = repository !== null;
-
-			if (shouldExist && !exists) {
-				throw new RepositoryNotFoundError();
-			}
-
-			if (!shouldExist && exists) {
-				throw new RepositoryAlreadyExistsError();
-			}
-		} catch (error) {
-			throw new RepositoryNotFoundError();
-		}
-	}
-
-	private isRepositoryDetailed(
-		repository: Partial<Repository>,
-	): repository is RepositoryDetailed {
-		return (
-			(repository as RepositoryDetailed)?.issues !== undefined &&
-			(repository as RepositoryDetailed)?.contributors !== undefined
+		const serviceName = this.constructor.name;
+		await this.validationService.checkEntityExistence(
+			this.repositoryBasicRepository,
+			{ AND: [{ id: repositoryId }, { owner_id: userId }] },
+			shouldExist,
+			new RepositoryNotFoundError(),
+			new RepositoryAlreadyExistsError(),
+			serviceName,
+		);
+		await this.validationService.checkEntityExistence(
+			this.userService.repositoryBasic,
+			{ id: userId },
+			// User should always exist in this context
+			true,
+			new UserNotFoundError(),
+			new UserAlreadyExistsError(),
+			serviceName,
 		);
 	}
 }

@@ -25,14 +25,14 @@ const main = async () => {
 		await prisma.repository.upsert({
 			where: {
 				name: faker.lorem.word(),
-				id: faker.number.int({ max: numberOfRepositories, min: 1 }),
+				id: faker.string.uuid(),
 			},
 			update: {},
 			create: {
 				name: faker.lorem.word(),
 				description: faker.lorem.sentence(),
 				visibility: faker.helpers.arrayElement(["public", "private"]),
-				owner_id: faker.number.int({ max: numberOfUsers, min: 1 }),
+				owner_id: faker.string.uuid(),
 			},
 		});
 	}

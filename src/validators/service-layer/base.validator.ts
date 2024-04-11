@@ -1,3 +1,9 @@
+import type {
+	IRepository,
+	WhereCondition,
+} from "../../repositories/base.repository";
+import { MissingPropertyError } from "../../utils/errors";
+
 export type ValidationResult<T> = {
 	isValid: boolean;
 	missingRequiredFields?: (keyof T)[];
@@ -9,15 +15,49 @@ export class Validator<T> {
 	private requiredFields: (keyof T)[] = [];
 	private supportedFields: (keyof T)[] = [];
 
-	setRequiredFields(requiredFields: (keyof T)[]) {
+	public async checkEntityExistence<T>(
+		repository: IRepository<T>,
+		where: WhereCondition<T>,
+		shouldExist: boolean,
+		notFoundError: Error,
+		alreadyExistsError: Error,
+		serviceName: string,
+	): Promise<void> {
+		const entity = await repository.findFirst({ where });
+		const exists = entity !== null && entity !== undefined;
+
+		if (shouldExist && !exists) {
+			console.error("Service %s: entity not found", serviceName);
+			throw notFoundError;
+		}
+
+		if (!shouldExist && exists) {
+			console.error("Service %s: entity already exists", serviceName);
+			throw alreadyExistsError;
+		}
+	}
+
+	public verifyPropertyIsDefined<K extends keyof T>(
+		property: T[K] | null | undefined,
+		propertyName: K,
+		serviceName: string,
+	): property is NonNullable<T[K]> {
+		if (property === null || property === undefined) {
+			throw new MissingPropertyError(String(propertyName), serviceName);
+		}
+
+		return true;
+	}
+
+	public setRequiredFields(requiredFields: (keyof T)[]) {
 		this.requiredFields = requiredFields;
 	}
 
-	setSupportedFields(supportedFields: (keyof T)[]) {
+	public setSupportedFields(supportedFields: (keyof T)[]) {
 		this.supportedFields = supportedFields;
 	}
 
-	validate(data: Partial<T>): ValidationResult<T> {
+	public validate(data: Partial<T>): ValidationResult<T> {
 		const missingRequiredFields: (keyof T)[] = [];
 		const unsupportedFields: (keyof T)[] = [];
 
@@ -61,7 +101,7 @@ export class Validator<T> {
 		};
 	}
 
-	validateAllFields(
+	public validateAllFields(
 		data: Partial<T>,
 		requiredFields: (keyof T)[],
 	): ValidationResult<T> {
@@ -79,7 +119,7 @@ export class Validator<T> {
 				", ",
 			)}`;
 		}
-		
+
 		return {
 			isValid: missingFields.length === 0,
 			missingRequiredFields:
@@ -88,7 +128,7 @@ export class Validator<T> {
 		};
 	}
 
-	validateAtLeastOneField(
+	public validateAtLeastOneField(
 		data: Partial<T>,
 		requiredFields: (keyof T)[],
 	): ValidationResult<T> {

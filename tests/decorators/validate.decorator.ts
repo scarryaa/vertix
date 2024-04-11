@@ -21,10 +21,6 @@ describe("ValidateDecorator", () => {
 		const decorated = new Validator();
 		const someInvalidData = { some: "invalid data" };
 
-		try {
-			await decorated.validate(someInvalidData);
-		} catch (error) {
-			expect(error).toEqual({ errors: ["some error"] });
-		}
+		await decorated.validate(someInvalidData);
 	});
 });

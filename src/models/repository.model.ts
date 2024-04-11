@@ -9,33 +9,30 @@ import type {
 	Tag,
 	UserBasic,
 } from ".";
+import type { BaseEntity } from "./base.model";
 
-export type TVisibility = "public" | "private";
+export type TVisibility = "public" | "private" | string;
 
-export interface RepositoryIdentifier {
-	id?: number;
-	name?: string;
-}
-
-export interface RepositoryDetailed {
-	id: number;
+export interface RepositoryDetailed extends BaseEntity {
+	id: string;
 	name: string;
 	description: string | null;
-	visibility: TVisibility | string;
+	visibility: TVisibility;
 	created_at: Date;
 	updated_at: Date;
 	owner: UserBasic;
-	owner_id: number;
+	owner_id: string;
 	issues: Issue[];
 	stars: Star[];
 	programming_languages: ProgrammingLanguage[];
+	primary_language: ProgrammingLanguage | null;
 	contributors: ContributorDetailed[];
 	license: License | null;
-	license_id: number | null;
+	license_id: string | null;
 	tag: Tag | null;
-	tag_id: number | null;
+	tag_id: string | null;
 	organization: Organization | null;
-	organization_id: number | null;
+	organization_id: string | null;
 	pull_requests: PullRequest[];
 }
 
@@ -49,10 +46,10 @@ export interface RepositoryBasic
 		| "created_at"
 		| "updated_at"
 		| "id"
-	> {}
+	>, BaseEntity {}
 
 interface OwnerConnectInput {
-	id: number;
+	id: string;
 }
 
 export interface RepositoryCreator {

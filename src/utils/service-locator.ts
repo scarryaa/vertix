@@ -3,7 +3,7 @@ import type { Validator } from "../validators/service-layer/base.validator";
 
 // biome-ignore lint/complexity/noStaticOnlyClass: Needed for service locator
 export class ServiceLocator {
-	private static validators = new Map<string, Validator<never>>();
+	private static validators = new Map<string, Validator<any>>();
 	private static authenticators = new Map<string, Authenticator>();
 
 	public static registerValidator<T>(key: string, validator: Validator<T>) {

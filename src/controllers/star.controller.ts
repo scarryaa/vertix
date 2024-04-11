@@ -30,7 +30,7 @@ export const createStar =
 export const getStarById =
 	(starService: StarService) =>
 	async (
-		req: FastifyRequest<{ Params: { id: number } }>,
+		req: FastifyRequest<{ Params: { id: string } }>,
 		reply: FastifyReply,
 	) => {
 		const { id } = getStarSchema.parse(req.params);
@@ -47,7 +47,7 @@ export const getStarById =
 export const deleteStar =
 	(starService: StarService) =>
 	async (
-		req: FastifyRequest<{ Params: { id: number } }>,
+		req: FastifyRequest<{ Params: { id: string } }>,
 		reply: FastifyReply,
 	) => {
 		const { id } = deleteStarParamsSchema.parse(req.params);

@@ -50,7 +50,7 @@ export class UserService extends RepositoryService<User> {
 		this._validator = _config.validator;
 	}
 
-	async getById(id: number): Promise<Partial<UserDetailed> | null> {
+	async getById(id: string): Promise<Partial<UserDetailed> | null> {
 		const user = await this.userDetailedRepository.findFirst({ where: { id } });
 		if (user === null || user === undefined) return null;
 
@@ -137,9 +137,9 @@ export class UserService extends RepositoryService<User> {
 		requireAtLeastOneField: true,
 	})
 	async update(
-		id: number,
+		id: string,
 		entity_data: Partial<User>,
-		owner_id: undefined | number,
+		owner_id: undefined | string,
 		auth_token: string,
 	): Promise<Partial<User>> {
 		// Check if user exists
@@ -168,7 +168,7 @@ export class UserService extends RepositoryService<User> {
 	}
 
 	async updatePassword(
-		id: number,
+		id: string,
 		password: string,
 		auth_token: string,
 	): Promise<void> {
@@ -182,8 +182,8 @@ export class UserService extends RepositoryService<User> {
 	}
 
 	async delete(
-		id: number,
-		owner_id: number | undefined,
+		id: string,
+		owner_id: string | undefined,
 		auth_token: string,
 	): Promise<void> {
 		// Check if the user exists
@@ -205,6 +205,10 @@ export class UserService extends RepositoryService<User> {
 		await super.delete(id, owner_id, auth_token);
 	}
 
+	get repositoryBasic(): UserBasicRepository {
+		return this._config.userBasicRepository;
+	}
+
 	get validator(): Validator<User> {
 		if (!this._validator) {
 			throw new Error("Validator is not initialized.");
@@ -220,11 +224,11 @@ export class UserService extends RepositoryService<User> {
 	}
 
 	// Helpers
-	async checkUserExists(user_id: number): Promise<boolean> {
+	async checkUserExists(user_id: string): Promise<boolean> {
 		const user = await this.getById(user_id);
 		return user !== null;
 	}
-	
+
 	public async verifyUserExists(where: WhereCondition<User>): Promise<void> {
 		const user = await this.userBasicRepository.findFirst({ where });
 		if (!user) {

@@ -1,21 +1,22 @@
 import type { Comment, IssueAssignee, RepositoryDetailed, UserBasic } from ".";
+import type { BaseEntity } from "./base.model";
 
 export enum IssueStatus {
 	OPEN = "OPEN",
 	CLOSED = "CLOSED",
 }
 
-export interface Issue {
-	id: number;
+export interface Issue extends BaseEntity {
+	id: string;
 	title: string;
 	body: string | null;
 	status: IssueStatus;
 	created_at: Date;
 	updated_at: Date;
 	repository: RepositoryDetailed;
-	repository_id: number;
+	repository_id: string;
 	author: UserBasic;
-	author_id: number;
+	author_id: string;
 	comments: Comment[];
 	assignees: IssueAssignee[];
 }

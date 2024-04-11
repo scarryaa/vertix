@@ -11,7 +11,7 @@ import type {
 
 export interface CustomRequest {
 	user?: {
-		user_id: number;
+		user_id: string;
 		role: string;
 	};
 	unsignedToken: string;

@@ -1,12 +1,12 @@
 import type { AuthzService } from "../../authorization/authorization.service";
 import type { RepositoryDetailed } from "../../models";
-import { RepositoryNotFoundError, UnauthorizedError } from "../../utils/errors";
+import { UnauthorizedError } from "../../utils/errors";
 
 export class RepositoryAuthorizationService {
 	constructor(private authzService: AuthzService) {}
 
 	async throwIfNotRepositoryOwnerOrContributor(
-		user_id: number,
+		user_id: string,
 		repository: RepositoryDetailed,
 	): Promise<void> {
 		const isOwner = repository.owner_id === user_id;
@@ -20,16 +20,16 @@ export class RepositoryAuthorizationService {
 	}
 
 	async throwIfNotRepositoryOwner(
-		user_id: number,
-		owner_id: number,
+		user_id: string,
+		owner_id: string,
 	): Promise<void> {
 		if (owner_id !== user_id) {
 			throw new UnauthorizedError();
 		}
 	}
 
-	async authenticateUser(auth_token: string): Promise<number> {
+	async authenticateUser(auth_token: string): Promise<string> {
 		const user_id = await this.authzService.authenticateUser(auth_token);
-        return user_id;
+		return user_id;
 	}
 }

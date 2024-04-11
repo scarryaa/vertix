@@ -1,5 +1,5 @@
 import type { ValidationAction } from "../../services/base-repository.service";
-import { ValidationError } from "../../utils/errors";
+import { MissingPropertyError } from "../../utils/errors";
 import { ServiceLocator } from "../../utils/service-locator";
 import type { Validator } from "./base.validator";
 
@@ -25,6 +25,7 @@ export function Validate<TEntity>(
 		propertyKey: string,
 		descriptor: TypedPropertyDescriptor<any>,
 	) => {
+		const serviceName = target.constructor.name;
 		const originalMethod = descriptor.value;
 		descriptor.value = async function (...args: any[]) {
 			// Fetch the validator using the service locator
@@ -57,8 +58,11 @@ export function Validate<TEntity>(
 					);
 
 					if (!allFieldsResult.isValid) {
-						throw new ValidationError(
-							allFieldsResult.errorMessage ?? "MISSING_REQUIRED_FIELDS",
+						throw new MissingPropertyError(
+							// @TODO revisit this
+							allFieldsResult.missingRequiredFields?.[0]?.toString() ??
+								"unknown",
+							serviceName,
 						);
 					}
 				} else if (options.requireAtLeastOneField) {
@@ -68,8 +72,11 @@ export function Validate<TEntity>(
 						options.requiredFields || [],
 					);
 					if (!atLeastOneFieldResult.isValid) {
-						throw new ValidationError(
-							atLeastOneFieldResult.errorMessage ?? "MISSING_REQUIRED_FIELDS",
+						throw new MissingPropertyError(
+							// @TODO revisit this
+							atLeastOneFieldResult.missingRequiredFields?.[0]?.toString() ??
+								"unknown",
+							serviceName,
 						);
 					}
 				} else {
@@ -81,7 +88,11 @@ export function Validate<TEntity>(
 						errorMessage,
 					} = await validator.validate(entityData);
 					if (!isValid) {
-						throw new ValidationError(errorMessage ?? "VALIDATION_ERROR");
+						throw new MissingPropertyError(
+							// @TODO revisit this
+							missingRequiredFields?.[0]?.toString() ?? "unknown",
+							serviceName,
+						);
 					}
 				}
 			}
@@ -89,7 +100,8 @@ export function Validate<TEntity>(
 			if (!originalMethod) {
 				throw new Error("Original method is missing!");
 			}
-			return await originalMethod.apply(this, args);
+
+			return originalMethod.apply(this, args);
 		};
 	};
 }

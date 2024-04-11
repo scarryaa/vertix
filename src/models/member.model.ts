@@ -1,10 +1,11 @@
 import type { Organization, OrganizationMemberRole, UserBasic } from ".";
+import type { BaseEntity } from "./base.model";
 
-export interface Member {
-	id: number;
+export interface Member extends BaseEntity {
+	id: string;
 	organization: Organization;
-	organization_id: number;
+	organization_id: string;
 	user: UserBasic;
-	user_id: number;
+	user_id: string;
 	role: OrganizationMemberRole;
 }

@@ -35,7 +35,7 @@ export class MockAuthenticator extends Authenticator {
 	authenticate(
 		authToken: string,
 		roles: UserRole[],
-	): { user_id: number; role: UserRole } {
+	): { user_id: string; role: UserRole } {
 		return { user_id: 1, role: UserRole.USER };
 	}
 }

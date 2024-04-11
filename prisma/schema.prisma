@@ -19,11 +19,6 @@ enum UserStatus {
     SUSPENDED
 }
 
-enum IssueStatus {
-    OPEN
-    CLOSED
-}
-
 enum PullRequestStatus {
     OPEN
     CLOSED
@@ -77,21 +72,6 @@ enum ProgrammingLanguage {
     OBJECTIVE_C @map("Objective-C")
     ASSEMBLY    @map("Assembly")
     LISP        @map("Lisp")
-    LUA         @map("Lua")
-    DART        @map("Dart")
-    COFFEE      @map("CoffeeScript")
-    SCSS        @map("SCSS")    
-    LESS        @map("LESS")
-    STYLUS      @map("Stylus")
-    SASS        @map("Sass")
-    MARKDOWN    @map("Markdown")
-    HTML        @map("HTML")
-    CSS         @map("CSS")
-    XML         @map("XML")
-    JSON        @map("JSON")
-    YAML        @map("YAML")
-    TOML        @map("TOML")
-    SQL         @map("SQL")
 }
 
 enum Timezone {
@@ -126,7 +106,7 @@ enum OrganizationMemberRole {
     MEMBER
 }
 model User {
-    id                     Int                   @id @default(autoincrement())
+    id                     String                @id @default(uuid())
     role                   UserRole              @default(USER)
     created_at             DateTime              @default(now())
     updated_at             DateTime              @updatedAt
@@ -174,27 +154,27 @@ model User {
 }
 
 model SocialLogin {
-    id          Int    @id @default(autoincrement())
+    id          String @id @default(uuid())
     provider    String
-    provider_id Int
+    provider_id String
     user        User   @relation(fields: [user_id], references: [id])
-    user_id     Int
+    user_id     String
 }
 
 model UserPreferences {
-    id                Int     @id @default(autoincrement())
+    id                String  @id @default(uuid())
     user              User?   @relation(fields: [user_id], references: [id])
-    user_id           Int?    @unique
+    user_id           String? @unique
     theme             String  @default("system")
     show_public_email Boolean @default(false)
 }
 
 model Follow {
-    id           Int      @id @default(autoincrement())
+    id           String   @id @default(uuid())
     follower     User     @relation("UserFollowers", fields: [follower_id], references: [id], onDelete: Cascade)
-    follower_id  Int
+    follower_id  String
     following    User     @relation("UserFollowing", fields: [following_id], references: [id], onDelete: Cascade)
-    following_id Int
+    following_id String
     created_at   DateTime @default(now())
     updated_at   DateTime @updatedAt
 
@@ -202,57 +182,58 @@ model Follow {
 }
 
 model Repository {
-    id                    Int                   @id @default(autoincrement())
+    id                    String                @id @default(uuid())
     name                  String
     description           String?
     visibility            String
     created_at            DateTime              @default(now())
     updated_at            DateTime              @updatedAt
     owner                 User                  @relation("UserRepositories", fields: [owner_id], references: [id])
-    owner_id              Int
+    owner_id              String
     issues                Issue[]               @relation("RepositoryIssues")
     stars                 Star[]
     programming_languages ProgrammingLanguage[]
     collaborators         Collaborator[]
     license               License?              @relation(fields: [license_id], references: [id])
-    license_id            Int?
+    license_id            String?
     tag                   Tag?                  @relation(fields: [tag_id], references: [id])
-    tag_id                Int?
+    tag_id                String?
     organization          Organization?         @relation(fields: [organization_id], references: [id])
-    organization_id       Int?
+    organization_id       String?
     pull_requests         PullRequest[]
 
-    @@index([created_at, name, owner_id])
+    @@index([created_at])
 }
 
 model License {
-    id           Int          @id @default(autoincrement())
+    id           String       @id @default(uuid())
     name         String
     key          String       @unique
     repositories Repository[]
 }
 
 model Collaborator {
-    id            Int        @id @default(autoincrement())
+    id            String     @id @default(uuid())
     repository    Repository @relation(fields: [repository_id], references: [id])
-    repository_id Int
+    repository_id String
     user          User       @relation(fields: [user_id], references: [id])
-    user_id       Int
+    user_id       String
 
     @@unique([repository_id, user_id])
 }
 
 model PullRequest {
-    id                     Int               @id @default(autoincrement())
+    id                     String            @id @default(uuid())
     title                  String
     description            String?
+    name                   String
     status                 PullRequestStatus @default(OPEN)
     created_at             DateTime          @default(now())
     updated_at             DateTime          @updatedAt
     repository             Repository        @relation(fields: [repository_id], references: [id])
-    repository_id          Int
+    repository_id          String
     author                 User              @relation("PullRequestAuthor", fields: [author_id], references: [id])
-    author_id              Int
+    author_id              String
     pull_request_assignees User[]            @relation("PullRequestAssignees")
     comments               Comment[]
     commits                Commit[]
@@ -264,67 +245,67 @@ model PullRequest {
 }
 
 model Comment {
-    id              Int          @id @default(autoincrement())
+    id              String       @id @default(uuid())
     body            String
     created_at      DateTime     @default(now())
     updated_at      DateTime     @updatedAt
     pull_request    PullRequest? @relation(fields: [pull_request_id], references: [id])
-    pull_request_id Int?
+    pull_request_id String?
     author          User         @relation("CommentAuthor", fields: [author_id], references: [id])
-    author_id       Int
+    author_id       String
     issue           Issue?       @relation(fields: [issue_id], references: [id], onDelete: Cascade)
-    issue_id        Int?
+    issue_id        String?
     deleted_user    Boolean      @default(false)
 }
 
 model Commit {
-    id              Int         @id @default(autoincrement())
+    id              String      @id @default(uuid())
     sha             String      @unique
     message         String
     created_at      DateTime    @default(now())
     pull_request    PullRequest @relation(fields: [pull_request_id], references: [id])
-    pull_request_id Int
+    pull_request_id String
     author          User        @relation("CommitAuthor", fields: [author_id], references: [id])
-    author_id       Int
+    author_id       String
 }
 
 model Issue {
-    id            Int             @id @default(autoincrement())
+    id            String          @id @default(uuid())
     title         String
     body          String
     status        String
     created_at    DateTime        @default(now())
     updated_at    DateTime        @updatedAt
     repository    Repository      @relation("RepositoryIssues", fields: [repository_id], references: [id], onDelete: Cascade)
-    repository_id Int
+    repository_id String
     author        User            @relation("IssueAuthor", fields: [author_id], references: [id])
-    author_id     Int
+    author_id     String
     comments      Comment[]
     assignees     IssueAssignee[]
 }
 
 model Star {
-    id            Int        @id @default(autoincrement())
+    id            String     @id @default(uuid())
     created_at    DateTime   @default(now())
     updated_at    DateTime   @updatedAt
-    repository    Repository @relation(fields: [repository_id], references: [id], onDelete: Cascade)
-    repository_id Int
+    repository    Repository @relation(fields: [repository_id], references: [id])
+    repository_id String
     user          User       @relation(fields: [user_id], references: [id])
-    user_id       Int
+    user_id       String
 
     @@unique([repository_id, user_id])
 }
 
 model Tag {
-    id           Int          @id @default(autoincrement())
+    id           String       @id @default(uuid())
     name         String
     repositories Repository[]
 }
 
 model Notification {
-    id         Int              @id @default(autoincrement())
+    id         String           @id @default(uuid())
     user       User             @relation("UserNotifications", fields: [user_id], references: [id], onDelete: Cascade)
-    user_id    Int
+    user_id    String
     type       NotificationType
     data       Json
     read       Boolean          @default(false)
@@ -332,7 +313,7 @@ model Notification {
 }
 
 model Organization {
-    id           Int          @id @default(autoincrement())
+    id           String       @id @default(uuid())
     name         String
     description  String?
     created_at   DateTime     @default(now())
@@ -342,32 +323,32 @@ model Organization {
 }
 
 model Member {
-    id              Int                    @id @default(autoincrement())
+    id              String                 @id @default(uuid())
     organization    Organization           @relation(fields: [organization_id], references: [id])
-    organization_id Int
+    organization_id String
     user            User                   @relation(fields: [user_id], references: [id])
-    user_id         Int
+    user_id         String
     role            OrganizationMemberRole
 
     @@unique([organization_id, user_id])
 }
 
 model Review {
-    id              Int         @id @default(autoincrement())
+    id              String      @id @default(uuid())
     body            String
     created_at      DateTime    @default(now())
     updated_at      DateTime    @updatedAt
     pull_request    PullRequest @relation(fields: [pull_request_id], references: [id], onDelete: Cascade)
-    pull_request_id Int
+    pull_request_id String
     author          User        @relation("ReviewAuthor", fields: [author_id], references: [id])
-    author_id       Int
+    author_id       String
 }
 
 model IssueAssignee {
-    issue    Issue @relation(fields: [issue_id], references: [id])
-    issue_id Int
-    user     User  @relation(fields: [user_id], references: [id])
-    user_id  Int
+    issue    Issue  @relation(fields: [issue_id], references: [id])
+    issue_id String
+    user     User   @relation(fields: [user_id], references: [id])
+    user_id  String
 
     @@id([issue_id, user_id])
 }

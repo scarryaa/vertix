@@ -10,7 +10,7 @@ export class RepositoryFetchService {
 	) {}
 
 	async fetchRepository(
-		repositoryId: number,
+		repositoryId: string,
 		detailed: boolean,
 	): Promise<Partial<RepositoryBasic> | RepositoryDetailed | null> {
 		return detailed
@@ -23,7 +23,7 @@ export class RepositoryFetchService {
 	}
 
 	async getRepositoryOrThrow(
-		repositoryId: number,
+		repositoryId: string,
 		detailed: boolean,
 	): Promise<Partial<RepositoryBasic> | RepositoryDetailed | null> {
 		const repository = await this.fetchRepository(repositoryId, detailed);

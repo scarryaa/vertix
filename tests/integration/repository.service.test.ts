@@ -761,17 +761,24 @@ describe("RepositoryService with Prisma", () => {
 		// Arrange
 		authzService.authenticateUser = jest.fn();
 		repositoryAuthzService.throwIfNotRepositoryOwner = jest.fn();
-		authenticator.authenticate = jest.fn();
+		authenticator.authenticate.mockResolvedValue({
+			user_id: 1,
+		} as never);
+		repositoryAuthzService.authenticateUser = jest.fn().mockResolvedValue(1);
 		repositoryValidationService.verifyUserExists = jest.fn();
 		repositoryValidationService.verifyRepositoryNameNotTaken = jest.fn();
 		repositoryValidationService.verifyUserAndRepositoryExist = jest.fn();
 
 		const repositories = [];
 		for (let i = 0; i < 1000; i++) {
-			const repositoryData = {
+			const repositoryData: Pick<
+				RepositoryBasic,
+				"description" | "name" | "owner_id" | "visibility"
+			> = {
 				name: faker.lorem.sentence(),
 				visibility: "public",
 				owner_id: 1,
+				description: faker.lorem.sentence(),
 			};
 			const createdRepository = await repositoryService.create(
 				repositoryData,
@@ -839,7 +846,7 @@ describe("RepositoryService with Prisma", () => {
 		).then(() =>
 			Promise.all(
 				repositories.map((repository) =>
-				    // @ts-ignore id will be defined by the db
+					// @ts-ignore id will be defined by the db
 					repositoryService.getById(repository?.id, true),
 				),
 			),
@@ -886,7 +893,11 @@ describe("RepositoryService with Prisma", () => {
 		return repositoryService
 			.create(repository, "auth-token")
 			.then(() =>
-				repositoryService.getAll({ where: { name: repository.name } }, "auth-token", true),
+				repositoryService.getAll(
+					{ where: { name: repository.name } },
+					"auth-token",
+					true,
+				),
 			);
 	});
 
@@ -901,9 +912,13 @@ describe("RepositoryService with Prisma", () => {
 
 		// Act
 		return repositoryService.create(repository, "auth-token").then(() =>
-			repositoryService.getAll({
-				where: { owner_id: repository.owner_id },
-			}, undefined, true),
+			repositoryService.getAll(
+				{
+					where: { owner_id: repository.owner_id },
+				},
+				undefined,
+				true,
+			),
 		);
 	});
 
@@ -918,9 +933,13 @@ describe("RepositoryService with Prisma", () => {
 
 		// Act
 		return repositoryService.create(repository, "auth-token").then(() =>
-			repositoryService.getAll({
-				where: { visibility: repository.visibility },
-			}, undefined, true),
+			repositoryService.getAll(
+				{
+					where: { visibility: repository.visibility },
+				},
+				undefined,
+				true,
+			),
 		);
 	});
 

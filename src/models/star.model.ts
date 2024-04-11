@@ -1,11 +1,12 @@
 import type { RepositoryDetailed, UserBasic } from ".";
+import type { BaseEntity } from "./base.model";
 
-export interface Star {
-	id: number;
+export interface Star extends BaseEntity {
+	id: string;
 	created_at: Date;
 	updated_at: Date;
 	repository?: RepositoryDetailed;
-	repository_id: number;
+	repository_id: string;
 	user?: UserBasic;
-	user_id: number;
+	user_id: string;
 }

@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import type { AuthenticateInstance } from "../../types/request";
 import { Container } from "../container";
 import {
@@ -12,7 +12,6 @@ import { validateToken } from "../middlewares/validate-token.middleware";
 import {
 	$ref,
 	type DeleteRepositoryParams,
-	type DeleteRepositoryQuery,
 	type RepositoryInput,
 	type RepositoryResponse,
 	type UpdateRepositoryInput,
@@ -21,7 +20,8 @@ import {
 } from "../schemas/repository.schema";
 
 const container = Container.getInstance();
-const repositoryService = container.getRepositoryService();
+const repositoryQueryService = Container.repositoryQueryService;
+const repositoryCommandService = Container.repositoryCommandService;
 
 export const repositoryRoutes = async function repositoryRoutes(
 	app: AuthenticateInstance,
@@ -47,8 +47,11 @@ export const repositoryRoutes = async function repositoryRoutes(
 					201: $ref("createRepositoryResponse"),
 				},
 			},
+			errorHandler: (error, request, reply) => {
+				reply.send(error);
+			},
 		},
-		createRepository(repositoryService),
+		createRepository(repositoryCommandService),
 	);
 
 	app.get(
@@ -60,7 +63,7 @@ export const repositoryRoutes = async function repositoryRoutes(
 				},
 			},
 		},
-		getAllRepositories(repositoryService),
+		getAllRepositories(repositoryQueryService),
 	);
 
 	app.get(
@@ -72,7 +75,7 @@ export const repositoryRoutes = async function repositoryRoutes(
 				},
 			},
 		},
-		getRepository(repositoryService),
+		getRepository(repositoryQueryService),
 	);
 
 	app.patch<{
@@ -93,7 +96,7 @@ export const repositoryRoutes = async function repositoryRoutes(
 				},
 			},
 		},
-		updateRepository(repositoryService),
+		updateRepository(repositoryCommandService),
 	);
 
 	app.post<{
@@ -114,6 +117,6 @@ export const repositoryRoutes = async function repositoryRoutes(
 				},
 			},
 		},
-		deleteRepository(repositoryService),
+		deleteRepository(repositoryCommandService),
 	);
 };

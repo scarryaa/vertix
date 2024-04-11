@@ -1,9 +1,10 @@
 import type { RepositoryDetailed, UserBasic } from ".";
+import type { BaseEntity } from "./base.model";
 
-export interface ContributorDetailed {
-	id: number;
+export interface ContributorDetailed extends BaseEntity {
+	id: string;
 	repository: RepositoryDetailed;
-	repository_id: number;
+	repository_id: string;
 	user: UserBasic;
-	user_id: number;
+	user_id: string;
 }

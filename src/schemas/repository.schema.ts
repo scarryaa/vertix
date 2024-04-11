@@ -8,9 +8,9 @@ const createRepositorySchema = z.object({
 });
 
 const createRepositoryReponseSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 	name: z.string().max(64).min(3),
-	owner_id: z.coerce.number().min(1),
+	owner_id: z.string(),
 	description: z.string().nullable(),
 	visibility: z.enum(["public", "private"]),
 	created_at: z.date(),
@@ -25,7 +25,7 @@ const getRepositoriesSchema = z.object({
 	cursor: z.coerce.number().min(1).optional(),
 	search: z.string().optional(),
 	visibility: z.enum(["public", "private"]).optional(),
-	owner_id: z.coerce.number().min(1).optional(),
+	id: z.string().optional(),
 	skip: z.coerce.number().min(0).optional(),
 	where: any(),
 });
@@ -38,14 +38,14 @@ const getRepositoriesResponseSchema = z.object({
 });
 
 export type GetRepositoriesInput = z.infer<typeof getRepositoriesSchema> & {
-	cursor?: { id: number };
+	cursor?: { id: string };
 };
 export type GetRepositoriesResponse = z.infer<
 	typeof getRepositoriesResponseSchema
 >;
 
 const getRepositorySchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 const getRepositoryResponseSchema = createRepositoryReponseSchema;
@@ -54,7 +54,7 @@ export type GetRepositoryInput = z.infer<typeof getRepositorySchema>;
 export type GetRepositoryResponse = z.infer<typeof getRepositoryResponseSchema>;
 
 const updateRepositoryParamsSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 const updateRepositorySchema = z
@@ -69,11 +69,11 @@ const updateRepositorySchema = z
 	);
 
 const updateRepositoryResponseSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 	name: z.string().max(64).min(3),
 	description: z.string().max(255).optional(),
 	visibility: z.enum(["public", "private"]).optional(),
-	owner_id: z.coerce.number().min(1),
+	owner_id: z.string(),
 	created_at: z.date(),
 	updated_at: z.date(),
 });
@@ -87,11 +87,11 @@ export type UpdateRepositoryResponse = z.infer<
 >;
 
 const deleteRepositoryQuerySchema = z.object({
-	owner_id: z.coerce.number().min(1),
+	owner_id: z.string(),
 });
 
 const deleteRepositoryParamsSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 export type DeleteRepositoryQuery = z.infer<typeof deleteRepositoryQuerySchema>;

@@ -15,17 +15,24 @@
 		"db-migration": "prisma migrate dev --name $npm_config_name",
 		"db-schema": "cd ./prisma/schema; cat db.part.prisma enums.part.prisma models.part.prisma > ../schema.prisma"
 	},
-	"keywords": ["vertix", "codestash"],
+	"keywords": [
+		"vertix",
+		"codestash"
+	],
 	"author": "scarryaa",
 	"license": "MIT",
 	"dependencies": {
+		"@aws-sdk/client-dynamodb": "^3.552.0",
+		"@aws-sdk/lib-dynamodb": "^3.552.0",
 		"@faker-js/faker": "^8.4.1",
 		"@fastify/cookie": "^9.3.1",
 		"@fastify/env": "^4.3.0",
 		"@fastify/formbody": "^7.4.0",
 		"@fastify/rate-limit": "^9.1.0",
 		"@prisma/client": "^5.6.0",
+		"aws-sdk": "^2.1598.0",
 		"bcrypt": "^5.1.1",
+		"diff": "^5.2.0",
 		"fastify": "^4.26.2",
 		"fastify-zod": "^1.4.0",
 		"jsonwebtoken": "^9.0.2",

@@ -5,18 +5,20 @@ import type {
 	ReviewDetailed,
 	UserBasic,
 } from ".";
+import type { BaseEntity } from "./base.model";
 
-export interface PullRequest {
-	id: number;
+export interface PullRequest extends BaseEntity {
+	id: string;
 	title: string;
 	description: string | null;
 	status: PullRequestStatus;
+	name: string;
 	created_at: Date;
 	updated_at: Date;
 	repository: RepositoryDetailed;
-	repository_id: number;
+	repository_id: string;
 	author: UserBasic;
-	authorId: number;
+	authorId: string;
 	pull_request_assignees: UserBasic[];
 	comments: Comment[];
 	commits: Commit[];

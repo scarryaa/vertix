@@ -5,6 +5,6 @@ export type KeysOfType<T> = keyof {
 };
 
 export interface JwtPayload {
-	user_id: number;
+	user_id: string;
 	role: UserRole;
 }

@@ -41,3 +41,11 @@ export class RepositoryUpdateError extends BaseError {
 		super(message, "REPOSITORY_UPDATE_FAILED");
 	}
 }
+
+export class RepositoryCreateError extends BaseError {
+	constructor(
+		message = "The repository could not be created. Please check your request and try again.",
+	) {
+		super(message, "REPOSITORY_CREATE_FAILED");
+	}
+}

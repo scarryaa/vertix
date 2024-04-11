@@ -23,7 +23,7 @@ export const updateUserSchema = z.object({
 
 // User response schemas
 export const userResponseSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 	email: z.string(),
 	name: z.string(),
 	username: z.string(),
@@ -37,7 +37,7 @@ export const loginResponseSchema = z.object({
 
 // User query schemas
 export const getUserQuerySchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 export const getUsersQuerySchema = z.object({
@@ -48,12 +48,12 @@ export const getUsersQuerySchema = z.object({
 });
 
 export const updateUserParamsSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 // User delete schemas
 const deleteUserParamsSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 export type CreateUser = z.infer<typeof createUserSchema>;

@@ -2,19 +2,19 @@ import { buildJsonSchemas } from "fastify-zod";
 import z from "zod";
 
 export const createStarSchema = z.object({
-	repository_id: z.coerce.number().min(1),
+	repository_id: z.string(),
 });
 
 export const createStarResponseSchema = z.object({
-	id: z.coerce.number().min(1),
-	repository_id: z.coerce.number().min(1),
-	user_id: z.coerce.number().min(1),
+	id: z.string(),
+	repository_id: z.string(),
+	user_id: z.string(),
 	created_at: z.date(),
 	updated_at: z.date(),
 });
 
 export const getStarSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 export const getStarResponseSchema = createStarResponseSchema;
@@ -23,11 +23,11 @@ export type StarInput = z.infer<typeof createStarSchema>;
 export type StarResponse = z.infer<typeof createStarResponseSchema>;
 
 export const deleteStarParamsSchema = z.object({
-	id: z.coerce.number().min(1),
+	id: z.string(),
 });
 
 export const deleteStarQuerySchema = z.object({
-	owner_id: z.coerce.number().min(1),
+	owner_id: z.string(),
 });
 
 export type DeleteStarParams = z.infer<typeof deleteStarParamsSchema>;

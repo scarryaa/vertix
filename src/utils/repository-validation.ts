@@ -1,4 +1,4 @@
-import type { RepositoryBasic, UserBasic } from "../models";
+import type { RepositoryBasic, TVisibility, UserBasic } from "../models";
 import type { RepositoryResponse } from "../schemas/repository.schema";
 import type { UserResponse } from "../schemas/user.schema";
 import prisma from "./prisma";
@@ -10,10 +10,10 @@ export function isRepositoryNameValid(name: string): boolean {
 
 export const mapRepositoryResponse = (
 	repository: RepositoryBasic,
-	owner_id: number,
+	owner_id: string,
 	created_at: Date,
 	updated_at: Date,
-	visibility?: string,
+	visibility: string,
 ): RepositoryResponse => ({
 	...repository,
 	description: repository.description,

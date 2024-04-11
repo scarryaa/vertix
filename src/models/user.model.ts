@@ -19,10 +19,11 @@ import type {
 	UserRole,
 	UserStatus,
 } from ".";
+import type { BaseEntity } from "./base.model";
 
-export interface UserDetailed {
+export interface UserDetailed extends BaseEntity {
 	// Essentials
-	id: number;
+	id: string;
 	role: UserRole;
 	created_at: Date;
 	updated_at: Date;
@@ -101,7 +102,7 @@ export interface UserSearchCriteria {
 
 // Stats
 export interface UserStats {
-	user_id: number;
+	user_id: string;
 	repositoryCount: number;
 	followerCount: number;
 	followingCount: number;
@@ -109,13 +110,13 @@ export interface UserStats {
 
 // Events
 export interface UserEvent {
-	user_id: number;
+	user_id: string;
 	eventType: UserEventType;
 	timestamp: Date;
 }
 
 export interface UserActivity {
-	user_id: number;
+	user_id: string;
 	activityType: UserActivityType;
 	timestamp: Date;
 }

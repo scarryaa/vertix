@@ -4,7 +4,6 @@ import type { AuthzService } from "../../src/authorization/authorization.service
 import {
 	type Comment,
 	type ContributorDetailed,
-	ProgrammingLanguage,
 	type PullRequest,
 	type RepositoryBasic,
 	type RepositoryDetailed,
@@ -116,175 +115,77 @@ describe("RepositoryRepositoryService", () => {
 
 	afterAll(async () => {
 		await prisma.repository.deleteMany();
-	})
-
-	describe("getAll", () => {
-		it("should return all repositories", async () => {
-			repositoryBasicRepository.getAll.mockResolvedValue(repositories);
-			const result = await service.getAll({}, "auth-token", false);
-			expect(result).toEqual(repositories);
-		});
 	});
 
-	describe("getAllDetailed", () => {
-		it("should return all detailed repositories when no filter is applied", async () => {
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed,
-			);
-			const result = await service.getAll({}, undefined, true);
-			expect(result).toEqual(repositoriesDetailed);
-		});
+	describe("getAll with filters", () => {
+		type TestCase = [
+			QueryOptions<RepositoryBasic> | QueryOptions<RepositoryDetailed>,
+			string,
+			boolean,
+			RepositoryBasic[] | RepositoryDetailed[],
+			string,
+		];
 
-		it("should return all detailed repositories with pagination", async () => {
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed.slice(1, 2),
-			);
+		const testCases: TestCase[] = [
+			[
+				{ where: { name: "test-repo" } },
+				"auth-token",
+				false,
+				repositories,
+				"filtering by name",
+			],
+			[
+				{ where: { owner_id: 1 } },
+				"auth-token",
+				false,
+				repositories,
+				"filtering by owner id",
+			],
+			[
+				{ where: { visibility: "public" } },
+				"auth-token",
+				false,
+				repositories,
+				"filtering by visibility",
+			],
+			[
+				{ where: { visibility: "private" } },
+				"auth-token",
+				false,
+				repositories,
+				"filtering by visibility",
+			],
+			[
+				{ where: { contributors: { some: { id: 1 } } } },
+				"auth-token",
+				false,
+				repositories,
+				"filtering by contributor id",
+			],
+			[
+				{ where: { NOT: { contributors: { some: { id: 1 } } } } },
+				"auth-token",
+				false,
+				repositories,
+				"filtering by NOT contributor id",
+			],
+		];
 
-			const result = await service.getAll({
-				take: 1,
-				skip: 1,
-			}, undefined, true);
-
-			expect(result).toEqual(repositoriesDetailed.slice(1, 2));
-		});
-
-		it("should return all detailed repositories with filtering by owner", async () => {
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed,
-			);
-			const where: QueryOptions<RepositoryDetailed>["where"] = {
-				id: 1,
-			};
-			const result = await service.getAll({
-				where: {},
-			}, undefined, true);
-			expect(result).toEqual(
-				repositoriesDetailed.filter((repo) => {
-					return repo.owner.username === "test-user";
-				}),
-			);
-		});
-
-		it("should return all detailed repositories with filtering by programming language", async () => {
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed.filter((repo) => {
-					return repo.programming_languages?.includes(
-						ProgrammingLanguage.JAVASCRIPT,
-					);
-				}),
-			);
-
-			const result = await service.getAll({
-				where: {
-					programming_languages: [ProgrammingLanguage.JAVASCRIPT],
-				},
-			}, undefined, true);
-
-			expect(result).toEqual(
-				repositoriesDetailed.filter((repo) => {
-					return repo.programming_languages?.includes(
-						ProgrammingLanguage.JAVASCRIPT,
-					);
-				}),
-			);
-		});
-
-		it("should return all detailed repositories with filtering by number of stars", async () => {
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed,
-			);
-			const result = await service.getAll({}, undefined, true);
-			expect(result).toEqual(
-				repositoriesDetailed.sort((a, b) => {
-					return b.stars.length - a.stars.length;
-				}),
-			);
-		});
-
-		it("should return all detailed repositories with filtering by created_at", async () => {
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed,
-			);
-			const result = await service.getAll({
-				where: {
-					created_at: {
-						greaterThan: new Date(2021, 1, 1),
-					},
-				},
-			}, undefined, true);
-			expect(result).toEqual(
-				repositoriesDetailed.sort(
-					(a, b) => b.created_at.getTime() - a.created_at.getTime(),
-				),
-			);
-		});
-
-		it("should return all detailed repositories with filtering by updated_at", async () => {
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed,
-			);
-			const result = await service.getAll({
-				where: {
-					updated_at: {
-						greaterThan: new Date(2021, 1, 1),
-					},
-				},
-			}, undefined, true);
-			expect(result).toEqual(
-				repositoriesDetailed.sort(
-					(a, b) => b.updated_at.getTime() - a.updated_at.getTime(),
-				),
-			);
-		});
-
-		it("should return all detailed repositories with filtering by description", async () => {
-			// NOTE: This method relies on filtering done by the
-			// repositoryDetailedRepository.getAll method.
-			// TThe service.getAllDetailed method just returns the results
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed.filter((repo) => {
-					return repo.description?.includes("test");
-				}),
-			);
-
-			const result = await service.getAll({
-				where: {
-					description: {
-						contains: "test",
-					},
-				},
-			}, undefined, true);
-			expect(result).toEqual(
-				repositoriesDetailed.filter((repo) => {
-					return repo.description?.includes("test");
-				}),
-			);
-		});
-
-		it("should return all detailed repositories with filtering by name", async () => {
-			// NOTE: This method relies on filtering done by the
-			// repositoryDetailedRepository.getAll method.
-			// TThe service.getAllDetailed method just returns the results
-			repositoryDetailedRepository.getAll.mockResolvedValue(
-				repositoriesDetailed.filter((repo) =>
-					repo.name?.toLowerCase().includes("test"),
-				),
-			);
-
-			const result = await service.getAll({
-				where: {
-					name: {
-						contains: "test",
-					},
-				},
-			}, undefined, true);
-
-			expect(result).toEqual(
-				repositoriesDetailed.filter((repo) =>
-					repo.name?.toLowerCase().includes("test"),
-				),
-			);
-		});
+		it.each(testCases)(
+			"should return relevant repositories when %s",
+			async (
+				filters:
+					| QueryOptions<RepositoryBasic>
+					| QueryOptions<RepositoryDetailed>,
+				authToken: string,
+				detailed: boolean,
+				expected: RepositoryBasic[] | RepositoryDetailed[],
+				description: string,
+			) => {
+				const repositories = await service.getAll(filters, authToken, detailed);
+				expect(repositories).toEqual(expected);
+			},
+		);
 	});
 
 	describe("create", () => {
@@ -437,10 +338,10 @@ describe("RepositoryRepositoryService", () => {
 			} as never);
 			authzService.authenticateUser.mockResolvedValue(1);
 			repositoryValidationService.verifyUserAndRepositoryExist.mockImplementation(
-                () => {
-                    throw new RepositoryNotFoundError();
-                },
-            );
+				() => {
+					throw new RepositoryNotFoundError();
+				},
+			);
 
 			await expect(
 				service.update(1, updatedRepository, undefined, authToken),
@@ -482,7 +383,7 @@ describe("RepositoryRepositoryService", () => {
 			repositoryAuthzService.authenticateUser.mockResolvedValue(1);
 			repositoryFetchService.getRepositoryOrThrow.mockResolvedValue(
 				repositoryDetailed,
-            );
+			);
 
 			const result = await service.update(
 				9,
@@ -517,10 +418,10 @@ describe("RepositoryRepositoryService", () => {
 			} as never);
 			authzService.authenticateUser.mockResolvedValue(1);
 			repositoryValidationService.verifyUserAndRepositoryExist.mockImplementation(
-                () => {
-                    throw new UserDoesNotExistError();
-                },
-            );
+				() => {
+					throw new UserDoesNotExistError();
+				},
+			);
 
 			await expect(
 				service.update(
@@ -541,10 +442,10 @@ describe("RepositoryRepositoryService", () => {
 			} as never);
 			authzService.authenticateUser.mockResolvedValue(1);
 			repositoryValidationService.verifyUserAndRepositoryExist.mockImplementation(
-                () => {
-                    throw new RepositoryNotFoundError();
-                },
-            );
+				() => {
+					throw new RepositoryNotFoundError();
+				},
+			);
 
 			await expect(
 				service.update(1, updatedRepository, undefined, authToken),

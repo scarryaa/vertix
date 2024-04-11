@@ -13,7 +13,7 @@ export class Authenticator {
 	authenticate(
 		token: string,
 		requiredRoles: UserRole[],
-	): { user_id: number; role: UserRole } {
+	): { user_id: string; role: UserRole } {
 		try {
 			const decoded = jwt.verify(token, this.secretKey) as JwtPayload;
 			const { user_id, role } = decoded;

@@ -8,45 +8,59 @@ export type QueryOptions<T> = {
 	search?: string;
 };
 
+export type IdType = string;
+
 export type WhereCondition<T> =
-  | {
-      [K in keyof T]?:
-        | NonNullable<T[K]>
-        | (NonNullable<T[K]> extends string
-            ? {
-                contains?: string;
-                endsWith?: string;
-                startsWith?: string;
-                not?: string | { contains?: string; endsWith?: string; startsWith?: string; };
-              }
-            : NonNullable<T[K]> extends Date
-            ? {
-                greaterThan?: Date;
-                lessThan?: Date;
-                at?: Date;
-                not?: Date | { greaterThan?: Date; lessThan?: Date; at?: Date; };
-              }
-            : NonNullable<T[K]> extends Array<infer U>
-            ? {
-                some?: WhereCondition<U>;
-                not?: WhereCondition<U>;
-              }
-            : {
-                not?: NonNullable<T[K]> | { equals?: NonNullable<T[K]> }; // Added support for not condition on other types
-              });
-    }
-  | {
-      OR?: WhereCondition<T>[];
-      AND?: WhereCondition<T>[];
-      NOT?: WhereCondition<T> | WhereCondition<T>[];
-    };
+	| {
+			[K in keyof T]?:
+				| NonNullable<T[K]>
+				| (NonNullable<T[K]> extends string
+						? {
+								contains?: string;
+								endsWith?: string;
+								startsWith?: string;
+								not?:
+									| string
+									| {
+											contains?: string;
+											endsWith?: string;
+											startsWith?: string;
+									  };
+							}
+						: NonNullable<T[K]> extends Date
+							? {
+									greaterThan?: Date;
+									lessThan?: Date;
+									at?: Date;
+									not?:
+										| Date
+										| { greaterThan?: Date; lessThan?: Date; at?: Date };
+								}
+							: NonNullable<T[K]> extends Array<infer U>
+								? {
+										some?: WhereCondition<U>;
+										not?: WhereCondition<U>;
+									}
+								: {
+										not?: NonNullable<T[K]> | { equals?: NonNullable<T[K]> }; // Added support for not condition on other types
+									});
+	  }
+	| {
+		id?: IdType;
+			OR?: WhereCondition<T>[];
+			AND?: WhereCondition<T>[];
+			NOT?: WhereCondition<T> | WhereCondition<T>[];
+	  };
 
 export interface IRepository<T> {
 	create(data: Partial<T>): Promise<T>;
-	update(id: number, data: Partial<T>): Promise<Partial<T> | T>;
-	delete(id: number): Promise<void>;
+	update(id: string, data: Partial<T>): Promise<Partial<T> | T>;
+	delete(id: string): Promise<void>;
 	getAll(options: QueryOptions<T>): Promise<T[]>;
 	findFirst(options: QueryOptions<T>): Promise<T | undefined | null>;
+	executeInTransaction<T>(
+		work: (prisma: PrismaClient) => Promise<T>,
+	): Promise<T>;
 }
 
 export class PrismaRepository<T> implements IRepository<T> {
@@ -69,7 +83,7 @@ export class PrismaRepository<T> implements IRepository<T> {
 		return await (this.prisma as any)[this.model].create({ data });
 	}
 
-	async update(id: number, data: Partial<T>): Promise<Partial<T> | T> {
+	async update(id: IdType, data: Partial<T>): Promise<Partial<T> | T> {
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
 		return await (this.prisma as any)[this.model].update({
 			where: { id },
@@ -77,7 +91,7 @@ export class PrismaRepository<T> implements IRepository<T> {
 		});
 	}
 
-	async delete(id: number): Promise<void> {
+	async delete(id: IdType): Promise<void> {
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
 		await (this.prisma as any)[this.model].delete({ where: { id } });
 	}
@@ -110,6 +124,14 @@ export class PrismaRepository<T> implements IRepository<T> {
 
 		// biome-ignore lint/suspicious/noExplicitAny: Must be any
 		return await (this.prisma as any)[this.model].findFirst(baseQuery);
+	}
+
+	async executeInTransaction<T>(
+		work: (prisma: PrismaClient) => Promise<T>,
+	): Promise<T> {
+		return this.prisma.$transaction(async (transactionPrisma) => {
+			return work(transactionPrisma as PrismaClient);
+		});
 	}
 
 	constructQuery(options: QueryOptions<T>): {
