@@ -11,11 +11,11 @@ export class AuthzService {
 		this._userService = userService;
 	}
 
-	async authenticateUser(auth_token: string): Promise<string> {
-		const { user_id } = this._authenticator.authenticate(auth_token, [
+	async authenticateUser(authToken: string): Promise<string> {
+		const { userId } = this._authenticator.authenticate(authToken, [
 			UserRole.USER,
 		]);
-		await this._userService.verifyUserExists({ id: user_id });
-		return user_id;
+		await this._userService.verifyUserExists({ id: userId });
+		return userId;
 	}
 }

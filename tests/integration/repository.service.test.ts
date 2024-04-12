@@ -146,7 +146,7 @@ describe("RepositoryService with Prisma", () => {
 					description: faker.lorem.sentence(),
 					visibility: faker.helpers.arrayElement(["public", "private"]),
 					created_at: faker.date.recent(),
-					owner_id: i + 1,
+					ownerId: i + 1,
 				},
 			});
 		}
@@ -179,7 +179,7 @@ describe("RepositoryService with Prisma", () => {
 		> = {
 			name: faker.lorem.sentence(),
 			visibility: faker.helpers.arrayElement(["public", "private"]),
-			owner_id: 1,
+			ownerId: 1,
 		};
 
 		// Act
@@ -205,7 +205,7 @@ describe("RepositoryService with Prisma", () => {
 		const originalRepositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: originalRepositoryData,
@@ -219,7 +219,7 @@ describe("RepositoryService with Prisma", () => {
 		const updatedRepository = await repositoryService.update(
 			createdRepository.id,
 			updateData,
-			createdRepository.owner_id,
+			createdRepository.ownerId,
 			"auth-token",
 		);
 
@@ -242,7 +242,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		authenticator.authenticate.mockResolvedValue({
 			user_id: 1,
@@ -258,7 +258,7 @@ describe("RepositoryService with Prisma", () => {
 		// Act
 		await repositoryService.delete(
 			createdRepository.id,
-			createdRepository.owner_id,
+			createdRepository.ownerId,
 			"auth-token",
 		);
 
@@ -274,7 +274,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		await prisma.repository.create({
 			data: repositoryData,
@@ -300,7 +300,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -330,7 +330,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -371,7 +371,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: "base-name",
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -413,7 +413,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: "base-name",
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -436,7 +436,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -470,12 +470,12 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: "same-name",
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const secondRepositoryData = {
 			name: "different-name",
 			visibility: "public",
-			owner_id: 2,
+			ownerId: 2,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -509,7 +509,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -535,7 +535,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -646,7 +646,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -662,7 +662,7 @@ describe("RepositoryService with Prisma", () => {
 		expect(repository).toBeDefined();
 		expect(repository?.name).toEqual(repositoryData.name);
 		expect(repository?.visibility).toEqual(repositoryData.visibility);
-		expect(repository?.owner_id).toEqual(repositoryData.owner_id);
+		expect(repository?.ownerId).toEqual(repositoryData.ownerId);
 		expect(repository?.created_at).toBeDefined();
 		expect(repository?.updated_at).toBeDefined();
 		// Some detailed props
@@ -677,7 +677,7 @@ describe("RepositoryService with Prisma", () => {
 		const repositoryData = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 		const createdRepository = await prisma.repository.create({
 			data: repositoryData,
@@ -690,7 +690,7 @@ describe("RepositoryService with Prisma", () => {
 		expect(repository).toBeDefined();
 		expect(repository?.name).toEqual(repositoryData.name);
 		expect(repository?.visibility).toEqual(repositoryData.visibility);
-		expect(repository?.owner_id).toEqual(repositoryData.owner_id);
+		expect(repository?.ownerId).toEqual(repositoryData.ownerId);
 		expect(repository?.created_at).toBeDefined();
 		expect(repository?.updated_at).toBeDefined();
 		// Detailed props
@@ -709,7 +709,7 @@ describe("RepositoryService with Prisma", () => {
 			repositories.push({
 				name: faker.lorem.sentence(),
 				visibility: "public",
-				owner_id: 1,
+				ownerId: 1,
 			});
 		}
 
@@ -729,7 +729,7 @@ describe("RepositoryService with Prisma", () => {
 				description: faker.lorem.sentence(),
 				name: faker.lorem.sentence(),
 				visibility: "public",
-				owner_id: 1,
+				ownerId: 1,
 				created_at: faker.date.recent(),
 				updated_at: faker.date.recent(),
 			};
@@ -773,11 +773,11 @@ describe("RepositoryService with Prisma", () => {
 		for (let i = 0; i < 1000; i++) {
 			const repositoryData: Pick<
 				RepositoryBasic,
-				"description" | "name" | "owner_id" | "visibility"
+				"description" | "name" | "ownerId" | "visibility"
 			> = {
 				name: faker.lorem.sentence(),
 				visibility: "public",
-				owner_id: 1,
+				ownerId: 1,
 				description: faker.lorem.sentence(),
 			};
 			const createdRepository = await repositoryService.create(
@@ -792,7 +792,7 @@ describe("RepositoryService with Prisma", () => {
 			repositories.map((repository) =>
 				repositoryService.delete(
 					repository.id,
-					repository.owner_id,
+					repository.ownerId,
 					"auth-token",
 				),
 			),
@@ -802,12 +802,12 @@ describe("RepositoryService with Prisma", () => {
 	it("should handle retrieving a large amount of repositories individually", () => {
 		// Arrange
 		const repositories: (Partial<RepositoryBasic> &
-			Pick<RepositoryBasic, "name" | "visibility" | "owner_id">)[] = [];
+			Pick<RepositoryBasic, "name" | "visibility" | "ownerId">)[] = [];
 		for (let i = 0; i < 1000; i++) {
 			repositories.push({
 				name: faker.lorem.sentence(),
 				visibility: "public",
-				owner_id: 1,
+				ownerId: 1,
 			});
 		}
 
@@ -829,12 +829,12 @@ describe("RepositoryService with Prisma", () => {
 	it("should handle retrieving a large amount of repositories with detailed information", () => {
 		// Arrange
 		const repositories: (Partial<RepositoryBasic> &
-			Pick<RepositoryBasic, "name" | "visibility" | "owner_id">)[] = [];
+			Pick<RepositoryBasic, "name" | "visibility" | "ownerId">)[] = [];
 		for (let i = 0; i < 1000; i++) {
 			repositories.push({
 				name: faker.lorem.sentence(),
 				visibility: "public",
-				owner_id: 1,
+				ownerId: 1,
 			});
 		}
 
@@ -856,12 +856,12 @@ describe("RepositoryService with Prisma", () => {
 	it("should handle retrieving a large amount of repositories with basic information", () => {
 		// Arrange
 		const repositories: (Partial<RepositoryBasic> &
-			Pick<RepositoryBasic, "name" | "visibility" | "owner_id">)[] = [];
+			Pick<RepositoryBasic, "name" | "visibility" | "ownerId">)[] = [];
 		for (let i = 0; i < 1000; i++) {
 			repositories.push({
 				name: faker.lorem.sentence(),
 				visibility: "public",
-				owner_id: 1,
+				ownerId: 1,
 			});
 		}
 
@@ -886,7 +886,7 @@ describe("RepositoryService with Prisma", () => {
 			Pick<RepositoryBasic, "name" | "visibility"> = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 
 		// Act
@@ -907,14 +907,14 @@ describe("RepositoryService with Prisma", () => {
 			Pick<RepositoryBasic, "name" | "visibility"> = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 
 		// Act
 		return repositoryService.create(repository, "auth-token").then(() =>
 			repositoryService.getAll(
 				{
-					where: { owner_id: repository.owner_id },
+					where: { ownerId: repository.ownerId },
 				},
 				undefined,
 				true,
@@ -928,7 +928,7 @@ describe("RepositoryService with Prisma", () => {
 			Pick<RepositoryBasic, "name" | "visibility"> = {
 			name: faker.lorem.sentence(),
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 		};
 
 		// Act

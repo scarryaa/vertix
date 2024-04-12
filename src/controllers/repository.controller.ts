@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { RepositoryBasic, TVisibility } from "../models";
 import {
@@ -27,12 +28,13 @@ export const createRepository =
 			const { name, description, visibility } = createRepositorySchema.parse(
 				req.body,
 			);
-			const newRepository = await repositoryService.createRepositoryWithFile(
-				{ name, description: description ?? null, visibility },
-				"test file content",
+
+			await repositoryService.create(
+				{ name, description: description ?? null, visibility, id: randomUUID() },
 				req.unsignedToken,
 			);
-			reply.code(201).send(newRepository);
+
+			reply.code(201).send();
 		} catch (error) {
 			// @TODO differentiate between error types
 			console.error(error);
@@ -74,7 +76,7 @@ export const getAllRepositories =
 			repositories: fetchedRepositories
 				.filter(
 					(repo) =>
-						repo?.owner_id &&
+						repo?.ownerId &&
 						repo.created_at &&
 						repo.updated_at &&
 						repo.visibility,
@@ -86,13 +88,13 @@ export const getAllRepositories =
 						name: repo.name ?? "",
 						description: repo.description ?? "",
 						visibility: repo.visibility as TVisibility,
-						owner_id: repo.owner_id ?? "",
+						ownerId: repo.ownerId ?? "",
 						created_at: repo.created_at ?? new Date(),
 						updated_at: repo.updated_at ?? new Date(),
 					};
 					return mapRepositoryResponse(
 						refinedRepo,
-						refinedRepo.owner_id,
+						refinedRepo.ownerId,
 						refinedRepo.created_at,
 						refinedRepo.updated_at,
 						refinedRepo.visibility,
@@ -114,7 +116,6 @@ export const getRepository =
 	) => {
 		const { id } = getRepositorySchema.parse(req.query);
 
-		// Otherwise, we can proceed
 		const repository = await repositoryService.getById(id);
 
 		if (!repository) {
@@ -133,7 +134,7 @@ export const updateRepository =
 		}>,
 		reply: FastifyReply,
 	) => {
-		const { id: repository_id } = req.params;
+		const { id: repositoryId } = req.params;
 		const { name, description, visibility } = updateRepositorySchema.parse(
 			req.body,
 		);
@@ -153,7 +154,7 @@ export const updateRepository =
 		}
 
 		const updatedRepository = await repositoryService.update(
-			repository_id,
+			repositoryId,
 			dataToUpdate,
 			undefined,
 			req.unsignedToken,
@@ -170,11 +171,9 @@ export const deleteRepository =
 		}>,
 		reply: FastifyReply,
 	) => {
-		const { id: repository_id } = deleteRepositoryParamsSchema.parse(
-			req.params,
-		);
+		const { id: repositoryId } = deleteRepositoryParamsSchema.parse(req.params);
 
-		await repositoryService.delete(repository_id, undefined, req.unsignedToken);
+		await repositoryService.delete(repositoryId, undefined, req.unsignedToken);
 
 		return reply.code(204).send();
 	};

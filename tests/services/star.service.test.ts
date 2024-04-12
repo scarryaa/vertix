@@ -43,7 +43,7 @@ describe("StarService", () => {
 		isValid: true,
 		errorMessage: undefined,
 	};
-	const auth_token = "auth_token";
+	const authToken = "auth_token";
 
 	beforeEach(() => {
 		starRepository = mock<StarRepository>();
@@ -94,7 +94,7 @@ describe("StarService", () => {
 			let result: Star | undefined;
 
 			try {
-				result = await starService.createStar(star, auth_token);
+				result = await starService.createStar(star, authToken);
 			} catch (error) {
 				expect(error).toBeUndefined();
 			}
@@ -117,7 +117,7 @@ describe("StarService", () => {
 					{
 						repository_id: star.repository_id,
 					},
-					auth_token,
+					authToken,
 				);
 			} catch (error) {
 				expect(error).toBeInstanceOf(UserNotFoundError);
@@ -136,7 +136,7 @@ describe("StarService", () => {
 					{
 						repository_id: star.repository_id,
 					},
-					auth_token,
+					authToken,
 				);
 			} catch (error) {
 				expect(error).toBeInstanceOf(RepositoryNotFoundError);
@@ -222,7 +222,7 @@ describe("StarService", () => {
 		});
 
 		it("should delete a star", async () => {
-			const result = await starService.deleteStar(1, auth_token);
+			const result = await starService.deleteStar(1, authToken);
 			expect(result).toEqual(undefined);
 			expect(starRepository.delete).toHaveBeenCalledWith(1);
 			expect(starRepository.delete).toHaveBeenCalledTimes(1);
@@ -230,7 +230,7 @@ describe("StarService", () => {
 
 		it("should throw StarNotFoundError if the star does not exist", async () => {
 			try {
-				await starService.deleteStar(1, auth_token);
+				await starService.deleteStar(1, authToken);
 			} catch (error) {
 				expect(error).toBeInstanceOf(StarNotFoundError);
 			}
@@ -249,7 +249,7 @@ describe("StarService", () => {
 			} as never);
 
 			try {
-				await starService.deleteStar(1, auth_token);
+				await starService.deleteStar(1, authToken);
 			} catch (error) {
 				expect(error).toBeInstanceOf(UnauthorizedError);
 			}
@@ -262,7 +262,7 @@ describe("StarService", () => {
 			starRepository.findFirst.mockResolvedValue(star);
 
 			try {
-				await starService.deleteStar(1, auth_token);
+				await starService.deleteStar(1, authToken);
 			} catch (error) {
 				expect(error).toBeInstanceOf(RepositoryNotFoundError);
 			}

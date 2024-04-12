@@ -9,7 +9,9 @@ export class ReadModelError extends Error {
 	}
 }
 
-export const isRepositoryEvent = (event: DomainEvent): event is RepositoryEvent<unknown> => {
+export const isRepositoryEvent = (
+	event: DomainEvent,
+): event is RepositoryEvent<any> => {
 	return [
 		"RepositoryCreated",
 		"RepositoryUpdated",
@@ -18,4 +20,4 @@ export const isRepositoryEvent = (event: DomainEvent): event is RepositoryEvent<
 		"RepositoryUpdateFailed",
 		"RepositoryDeleteFailed",
 	].includes(event.type);
-}
+};

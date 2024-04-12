@@ -1,7 +1,7 @@
 import type { Authenticator } from "../authenticators/service-layer/base.authenticator";
 import { type Star, UserRole } from "../models";
 import type { StarRepository } from "../repositories/star.repository";
-import { RepositoryNotFoundError, UnauthorizedError } from "../utils/errors";
+import { UnauthorizedError } from "../utils/errors";
 import {
 	StarAlreadyExistsError,
 	StarNotFoundError,
@@ -15,10 +15,7 @@ import {
 } from "../validators/service-layer/util";
 import { ValidationAction } from "./base-repository.service";
 import type { RepositoryCommandService } from "./repository/repository-command.service";
-import type {
-	GetRepositoryByIdParams,
-	RepositoryQueryService,
-} from "./repository/repository-query.service";
+import type { RepositoryQueryService } from "./repository/repository-query.service";
 import type { UserService } from "./user.service";
 
 interface FindCondition {
@@ -52,26 +49,26 @@ export class StarService {
 	}
 
 	@Validate<Star>(ValidationAction.CREATE, "StarValidator", {
-		requiredFields: ["repository_id"],
-		supportedFields: ["repository_id"],
+		requiredFields: ["repositoryId"],
+		supportedFields: ["repositoryId"],
 		entityDataIndex: 0,
 		requireAllFields: false,
 	})
 	async createStar(
-		starData: Omit<Star, "id" | "user_id" | "created_at" | "updated_at">,
-		auth_token: string,
+		starData: Omit<Star, "id" | "updatedAt" | "createdAt">,
+		authToken: string,
 	): Promise<Star> {
-		const user_id = await this.authenticateUser(auth_token);
-		await this.performStarCreationChecks(starData, user_id);
-		return this.starRepository.create({ ...starData, user_id });
+		const userId = await this.authenticateUser(authToken);
+		await this.performStarCreationChecks(starData, userId);
+		return this.starRepository.create({ ...starData, userId });
 	}
 
-	async getStarById(id: string): Promise<Star | null> {
+	getStarById(id: string): Promise<Star | null> {
 		return this.getStarOrThrow(id);
 	}
 
-	async deleteStar(id: string, auth_token: string): Promise<void> {
-		await this.performStarDeletionChecks(id, auth_token);
+	async deleteStar(id: string, authToken: string): Promise<void> {
+		await this.performStarDeletionChecks(id, authToken);
 		await this.starRepository.delete(id);
 	}
 
@@ -101,21 +98,21 @@ export class StarService {
 	// 	}
 	// }
 	// Helpers
-	private async authenticateUser(auth_token: string): Promise<string> {
-		const { user_id } = await this.authenticator.authenticate(auth_token, [
+	private async authenticateUser(authToken: string): Promise<string> {
+		const { userId } = await this.authenticator.authenticate(authToken, [
 			UserRole.USER,
 		]);
-		return user_id;
+		return userId;
 	}
 
 	private async performStarCreationChecks(
-		starData: Omit<Star, "id" | "user_id" | "created_at" | "updated_at">,
-		user_id: string,
+		starData: Omit<Star, "id" | "userId" | "createdAt" | "updatedAt">,
+		userId: string,
 	): Promise<void> {
 		await verifyEntityExists({
 			repository: { findFirst: this.findUserFirst.bind(this) },
-			condition: { id: user_id },
-			NotFoundError: UserNotFoundError,
+			condition: { id: userId },
+			notFoundError: UserNotFoundError,
 		});
 		// @TODO Uncomment this
 		// await verifyEntityExists({
@@ -127,17 +124,17 @@ export class StarService {
 			repository: {
 				findFirst: this.starRepository.findFirst.bind(this.starRepository),
 			},
-			condition: { repository_id: starData.repository_id, user_id: user_id },
-			FoundError: StarAlreadyExistsError,
+			condition: { repository_id: starData.repositoryId, user_id: userId },
+			foundError: StarAlreadyExistsError,
 		});
 	}
 
 	private async performStarDeletionChecks(
-		star_id: string,
-		auth_token: string,
+		starId: string,
+		authToken: string,
 	): Promise<void> {
-		const star = await this.getStarOrThrow(star_id);
-		const user_id = await this.authenticateUser(auth_token);
+		const star = await this.getStarOrThrow(starId);
+		const userId = await this.authenticateUser(authToken);
 
 		// @TODO Uncomment this
 		// await verifyEntityExists({
@@ -147,17 +144,17 @@ export class StarService {
 		// });
 		await verifyEntityExists({
 			repository: { findFirst: this.findUserFirst.bind(this) },
-			condition: { id: star.user_id },
-			NotFoundError: UserNotFoundError,
+			condition: { id: star.userId },
+			notFoundError: UserNotFoundError,
 		});
-		if (star.user_id !== user_id) {
+		if (star.userId !== userId) {
 			throw new UnauthorizedError();
 		}
 	}
 
-	private async getStarOrThrow(star_id: string): Promise<Star> {
+	private async getStarOrThrow(starId: string): Promise<Star> {
 		const existingStar = await this.starRepository.findFirst({
-			where: { id: star_id },
+			where: { id: starId },
 		});
 		if (!existingStar) {
 			throw new StarNotFoundError();

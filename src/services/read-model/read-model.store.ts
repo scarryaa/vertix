@@ -6,7 +6,7 @@ import type {
 	RepositoryUpdatedEventPayload,
 } from "../../events/repository.events";
 import type { RepositoryDashboardReadModel } from "../../models/read-models/repository.read-model";
-import { ReadModelError, isRepositoryEvent } from "./types";
+import { isRepositoryEvent } from "./types";
 
 export class ReadModelStore<
 	T extends Record<string, RepositoryDashboardReadModel | undefined>,
@@ -19,76 +19,93 @@ export class ReadModelStore<
 		this.readModel = initialState;
 	}
 
-	public async rebuild(): Promise<void> {
-		this.readModel = await this.buildReadModel();
-	}
-
-	public async handleEvent(event: DomainEvent): Promise<void> {
+	public handleEvent(event: DomainEvent): Promise<void> {
 		if (isRepositoryEvent(event)) {
 			switch (event.type) {
-				case "RepositoryCreated":
-					await this.applyCreateEvent(
+				case "RepositoryCreated": {
+					this.readModel = this.applyCreateEvent(
+						this.readModel,
 						event.payload as RepositoryCreatedEventPayload,
 					);
 					break;
-				case "RepositoryUpdated":
-					await this.applyUpdateEvent(
+				}
+				case "RepositoryUpdated": {
+					this.readModel = this.applyUpdateEvent(
+						this.readModel,
 						event.payload as RepositoryUpdatedEventPayload,
 					);
 					break;
-				case "RepositoryDeleted":
-					await this.applyDeleteEvent(
+				}
+				case "RepositoryDeleted": {
+					this.readModel = this.applyDeleteEvent(
+						this.readModel,
 						event.payload as RepositoryDeletedEventPayload,
 					);
 					break;
-				// Handle failed events similarly
+				}
 				case "RepositoryCreateFailed":
 				case "RepositoryUpdateFailed":
 				case "RepositoryDeleteFailed":
 					break;
-				default:
+				default: {
 					console.warn("Unhandled repository event type:", event.type);
 					break;
+				}
 			}
 		}
+
+		return new Promise(() => {});
 	}
 
 	public getReadModel(): T {
 		return this.readModel;
 	}
 
-	private applyCreateEvent(payload: RepositoryCreatedEventPayload): T {
-		const updatedReadModel = {
-			...this.readModel,
+	private applyCreateEvent(
+		state: T,
+		payload: RepositoryCreatedEventPayload,
+	): T {
+		const updatedState: T = {
+			...state,
 			[payload.repositoryId]: {
 				id: payload.repositoryId,
-				name: payload.name,
+				name: payload.repositoryName,
 				ownerId: payload.ownerId,
 				ownerName: payload.ownerName,
 				visibility: payload.visibility,
 				description: payload.description,
 			},
 		};
-		return updatedReadModel as T;
+		return updatedState;
 	}
 
-	private applyUpdateEvent(payload: RepositoryUpdatedEventPayload): T {
-		const updatedReadModel = {
-			...this.readModel,
+	private applyUpdateEvent(
+		state: T,
+		payload: RepositoryUpdatedEventPayload,
+	): T {
+		// Ensure the repository exists before updating
+		if (!state[payload.repositoryId]) {
+			return state;
+		}
+
+		const updatedState: T = {
+			...state,
 			[payload.repositoryId]: {
-				...this.readModel[payload.repositoryId],
+				...state[payload.repositoryId],
 				name: payload.changes.name,
 				visibility: payload.changes.visibility,
 				description: payload.changes.description,
 			},
 		};
-		return updatedReadModel as T;
+		return updatedState;
 	}
 
-	private applyDeleteEvent(payload: RepositoryDeletedEventPayload): T {
-		const updatedReadModel = { ...this.readModel };
-		delete updatedReadModel[payload.repositoryId];
-		return updatedReadModel as T;
+	private applyDeleteEvent(
+		state: T,
+		payload: RepositoryDeletedEventPayload,
+	): T {
+		const { [payload.repositoryId]: _, ...rest } = state;
+		return rest as T;
 	}
 
 	private async buildReadModel(): Promise<T> {
@@ -99,14 +116,17 @@ export class ReadModelStore<
 			switch (event.type) {
 				case "RepositoryCreated":
 					return this.applyCreateEvent(
+						state,
 						event.payload as RepositoryCreatedEventPayload,
 					);
 				case "RepositoryUpdated":
 					return this.applyUpdateEvent(
+						state,
 						event.payload as RepositoryUpdatedEventPayload,
 					);
 				case "RepositoryDeleted":
 					return this.applyDeleteEvent(
+						state,
 						event.payload as RepositoryDeletedEventPayload,
 					);
 				default:

@@ -10,7 +10,6 @@ import type {
 } from "./events/repository.events";
 import type { RepositoryBasic, Star, UserBasic } from "./models";
 import type { RepositoryDashboardReadModel } from "./models/read-models/repository.read-model";
-import { PrismaRepository } from "./repositories/base.repository";
 import { RepositoryBasicRepository } from "./repositories/repository-basic.repository";
 import { RepositoryDetailedRepository } from "./repositories/repository-detailed.repository";
 import { SnapshotRepository } from "./repositories/snapshot.repository";
@@ -47,9 +46,14 @@ export class Container {
 	private readModelStore: ReadModelStore<
 		Record<number, RepositoryDashboardReadModel>
 	>;
+	// Ignore this since it's set up in a constructor function later
+	private repositoryBasicRepository!: RepositoryBasicRepository;
 
 	private constructor() {
 		this.checkEnvironmentVariables();
+
+		// Handle Ctrl+C and others
+		this.setupSignalHandlers();
 
 		this.readModelStore = this.setupReadModelStore();
 		this.domainEventEmitter = this.setupDomainEventEmitter();
@@ -124,16 +128,22 @@ export class Container {
 
 	private setupEventListeners(): void {
 		// Repository
-		this.readModelProjector.start();
+		this.readModelProjector.rebuildReadModel();
 		this.domainEventEmitter.on(
 			"RepositoryCreated",
 			async (event: RepositoryCreatedEvent) => {
-				this.eventStore.queueEventForProcessing(event);
-
-				const { ownerName, name } = event.payload;
+				const { ownerName, repositoryName } = event.payload;
 				const fileContent = "" as any;
 
-				await this.fileService.uploadFile(`${ownerName}/${name}/`, fileContent);
+				// Update the read model database
+				await this.repositoryBasicRepository.create({
+					name: repositoryName,
+					description: event.payload.description,
+					visibility: event.payload.visibility,
+					ownerId: event.payload.ownerId,
+				});
+
+				await this.fileService.uploadFile(`${ownerName}/${repositoryName}/`, fileContent);
 			},
 		);
 
@@ -141,8 +151,6 @@ export class Container {
 			"RepositoryUpdated",
 			async (event: RepositoryUpdatedEvent) => {
 				try {
-					this.eventStore.queueEventForProcessing(event);
-
 					const { changes } = event.payload;
 					const currentContent = await this.fileService.downloadFile(
 						`${Session.getInstance().getUser()?.username}/${
@@ -269,6 +277,8 @@ export class Container {
 			prisma,
 			repositorySnapshotManager,
 		);
+		this.repositoryBasicRepository = repositoryBasicRepository;
+
 		const repositoryDetailedRepository = new RepositoryDetailedRepository(
 			prisma,
 		);
@@ -374,6 +384,23 @@ export class Container {
 			repositoryValidator,
 		);
 		ServiceLocator.registerValidator("StarValidator", starValidator);
+	}
+
+	private setupSignalHandlers(): void {
+		process.on("SIGINT", () => {
+			console.log("SIGINT signal received: closing the application...");
+			this.shutdownApp();
+		});
+
+		process.on("SIGTERM", () => {
+			console.log("SIGTERM signal received: closing the application...");
+			this.shutdownApp();
+		});
+	}
+
+	private shutdownApp(): void {
+		this.readModelProjector.dispose();
+		process.exit(0);
 	}
 
 	public static getInstance(): Container {

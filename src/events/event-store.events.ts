@@ -23,6 +23,7 @@ export class EventStore {
 	>();
 	private maxRetries = 3;
 	private maxQueuedEvents = 25;
+	private firstEventQueuedAt = new Date();
 
 	constructor() {
 		const client = new DynamoDBClient({
@@ -35,17 +36,26 @@ export class EventStore {
 		});
 	}
 
-	public async flushEvents(): Promise<void> {
+	public flushEvents(): void {
 		if (this.queuedEvents.length === 0) {
 			return;
 		}
 
 		this.batchAppend(this.queuedEvents);
+		this.queuedEvents = [];
+		this.retryCount = 0;
+		this.firstEventQueuedAt = new Date();
 	}
 
 	public async queueEventForProcessing(event: DomainEvent): Promise<void> {
 		const aggregateId = (event.payload as BaseEntity).id;
 		const snapshotManager = this.aggregateToSnapshotManager.get(aggregateId);
+
+		// Start the timer when the first event is queued
+		if (this.queuedEvents.length === 0) {
+			// Reset the timer when the queue is empty
+			this.firstEventQueuedAt = new Date();
+		}
 
 		this.queuedEvents.push(event);
 		this.eventCountPerAggregate.set(
@@ -53,8 +63,20 @@ export class EventStore {
 			(this.eventCountPerAggregate.get(aggregateId) || 0) + 1,
 		);
 
+		// Check if the queue should be flushed based on the number of events
 		if (this.queuedEvents.length >= this.maxQueuedEvents) {
 			await this.flushEvents();
+			this.queuedEvents = [];
+			this.retryCount = 0;
+		}
+		
+		// Check if the queue should be flushed based on time elapsed
+		const timeElapsed =
+			new Date().getTime() - this.firstEventQueuedAt.getTime();
+		if (timeElapsed > 5_000) {
+			// 5 seconds threshold
+			await this.flushEvents();
+			console.info("Time threshold reached, triggering upload...");
 			this.queuedEvents = [];
 			this.retryCount = 0;
 		}
@@ -73,20 +95,21 @@ export class EventStore {
 		const params = {
 			TableName: "RepositoryEvents",
 		};
-	
+
 		try {
 			const command = new ScanCommand(params);
 			const result = await this.dynamoDbClient.send(command);
-	
+
 			if (result.Items) {
 				// Use Promise.all to wait for all promises to resolve
-				const events = await Promise.all(result.Items.map((item) =>
-					this.mapDynamoDBItemToDomainEvent(item),
-				));
-	
-				return events;
+				const events = await Promise.all(
+					result.Items.map((item) => this.mapDynamoDbItemToDomainEvent(item)),
+				);
+
+				// Also check the queue
+				return events.concat(this.queuedEvents);
 			}
-	
+
 			return [];
 		} catch (error) {
 			console.error("Error retrieving all events from DynamoDB", error);
@@ -94,7 +117,7 @@ export class EventStore {
 		}
 	}
 
-	private async mapDynamoDBItemToDomainEvent(item: any): Promise<DomainEvent> {
+	private async mapDynamoDbItemToDomainEvent(item: any): Promise<DomainEvent> {
 		const decompressedPayload = await decompressEvent(item.payload);
 		return {
 			id: item.id,
@@ -112,7 +135,7 @@ export class EventStore {
 			const batch = events.splice(0, 25);
 			batches.push(batch);
 		}
-	
+
 		for (const batch of batches) {
 			// Use Promise.all to wait for all compressEvent promises to resolve
 			const writeRequestsPromises = batch.map(async (event) => {
@@ -130,20 +153,25 @@ export class EventStore {
 					},
 				};
 			});
-	
+
 			// Resolve all promises
 			const writeRequests = await Promise.all(writeRequestsPromises);
-	
+
 			const params = {
 				RequestItems: {
 					RepositoryEvents: writeRequests,
 				},
 			};
-	
+
 			try {
-				const response = await this.dynamoDbClient.send(new BatchWriteCommand(params));
+				const response = await this.dynamoDbClient.send(
+					new BatchWriteCommand(params),
+				);
 				// Handle unprocessed items with delay
-				if (response.UnprocessedItems?.RepositoryEvents && this.retryCount < 3) {
+				if (
+					response.UnprocessedItems?.RepositoryEvents &&
+					this.retryCount < 3
+				) {
 					const unprocessedItems = response.UnprocessedItems.RepositoryEvents;
 					await this.retryUnprocessedItems(unprocessedItems);
 					this.retryCount++;
@@ -167,7 +195,7 @@ export class EventStore {
 
 		// Calculate the delay using exponential backoff
 		// Base delay is 1000 milliseconds
-		const delay = 1000 * 2 ** this.retryCount;
+		const delay = 1_000 * 2 ** this.retryCount;
 		this.retryCount++;
 
 		// Wait for the calculated delay before retrying

@@ -33,39 +33,39 @@ export class RepositoryService<TModel extends IModel> {
 
 	async getAll(
 		options: QueryOptions<TModel>,
-		auth_token?: string,
+		authToken?: string,
 		detailed?: boolean,
 	): Promise<TModel[] | Partial<TModel[]> | Partial<TModel>[] | undefined> {
 		const { cursor, skip, take, where } = options;
 		const limit = this.parseLimit(take);
 		const page = this.parsePage(cursor);
-		const skip_count = this.parseSkip(page, limit, skip);
+		const skipCount = this.parseSkip(page, limit, skip);
 		return this.repository.getAll({
-			skip: skip_count,
+			skip: skipCount,
 			take: limit,
 			where,
 		});
 	}
 
 	async create(
-		entity_data: Partial<TModel>,
-		auth_token?: string,
+		entityData: Partial<TModel>,
+		authToken?: string,
 	): Promise<TModel> {
-		return this.repository.create(entity_data);
+		return this.repository.create(entityData);
 	}
 
 	async update(
 		id: string,
 		entityData: Partial<TModel>,
-		owner_id?: string,
-		auth_token?: string,
+		ownerId?: string,
+		authToken?: string,
 	): Promise<Partial<TModel>> {
 		return this.repository.update(id, entityData);
 	}
 
 	async delete(
 		id: string,
-		owner_id?: string,
+		ownerId?: string,
 		authToken?: string,
 	): Promise<void> {
 		await this.repository.delete(id);

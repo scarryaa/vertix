@@ -21,7 +21,7 @@ export interface RepositoryDetailed extends BaseEntity {
 	created_at: Date;
 	updated_at: Date;
 	owner: UserBasic;
-	owner_id: string;
+	ownerId: string;
 	issues: Issue[];
 	stars: Star[];
 	programming_languages: ProgrammingLanguage[];
@@ -38,15 +38,16 @@ export interface RepositoryDetailed extends BaseEntity {
 
 export interface RepositoryBasic
 	extends Pick<
-		RepositoryDetailed,
-		| "name"
-		| "description"
-		| "visibility"
-		| "owner_id"
-		| "created_at"
-		| "updated_at"
-		| "id"
-	>, BaseEntity {}
+			RepositoryDetailed,
+			| "name"
+			| "description"
+			| "visibility"
+			| "ownerId"
+			| "created_at"
+			| "updated_at"
+			| "id"
+		>,
+		BaseEntity {}
 
 interface OwnerConnectInput {
 	id: string;
@@ -70,6 +71,6 @@ export type RepositoryCreateInput = Pick<
 export type RepositoryUpdateInput = Partial<
 	Omit<
 		RepositoryDetailed,
-		"id" | "created_at" | "updated_at" | "owner" | "owner_id"
+		"id" | "created_at" | "updated_at" | "owner" | "ownerId"
 	>
 >;

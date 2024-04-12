@@ -5,9 +5,20 @@
 	},
 	"linter": {
 		"rules": {
+			"all": true,
 			"style": {
 				"noNonNullAssertion": "warn"
 			}
+		}
+	},
+	"css": {
+		"formatter": {
+			"enabled": true
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"enabled": true
 		}
 	}
 }

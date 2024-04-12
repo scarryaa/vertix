@@ -52,7 +52,10 @@ export class FileDeletedEvent implements FileEvent<FilePayload> {
 	}
 }
 
-export class FileCreateFailedEvent extends Error implements FileEvent<FilePayload> {
+export class FileCreateFailedEvent
+	extends Error
+	implements FileEvent<FilePayload>
+{
 	type: string;
 
 	constructor(
@@ -61,12 +64,15 @@ export class FileCreateFailedEvent extends Error implements FileEvent<FilePayloa
 		public readonly payload: FilePayload,
 		public readonly reason: string,
 	) {
-        super();
+		super();
 		this.type = "FileCreateFailed";
 	}
 }
 
-export class FileUpdateFailedEvent extends Error implements FileEvent<FilePayload> {
+export class FileUpdateFailedEvent
+	extends Error
+	implements FileEvent<FilePayload>
+{
 	type: string;
 
 	constructor(
@@ -75,12 +81,15 @@ export class FileUpdateFailedEvent extends Error implements FileEvent<FilePayloa
 		public readonly payload: FilePayload,
 		public readonly reason: string,
 	) {
-        super();
+		super();
 		this.type = "FileUpdateFailed";
 	}
 }
 
-export class FileDeleteFailedEvent extends Error implements FileEvent<FilePayload> {
+export class FileDeleteFailedEvent
+	extends Error
+	implements FileEvent<FilePayload>
+{
 	type: string;
 
 	constructor(
@@ -89,7 +98,7 @@ export class FileDeleteFailedEvent extends Error implements FileEvent<FilePayloa
 		public readonly payload: FilePayload,
 		public readonly reason: string,
 	) {
-        super();
+		super();
 		this.type = "FileDeleteFailed";
 	}
 }

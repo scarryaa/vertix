@@ -40,7 +40,7 @@ export const login =
 			throw new UnauthorizedError("Invalid email or password.");
 		}
 
-		const payload = { user_id: user.id, role: user.role };
+		const payload = { userId: user.id, role: user.role };
 		assert(process.env.JWT_SECRET, "JWT Secret missing!");
 		const token = jwt.sign(payload, process.env.JWT_SECRET);
 		// @TODO set these on startup?

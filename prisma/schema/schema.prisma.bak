@@ -114,8 +114,8 @@ model Repository {
   visibility            String
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
-  owner                 User           @relation(fields: [owner_id], references: [id])
-  owner_id              Int
+  owner                 User           @relation(fields: [ownerId], references: [id])
+  ownerId              Int
   issues                Issue[]        @relation("RepositoryIssues")
   stars                 Star[]
   programming_languages String? // @TODO convert to enum

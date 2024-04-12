@@ -46,7 +46,7 @@ export type WhereCondition<T> =
 									});
 	  }
 	| {
-		id?: IdType;
+			id?: IdType;
 			OR?: WhereCondition<T>[];
 			AND?: WhereCondition<T>[];
 			NOT?: WhereCondition<T> | WhereCondition<T>[];
@@ -111,7 +111,7 @@ export class PrismaRepository<T> implements IRepository<T> {
 		return await (this.prisma as any)[this.model].findMany(baseQuery);
 	}
 
-	async findFirst(options: QueryOptions<T>): Promise<T | undefined | null> {
+	async findFirst(options: QueryOptions<T>): Promise<T | undefined> {
 		const { skip, take, cursor, where, search } = options;
 
 		const baseQuery = this.constructQuery({

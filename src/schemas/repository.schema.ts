@@ -10,7 +10,7 @@ const createRepositorySchema = z.object({
 const createRepositoryReponseSchema = z.object({
 	id: z.string(),
 	name: z.string().max(64).min(3),
-	owner_id: z.string(),
+	ownerId: z.string(),
 	description: z.string().nullable(),
 	visibility: z.enum(["public", "private"]),
 	created_at: z.date(),
@@ -73,7 +73,7 @@ const updateRepositoryResponseSchema = z.object({
 	name: z.string().max(64).min(3),
 	description: z.string().max(255).optional(),
 	visibility: z.enum(["public", "private"]).optional(),
-	owner_id: z.string(),
+	ownerId: z.string(),
 	created_at: z.date(),
 	updated_at: z.date(),
 });
@@ -87,7 +87,7 @@ export type UpdateRepositoryResponse = z.infer<
 >;
 
 const deleteRepositoryQuerySchema = z.object({
-	owner_id: z.string(),
+	ownerId: z.string(),
 });
 
 const deleteRepositoryParamsSchema = z.object({

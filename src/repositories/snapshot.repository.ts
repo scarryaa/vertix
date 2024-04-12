@@ -6,7 +6,7 @@ export class SnapshotRepository<T> {
 
 	constructor(prisma: PrismaClient, model: string) {
 		this.prisma = prisma;
-        this.model = model;
+		this.model = model;
 	}
 
 	async createSnapshot(snapshotData: T): Promise<T> {

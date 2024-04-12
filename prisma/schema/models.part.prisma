@@ -81,8 +81,8 @@ model Repository {
     visibility            String
     created_at            DateTime              @default(now())
     updated_at            DateTime              @updatedAt
-    owner                 User                  @relation("UserRepositories", fields: [owner_id], references: [id])
-    owner_id              String
+    owner                 User                  @relation("UserRepositories", fields: [ownerId], references: [id])
+    ownerId              String
     issues                Issue[]               @relation("RepositoryIssues")
     stars                 Star[]
     programming_languages ProgrammingLanguage[]

@@ -32,7 +32,7 @@ const main = async () => {
 				name: faker.lorem.word(),
 				description: faker.lorem.sentence(),
 				visibility: faker.helpers.arrayElement(["public", "private"]),
-				owner_id: faker.string.uuid(),
+				ownerId: faker.string.uuid(),
 			},
 		});
 	}

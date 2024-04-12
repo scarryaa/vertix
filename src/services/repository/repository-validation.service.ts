@@ -29,7 +29,7 @@ export class RepositoryValidationService extends Validator<Repository> {
 
 		this.validationService.verifyPropertyIsDefined(
 			userId,
-			"owner_id",
+			"ownerId",
 			serviceName,
 		);
 
@@ -56,7 +56,7 @@ export class RepositoryValidationService extends Validator<Repository> {
 		const serviceName = this.constructor.name;
 		await this.validationService.checkEntityExistence(
 			this.repositoryBasicRepository,
-			{ AND: [{ id: repositoryId }, { owner_id: userId }] },
+			{ AND: [{ id: repositoryId }, { ownerId: userId }] },
 			shouldExist,
 			new RepositoryNotFoundError(),
 			new RepositoryAlreadyExistsError(),

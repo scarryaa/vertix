@@ -1,6 +1,5 @@
 import bcrypt from "bcrypt";
 import type { Authenticator } from "../authenticators/service-layer/base.authenticator";
-import { Authenticate } from "../authenticators/service-layer/decorators";
 import { type UserBasic, type UserDetailed, UserRole } from "../models";
 import type {
 	QueryOptions,
@@ -138,39 +137,39 @@ export class UserService extends RepositoryService<User> {
 	})
 	async update(
 		id: string,
-		entity_data: Partial<User>,
-		owner_id: undefined | string,
-		auth_token: string,
+		entityData: Partial<User>,
+		ownerId: undefined | string,
+		authToken: string,
 	): Promise<Partial<User>> {
 		// Check if user exists
 		const user = await this.getById(id);
 		if (!user || !id) throw new UserNotFoundError();
 
 		// Check if user is owner of the account
-		if (entity_data.id !== id) {
+		if (entityData.id !== id) {
 			throw new UnauthorizedError();
 		}
 
-		if (entity_data.password && id) {
-			await this.updatePassword(id, entity_data.password, auth_token);
-			entity_data.password = undefined;
+		if (entityData.password && id) {
+			await this.updatePassword(id, entityData.password, authToken);
+			entityData.password = undefined;
 		}
 
-		const user_data = await this.userDetailedRepository.update(id, entity_data);
+		const userData = await this.userDetailedRepository.update(id, entityData);
 
-		if (!user_data) {
+		if (!userData) {
 			throw new Error("Failed to update user.");
 		}
 
 		// Ensure the password field is not included in the response
-		user_data.password = undefined;
-		return user_data;
+		userData.password = undefined;
+		return userData;
 	}
 
 	async updatePassword(
 		id: string,
 		password: string,
-		auth_token: string,
+		authToken: string,
 	): Promise<void> {
 		// Check if user exists
 		const user = await this.getById(id);
@@ -183,8 +182,8 @@ export class UserService extends RepositoryService<User> {
 
 	async delete(
 		id: string,
-		owner_id: string | undefined,
-		auth_token: string,
+		ownerId: string | undefined,
+		authToken: string,
 	): Promise<void> {
 		// Check if the user exists
 		const user = await this.getById(id);
@@ -192,17 +191,17 @@ export class UserService extends RepositoryService<User> {
 			throw new UserNotFoundError("User with this id does not exist.");
 
 		// Get the user's auth manually
-		const { user_id } = await this._authenticator.authenticate(auth_token, [
+		const { userId } = await this._authenticator.authenticate(authToken, [
 			UserRole.USER,
 		]);
 
 		// Check if the user is the owner
-		if (user_id !== id)
+		if (userId !== id)
 			throw new UnauthorizedError(
 				"You don't have permission to delete this user.",
 			);
 
-		await super.delete(id, owner_id, auth_token);
+		await super.delete(id, ownerId, authToken);
 	}
 
 	get repositoryBasic(): UserBasicRepository {
@@ -224,8 +223,8 @@ export class UserService extends RepositoryService<User> {
 	}
 
 	// Helpers
-	async checkUserExists(user_id: string): Promise<boolean> {
-		const user = await this.getById(user_id);
+	async checkUserExists(userId: string): Promise<boolean> {
+		const user = await this.getById(userId);
 		return user !== null;
 	}
 

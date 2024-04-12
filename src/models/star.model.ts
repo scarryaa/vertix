@@ -3,10 +3,10 @@ import type { BaseEntity } from "./base.model";
 
 export interface Star extends BaseEntity {
 	id: string;
-	created_at: Date;
-	updated_at: Date;
+	createdAt: Date;
+	updatedAt: Date;
 	repository?: RepositoryDetailed;
-	repository_id: string;
+	repositoryId: string;
 	user?: UserBasic;
-	user_id: string;
+	userId: string;
 }

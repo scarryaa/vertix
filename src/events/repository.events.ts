@@ -1,4 +1,10 @@
-import type { RepositoryDetailed, RepositoryUpdateInput, TVisibility } from "../models";
+import type {
+	RepositoryDetailed,
+	RepositoryUpdateInput,
+	TVisibility,
+} from "../models";
+import type { BaseEntity } from "../models/base.model";
+import type { DomainEvent } from "./domain.event";
 import type {
 	CustomErrorEvent,
 	GenericErrorEventPayload,
@@ -13,42 +19,43 @@ type RepositoryEventPayload =
 	| RepositoryCreateFailedEventPayload
 	| GenericErrorEventPayload<unknown>;
 
-export interface RepositoryCreatedEventPayload {
+export interface RepositoryCreatedEventPayload extends BaseEntity {
 	repositoryId: string;
-	name: string;
+	repositoryName: string;
 	ownerId: string;
 	ownerName: string;
 	visibility: TVisibility;
 	description: string | null;
 }
 
-export interface RepositoryUpdatedEventPayload {
+export interface RepositoryUpdatedEventPayload extends BaseEntity {
 	repositoryId: string;
+	repositoryName: string;
 	changes: RepositoryUpdateInput;
 	oldRepository: RepositoryDetailed;
 }
 
-export interface RepositoryDeletedEventPayload {
+export interface RepositoryDeletedEventPayload extends BaseEntity {
 	repositoryId: string;
 	repositoryName: string;
 }
 
-export interface RepositoryCreateFailedEventPayload {
+export interface RepositoryCreateFailedEventPayload extends BaseEntity {
 	repositoryId: string | undefined;
 	name: string;
 	ownerId: string;
 }
 
-export interface RepositoryUpdateFailedEventPayload {
+export interface RepositoryUpdateFailedEventPayload extends BaseEntity {
 	repositoryId: string;
 	changes: RepositoryUpdateInput;
 }
 
-export interface RepositoryDeleteFailedEventPayload {
+export interface RepositoryDeleteFailedEventPayload extends BaseEntity {
 	repositoryId: string;
 }
 
-export class RepositoryEvent<PayloadType> {
+export class RepositoryEvent<PayloadType> implements DomainEvent {
 	id: string;
 	type: string;
 	timestamp: Date;
@@ -73,7 +80,10 @@ export class RepositoryEvent<PayloadType> {
 	}
 }
 
-export class RepositoryCreatedEvent extends RepositoryEvent<RepositoryCreatedEventPayload> {
+export class RepositoryCreatedEvent
+	extends RepositoryEvent<RepositoryCreatedEventPayload>
+	implements BaseEntity
+{
 	constructor(
 		id: string,
 		timestamp: Date,
@@ -84,7 +94,10 @@ export class RepositoryCreatedEvent extends RepositoryEvent<RepositoryCreatedEve
 	}
 }
 
-export class RepositoryUpdatedEvent extends RepositoryEvent<RepositoryUpdatedEventPayload> {
+export class RepositoryUpdatedEvent
+	extends RepositoryEvent<RepositoryUpdatedEventPayload>
+	implements BaseEntity
+{
 	constructor(
 		id: string,
 		timestamp: Date,
@@ -96,7 +109,10 @@ export class RepositoryUpdatedEvent extends RepositoryEvent<RepositoryUpdatedEve
 	}
 }
 
-export class RepositoryDeletedEvent extends RepositoryEvent<RepositoryDeletedEventPayload> {
+export class RepositoryDeletedEvent
+	extends RepositoryEvent<RepositoryDeletedEventPayload>
+	implements BaseEntity
+{
 	constructor(
 		id: string,
 		timestamp: Date,

@@ -46,63 +46,63 @@ export class PullRequestService extends RepositoryService<PullRequest> {
 	}
 
 	public async create(
-		pull_request_data: Partial<PullRequest>,
-		auth_token: string,
+		pullRequestData: Partial<PullRequest>,
+		authToken: string,
 	): Promise<PullRequest> {
-		const user_id = await this.authenticateUser(auth_token);
-		await this.authorizeForCreate(user_id);
-		await this.performPullRequestCreationChecks(pull_request_data, user_id);
+		const userId = await this.authenticateUser(authToken);
+		await this.authorizeForCreate(userId);
+		await this.performPullRequestCreationChecks(pullRequestData, userId);
 		return this.pullRequestRepository.create({
-			...pull_request_data,
-			authorId: user_id,
+			...pullRequestData,
+			authorId: userId,
 		});
 	}
 
 	public async update(
-		pull_request_id: string,
+		pullRequestId: string,
 		pullRequest: Partial<PullRequest>,
-		owner_id: string | undefined,
-		auth_token: string,
+		ownerId: string | undefined,
+		authToken: string,
 	): Promise<Partial<PullRequest>> {
-		const user_id = await this.authenticateUser(auth_token);
-		await this.authorizeForUpdate(user_id, pull_request_id);
+		const userId = await this.authenticateUser(authToken);
+		await this.authorizeForUpdate(userId, pullRequestId);
 		await this.performPullRequestUpdateChecks(
 			pullRequest,
-			user_id,
-			pull_request_id,
+			userId,
+			pullRequestId,
 		);
-		return this.pullRequestRepository.update(pull_request_id, pullRequest);
+		return this.pullRequestRepository.update(pullRequestId, pullRequest);
 	}
 
 	public async delete(
-		pull_request_id: string,
-		owner_id: string | undefined,
-		auth_token: string,
+		pullRequestId: string,
+		ownerId: string | undefined,
+		authToken: string,
 	): Promise<void> {
-		const user_id = await this.authenticateUser(auth_token);
-		await this.authorizeForDelete(user_id, pull_request_id);
-		await this.performPullRequestDeletionChecks(pull_request_id, user_id);
-		return this.pullRequestRepository.delete(pull_request_id);
+		const userId = await this.authenticateUser(authToken);
+		await this.authorizeForDelete(userId, pullRequestId);
+		await this.performPullRequestDeletionChecks(pullRequestId, userId);
+		return this.pullRequestRepository.delete(pullRequestId);
 	}
 
 	public async getById(
-		pull_request_id: string,
+		pullRequestId: string,
 		detailed = false,
 	): Promise<PullRequest | null> {
 		return await this.pullRequestFetchService.getPullRequestOrThrow(
-			pull_request_id,
+			pullRequestId,
 		);
 	}
 
 	public async getAll(
 		options: QueryOptions<PullRequest>,
-		auth_token: undefined | string,
+		authToken: undefined | string,
 		detailed?: boolean,
-		pull_request_id?: string,
+		pullRequestId?: string,
 	): Promise<PullRequest[]> {
-		if (pull_request_id !== undefined) {
+		if (pullRequestId !== undefined) {
 			return await this.pullRequestFetchService.listPullRequestsForRepository(
-				pull_request_id,
+				pullRequestId,
 				options,
 			);
 		}
@@ -117,80 +117,78 @@ export class PullRequestService extends RepositoryService<PullRequest> {
 	}
 
 	private async authorizeForCreate(
-		user_id: string,
-		pull_request_id?: string,
+		userId: string,
+		pullRequestId?: string,
 	): Promise<void> {
-		if (pull_request_id) {
-			const pull_request =
-				await this.pullRequestFetchService.getPullRequestOrThrow(
-					pull_request_id,
-				);
+		if (pullRequestId) {
+			const pullRequest =
+				await this.pullRequestFetchService.getPullRequestOrThrow(pullRequestId);
 		}
 	}
 
 	private async authorizeForDelete(
-		user_id: string,
-		pull_request_id: string,
+		userId: string,
+		pullRequestId: string,
 	): Promise<void> {
 		await this.pullRequestAuthzService.throwIfNotPullRequestAuthor(
-			user_id,
-			pull_request_id,
+			userId,
+			pullRequestId,
 		);
 	}
 
 	private async authorizeForUpdate(
-		user_id: string,
-		pull_request_id: string,
+		userId: string,
+		pullRequestId: string,
 	): Promise<void> {
-		const pull_request =
-			await this.pullRequestFetchService.getPullRequestOrThrow(pull_request_id);
+		const pullRequest =
+			await this.pullRequestFetchService.getPullRequestOrThrow(pullRequestId);
 		await this.pullRequestAuthzService.throwIfNotPullRequestAuthor(
-			user_id,
-			pull_request_id,
+			userId,
+			pullRequestId,
 		);
 	}
 
-	private async authenticateUser(auth_token: string): Promise<string> {
-		return await this.pullRequestAuthzService.authenticateUser(auth_token);
+	private async authenticateUser(authToken: string): Promise<string> {
+		return await this.pullRequestAuthzService.authenticateUser(authToken);
 	}
 
 	private async performPullRequestCreationChecks(
-		pull_request_data: Partial<PullRequest>,
-		user_id: string,
+		pullRequestData: Partial<PullRequest>,
+		userId: string,
 	): Promise<void> {
 		await this.pullRequestValidationService.validateBranchNames(
-			pull_request_data.head_branch,
-			pull_request_data.base_branch,
+			pullRequestData.head_branch,
+			pullRequestData.base_branch,
 		);
 	}
 
 	private async performPullRequestUpdateChecks(
 		pullRequest: Partial<PullRequest>,
-		user_id: string,
-		pull_request_id: string,
+		userId: string,
+		pullRequestId: string,
 	): Promise<void> {
 		const pull_request =
-			await this.pullRequestFetchService.getPullRequestOrThrow(pull_request_id);
+			await this.pullRequestFetchService.getPullRequestOrThrow(pullRequestId);
 		await this.pullRequestAuthzService.throwIfNotPullRequestAuthor(
-			user_id,
-			pull_request_id,
+			userId,
+			pullRequestId,
 		);
 		await this.pullRequestValidationService.validateBranchNames(
 			pull_request.head_branch,
 			pull_request.base_branch,
 		);
 		await this.pullRequestValidationService.validateCommitHistory(
-			pull_request_id,
+			pullRequestId,
 		);
 	}
 
 	private async performPullRequestDeletionChecks(
-		pull_request_id: string,
-		user_id: string,
+		pullRequestId: string,
+		userId: string,
 	): Promise<void> {
 		await this.pullRequestAuthzService.throwIfNotPullRequestAuthor(
-			user_id,
-			pull_request_id,
+			userId,
+			pullRequestId,
 		);
 	}
 }

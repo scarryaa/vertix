@@ -77,22 +77,23 @@ export interface UserDetailed extends BaseEntity {
 
 export interface UserBasic
 	extends Pick<
-		UserDetailed,
-		| "id"
-		| "role"
-		| "updated_at"
-		| "created_at"
-		| "username"
-		| "email"
-		| "name"
-		| "avatar"
-		| "bio"
-		| "public_email"
-		| "repositories"
-		| "password"
-		| "deleted"
-		| "deleted_at"
-	> {}
+			UserDetailed,
+			| "id"
+			| "role"
+			| "updated_at"
+			| "created_at"
+			| "username"
+			| "email"
+			| "name"
+			| "avatar"
+			| "bio"
+			| "public_email"
+			| "repositories"
+			| "password"
+			| "deleted"
+			| "deleted_at"
+		>,
+		BaseEntity {}
 
 // Search
 export interface UserSearchCriteria {

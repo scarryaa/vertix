@@ -8,9 +8,9 @@ export class Session {
 	private user: SessionUser | null = null;
 	private auth_token: string | null = null;
 
-	private constructor(user: User | null, auth_token: string | null) {
+	private constructor(user: User | null, authToken: string | null) {
 		this.user = user;
-		this.auth_token = auth_token;
+		this.auth_token = authToken;
 	}
 
 	public getUser(): SessionUser | null {
@@ -36,7 +36,7 @@ export class Session {
 		Session.getInstance().user = user;
 	}
 
-	public static setAuthToken(auth_token: string | null): void {
-		Session.getInstance().auth_token = auth_token;
+	public static setAuthToken(authToken: string | null): void {
+		Session.getInstance().auth_token = authToken;
 	}
 }

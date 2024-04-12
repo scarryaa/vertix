@@ -6,12 +6,12 @@ export class RepositoryAuthorizationService {
 	constructor(private authzService: AuthzService) {}
 
 	async throwIfNotRepositoryOwnerOrContributor(
-		user_id: string,
+		userId: string,
 		repository: RepositoryDetailed,
 	): Promise<void> {
-		const isOwner = repository.owner_id === user_id;
+		const isOwner = repository.ownerId === userId;
 		const isContributor = repository.contributors?.some(
-			(contributor) => contributor.user_id === user_id,
+			(contributor) => contributor.user_id === userId,
 		);
 
 		if (!isOwner && !isContributor) {
@@ -20,16 +20,16 @@ export class RepositoryAuthorizationService {
 	}
 
 	async throwIfNotRepositoryOwner(
-		user_id: string,
-		owner_id: string,
+		userId: string,
+		ownerId: string,
 	): Promise<void> {
-		if (owner_id !== user_id) {
+		if (ownerId !== userId) {
 			throw new UnauthorizedError();
 		}
 	}
 
-	async authenticateUser(auth_token: string): Promise<string> {
-		const user_id = await this.authzService.authenticateUser(auth_token);
-		return user_id;
+	async authenticateUser(authToken: string): Promise<string> {
+		const userId = await this.authzService.authenticateUser(authToken);
+		return userId;
 	}
 }

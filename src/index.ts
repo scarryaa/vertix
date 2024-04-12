@@ -3,7 +3,6 @@ import { env } from "node:process";
 import fCookie from "@fastify/cookie";
 import formbody from "@fastify/formbody";
 import rateLimit from "@fastify/rate-limit";
-import * as dotenv from "dotenv";
 import fastify, {
 	type FastifyInstance,
 	type FastifyReply,
@@ -25,7 +24,7 @@ type ServerConfig = {
 	host: string;
 };
 
-class VortexServer {
+class VertixServer {
 	private config: ServerConfig;
 	app: FastifyInstance;
 
@@ -65,7 +64,7 @@ class VortexServer {
 
 		this.app.decorate(
 			"authenticate",
-			async (req: FastifyRequest, reply: FastifyReply) => {
+			(req: FastifyRequest, reply: FastifyReply) => {
 				const token = req.unsignCookie(req.cookies.access_token ?? "").value;
 				if (!token) {
 					return reply
@@ -82,7 +81,7 @@ class VortexServer {
 					process.env.JWT_SECRET,
 				) as unknown as JwtPayload;
 				req.user = {
-					user_id: decoded.user_id,
+					userId: decoded.userId,
 					role: decoded.role,
 				};
 			},
@@ -117,9 +116,9 @@ class VortexServer {
 			host: this.config.host,
 		});
 
-		console.log(`Server listening on port ${this.config.port}`);
+		console.info(`Server listening on port ${this.config.port}`);
 	}
 }
 
-const server = new VortexServer({ port: 3000, host: "localhost" });
+const server = new VertixServer({ port: 3000, host: "localhost" });
 server.start();

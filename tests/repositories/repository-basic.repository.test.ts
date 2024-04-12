@@ -119,13 +119,13 @@ describe("RepositoryBasicRepository", () => {
 			);
 
 			const result = await repositoryRepository.getAll({
-				where: { owner_id: 1 },
+				where: { ownerId: 1 },
 			});
 
 			expect(result).toEqual(repositoriesDetailed);
 			expect(mockContext.prisma.repository.findMany).toHaveBeenCalledWith({
 				where: {
-					owner_id: 1,
+					ownerId: 1,
 				},
 			});
 		});

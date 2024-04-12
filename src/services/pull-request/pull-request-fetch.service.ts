@@ -12,16 +12,16 @@ type ListPullRequestsOptions = QueryOptions<PullRequest>;
 export class PullRequestFetchService {
 	constructor(private readonly pullRequestRepository: PullRequestRepository) {}
 
-	async getPullRequestOrThrow(pull_request_id: string): Promise<PullRequest> {
-		const pull_request = await this.pullRequestRepository.findFirst({
-			where: { id: pull_request_id },
+	async getPullRequestOrThrow(pullRequestId: string): Promise<PullRequest> {
+		const pullRequest = await this.pullRequestRepository.findFirst({
+			where: { id: pullRequestId },
 		});
 
-		if (!pull_request) {
+		if (!pullRequest) {
 			throw new PullRequestNotFoundError();
 		}
 
-		return pull_request;
+		return pullRequest;
 	}
 
 	async listPullRequestsForRepository(

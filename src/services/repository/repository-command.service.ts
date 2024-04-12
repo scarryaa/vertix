@@ -3,16 +3,10 @@ import type { DomainEventEmitter } from "../../events/event-emitter.events";
 import type { EventStore } from "../../events/event-store.events";
 import { FileCreateFailedEvent } from "../../events/file.event";
 import { GenericErrorEvent } from "../../events/generic.events";
-import {
-	RepositoryCreateFailedEvent,
-	RepositoryCreatedEvent,
-	RepositoryDeletedEvent,
-	RepositoryUpdatedEvent,
-} from "../../events/repository.events";
-import type { RepositoryBasic, RepositoryDetailed } from "../../models";
+import { RepositoryCreateFailedEvent } from "../../events/repository.events";
+import type { RepositoryDetailed } from "../../models";
 import type { RepositoryBasicRepository } from "../../repositories/repository-basic.repository";
 import type { RepositoryDetailedRepository } from "../../repositories/repository-detailed.repository";
-import { Session } from "../../session/index.session";
 import {
 	RepositoryAlreadyExistsError,
 	RepositoryNotFoundError,
@@ -23,10 +17,18 @@ import { Validate } from "../../validators/service-layer/decorators";
 import { ValidationAction } from "../base-repository.service";
 import type { FileService } from "../file/file.service";
 import type { User, UserService } from "../user.service";
+import {
+	CreateRepositoryCommand,
+	DeleteRepositoryCommand,
+	UpdateRepositoryCommand,
+} from "./commands";
+import { CreateRepositoryCommandHandler } from "./create-repository-command-handler.service";
+import { DeleteRepositoryCommandHandler } from "./delete-repository-command-handler.service";
 import type { RepositoryAuthorizationService } from "./repository-authorization.service";
 import type { RepositoryFetchService } from "./repository-fetch.service";
 import type { RepositoryValidationService } from "./repository-validation.service";
 import type { Repository } from "./types";
+import { UpdateRepositoryCommandHandler } from "./update-repository-command-handler.service";
 
 export interface CreateRepositoryParams {
 	repository: Partial<Repository>;
@@ -64,15 +66,15 @@ export type RepositoryCommandServiceServices = {
 
 // @TODO break methods/this down further
 export class RepositoryCommandService {
-	private userService: UserService;
-	private repositoryBasicRepository: RepositoryBasicRepository;
-	private repositoryDetailedRepository: RepositoryDetailedRepository;
-	private repositoryAuthzService: RepositoryAuthorizationService;
-	private repositoryFetchService: RepositoryFetchService;
-	private repositoryValidationService: RepositoryValidationService;
-	private userValidationService: Validator<User>;
-	private domainEventEmitter: DomainEventEmitter;
-	private eventStore: EventStore;
+	public userService: UserService;
+	public repositoryBasicRepository: RepositoryBasicRepository;
+	public repositoryDetailedRepository: RepositoryDetailedRepository;
+	public repositoryAuthzService: RepositoryAuthorizationService;
+	public repositoryFetchService: RepositoryFetchService;
+	public repositoryValidationService: RepositoryValidationService;
+	public userValidationService: Validator<User>;
+	public domainEventEmitter: DomainEventEmitter;
+	public eventStore: EventStore;
 
 	constructor(
 		private readonly _config: RepositoryCommandServiceConfig,
@@ -96,71 +98,58 @@ export class RepositoryCommandService {
 		entityDataIndex: 0,
 		requireAllFields: true, // All fields required for create
 	})
-	async createRepositoryWithFile(
-		repositoryData: Pick<Repository, "name" | "visibility" | "description">,
-		fileContent: unknown,
+	async create(
+		repositoryData: Pick<Repository, "name" | "visibility" | "description" | "id">,
 		authToken: string,
-	): Promise<RepositoryBasic> {
-		try {
-			return await this.repositoryBasicRepository.executeInTransaction(
-				async (transactionPrisma) => {
-					const loggedInUserId = await this.authenticateAndAuthorize(
-						authToken,
-						undefined,
-						"create",
-					);
-					const userInfo = await this.userService.getById(loggedInUserId);
-
-					await this.performRepositoryChecks(
-						"create",
-						repositoryData,
-						userInfo,
-					);
-
-					const validatedUsername = userInfo?.username!;
-
-					const newRepository = await transactionPrisma.repository.create({
-						data: {
-							...repositoryData,
-							name: repositoryData.name,
-							owner_id: loggedInUserId,
-						},
-						select: {
-							id: true,
-							name: true,
-							visibility: true,
-							description: true,
-							owner: {
-								select: {
-									id: true,
-									username: true,
-								},
-							},
-						},
-					});
-
-					const event = new RepositoryCreatedEvent(randomUUID(), new Date(), {
-						...newRepository,
-						repositoryId: newRepository.id,
-						ownerId: loggedInUserId,
-						ownerName: newRepository.owner.username,
-					});
-					this.domainEventEmitter.emit("RepositoryCreated", event);
-
-					return {
-						...newRepository,
-						owner_id: loggedInUserId,
-						created_at: event.timestamp,
-						updated_at: event.timestamp,
-					};
-				},
-			);
-		} catch (error) {
-			throw await this.handleCommandError(error, repositoryData, authToken);
-		}
+	): Promise<void> {
+		const command = new CreateRepositoryCommand(repositoryData, authToken);
+		const handler = new CreateRepositoryCommandHandler(this);
+		await handler.handle(command);
 	}
 
-	private async handleCommandError(
+	async delete(
+		repositoryId: string,
+		ownerId: string | undefined,
+		authToken: string,
+	): Promise<void> {
+		const command = new DeleteRepositoryCommand(
+			repositoryId,
+			ownerId,
+			authToken,
+		);
+		const handler = new DeleteRepositoryCommandHandler(this);
+		await handler.handle(command);
+	}
+
+	@Validate<Repository>(ValidationAction.UPDATE, "RepositoryValidator", {
+		requiredFields: ["description", "name", "ownerId", "visibility"],
+		supportedFields: ["description", "name", "ownerId", "visibility"],
+		entityDataIndex: 1,
+		requireAllFields: false,
+		requireAtLeastOneField: true,
+	})
+	async update(
+		repositoryId: string,
+		entityData: Partial<Repository>,
+		ownerId: string | undefined,
+		authToken: string,
+	): Promise<void> {
+		let _ownerId: string | undefined;
+
+		if (!ownerId) {
+			_ownerId = await this.repositoryAuthzService.authenticateUser(authToken);
+		}
+		const command = new UpdateRepositoryCommand(
+			repositoryId,
+			entityData,
+			ownerId ?? ownerId!,
+			authToken,
+		);
+		const handler = new UpdateRepositoryCommandHandler(this);
+		await handler.handle(command);
+	}
+
+	public async handleCommandError(
 		error: unknown,
 		repositoryData: Partial<Repository> | undefined,
 		authToken?: string,
@@ -176,7 +165,7 @@ export class RepositoryCommandService {
 			repositoryData: {
 				name: repositoryData?.name!,
 				repositoryId: repositoryData?.id,
-				ownerId: repositoryData?.owner_id!,
+				ownerId: repositoryData?.ownerId!,
 				description: repositoryData?.description,
 				visibility: repositoryData?.visibility,
 			},
@@ -237,106 +226,12 @@ export class RepositoryCommandService {
 			);
 		}
 
+		await this.eventStore.queueEventForProcessing(errorEvent);
 		this.domainEventEmitter.emit(errorEvent.constructor.name, errorEvent);
 		console.error(error);
 	}
 
-	@Validate<Repository>(ValidationAction.UPDATE, "RepositoryValidator", {
-		requiredFields: ["description", "name", "owner_id", "visibility"],
-		supportedFields: ["description", "name", "owner_id", "visibility"],
-		entityDataIndex: 1,
-		requireAllFields: false,
-		requireAtLeastOneField: true,
-	})
-	async update(
-		repository_id: string,
-		entityData: Partial<Repository>,
-		owner_id: string | undefined,
-		auth_token: string,
-	): Promise<Repository | Partial<Repository>> {
-		const user_id = await this.authenticateAndAuthorize(
-			auth_token,
-			repository_id,
-			"update",
-		);
-		await this.performRepositoryChecks(
-			"update",
-			{ ...entityData, id: repository_id },
-			{ id: user_id },
-		);
-
-		// @TODO verify entity data is !null or !undef
-		// Get repo
-		const oldRepository = await this.repositoryDetailedRepository.findFirst({
-			where: { id: repository_id },
-		});
-
-		if (!oldRepository) {
-			throw new RepositoryNotFoundError(repository_id);
-		}
-
-		// @TODO relocate this?
-		const event = new RepositoryUpdatedEvent(
-			randomUUID(),
-			new Date(),
-			{
-				...entityData,
-				changes: {
-					...entityData,
-				},
-				oldRepository: {
-					...oldRepository,
-				},
-				repositoryId: repository_id,
-			},
-			user_id,
-			Session.getInstance().getUser()?.username,
-		);
-		this.domainEventEmitter.emit("RepositoryUpdated", event);
-		// @TODO re-check this so we can make it super.update()
-		return this.repositoryBasicRepository.update(repository_id, entityData);
-	}
-
-	async delete(
-		repository_id: string,
-		owner_id: string | undefined,
-		auth_token: string,
-	): Promise<void> {
-		const user_id = await this.authenticateAndAuthorize(
-			auth_token,
-			repository_id,
-			"delete",
-		);
-
-		await this.performRepositoryChecks(
-			"delete",
-			{ id: repository_id, owner_id: owner_id },
-			{ id: user_id },
-		);
-
-		// @TODO relocate this?
-		const repository = await this.repositoryBasicRepository.findFirst({
-			where: { id: repository_id },
-		})
-
-		if (!repository || repository.name === undefined) {
-            throw new RepositoryNotFoundError(repository_id);
-        }
-
-		const event = new RepositoryDeletedEvent(
-			randomUUID(),
-            new Date(),
-            {
-				repositoryId: repository_id,
-				repositoryName: repository?.name,
-            },
-            user_id,
-		)
-		this.domainEventEmitter.emit("RepositoryDeleted", event);
-		return this.repositoryBasicRepository.delete(repository_id);
-	}
-
-	private async performRepositoryChecks(
+	public async performRepositoryChecks(
 		operation: "create" | "update" | "delete",
 		repositoryData: Partial<Repository>,
 		userData: Partial<User> | null,
@@ -369,7 +264,7 @@ export class RepositoryCommandService {
 				// Verify that the repository name is not taken
 				await this.repositoryValidationService.checkEntityExistence(
 					this.repositoryBasicRepository,
-					{ AND: [{ name: repositoryData.name, owner_id: userData?.id }] },
+					{ AND: [{ name: repositoryData.name, ownerId: userData?.id }] },
 					false,
 					new RepositoryNotFoundError(),
 					new RepositoryAlreadyExistsError(),
@@ -413,7 +308,7 @@ export class RepositoryCommandService {
 					await this.repositoryValidationService.checkEntityExistence(
 						this.repositoryBasicRepository,
 						{
-							AND: [{ name: repositoryData.name }, { owner_id: userData?.id }],
+							AND: [{ name: repositoryData.name }, { ownerId: userData?.id }],
 						},
 						false,
 						new RepositoryNotFoundError(),
@@ -444,34 +339,34 @@ export class RepositoryCommandService {
 		}
 	}
 
-	private async authenticateAndAuthorize(
-		auth_token: string,
-		repository_id?: string,
+	public async authenticateAndAuthorize(
+		authToken: string,
+		repositoryId?: string,
 		action: "create" | "update" | "delete" = "create",
 	): Promise<string> {
-		const user_id =
-			await this.repositoryAuthzService.authenticateUser(auth_token);
-		if (repository_id) {
+		const userId =
+			await this.repositoryAuthzService.authenticateUser(authToken);
+		if (repositoryId) {
 			const repository =
 				(await this.repositoryFetchService.getRepositoryOrThrow(
-					repository_id,
+					repositoryId,
 					true,
 				)) as RepositoryDetailed;
 			switch (action) {
 				case "update":
 					await this.repositoryAuthzService.throwIfNotRepositoryOwnerOrContributor(
-						user_id,
+						userId,
 						repository,
 					);
 					break;
 				case "delete":
 					await this.repositoryAuthzService.throwIfNotRepositoryOwner(
-						user_id,
-						repository.owner_id,
+						userId,
+						repository.ownerId,
 					);
 					break;
 			}
 		}
-		return user_id;
+		return userId;
 	}
 }

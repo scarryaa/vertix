@@ -4,6 +4,6 @@ import { PrismaRepository } from "./base.repository";
 
 export class StarRepository extends PrismaRepository<Star> {
 	constructor(prisma: PrismaClient) {
-		super(prisma, "star", ["repository_id", "user_id"]);
+		super(prisma, "star", ["repositoryId", "userId"]);
 	}
 }

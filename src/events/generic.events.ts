@@ -30,7 +30,7 @@ export class GenericEvent<PayloadType> {
 }
 
 export interface CustomErrorEvent extends Error {
-    errorDetails?: string;
+	errorDetails?: string;
 }
 
 export class GenericErrorEvent<Data> extends GenericEvent<

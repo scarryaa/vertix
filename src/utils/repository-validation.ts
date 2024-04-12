@@ -1,7 +1,6 @@
-import type { RepositoryBasic, TVisibility, UserBasic } from "../models";
+import type { RepositoryBasic, UserBasic } from "../models";
 import type { RepositoryResponse } from "../schemas/repository.schema";
 import type { UserResponse } from "../schemas/user.schema";
-import prisma from "./prisma";
 
 export function isRepositoryNameValid(name: string): boolean {
 	const regex = /^[a-zA-Z0-9-]+$/;
@@ -10,30 +9,30 @@ export function isRepositoryNameValid(name: string): boolean {
 
 export const mapRepositoryResponse = (
 	repository: RepositoryBasic,
-	owner_id: string,
-	created_at: Date,
-	updated_at: Date,
+	ownerId: string,
+	createdAt: Date,
+	updatedAt: Date,
 	visibility: string,
 ): RepositoryResponse => ({
 	...repository,
 	description: repository.description,
-	owner_id,
-	created_at: created_at,
+	ownerId: ownerId,
+	created_at: createdAt,
 	visibility: visibility as "public" | "private",
-	updated_at: updated_at,
+	updated_at: updatedAt,
 });
 
 export const mapUserResponse = (
 	user: UserBasic,
-	created_at: Date,
-	updated_at: Date,
+	createdAt: Date,
+	updatedAt: Date,
 	index: number,
 	array: UserBasic[],
 ): UserResponse => ({
-	created_at,
+	created_at: createdAt,
 	email: user.email,
 	id: user.id,
 	name: user.name,
-	updated_at,
+	updated_at: updatedAt,
 	username: user.username,
 });

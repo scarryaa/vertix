@@ -15,11 +15,13 @@ export const createStar =
 		req: FastifyRequest<{ Body?: StarInput }>,
 		reply: FastifyReply,
 	): Promise<StarResponse> => {
-		const { repository_id } = createStarSchema.parse(req.body);
+		const { repositoryId } = createStarSchema.parse(req.body);
 
 		const newStar = await starService.createStar(
 			{
-				repository_id,
+				repositoryId,
+				// @TODO fix this ??
+				userId: req.user?.userId ?? "",
 			},
 			req.unsignedToken,
 		);

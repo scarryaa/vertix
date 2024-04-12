@@ -135,7 +135,7 @@ describe("RepositoryRepositoryService", () => {
 				"filtering by name",
 			],
 			[
-				{ where: { owner_id: 1 } },
+				{ where: { ownerId: 1 } },
 				"auth-token",
 				false,
 				repositories,
@@ -197,7 +197,7 @@ describe("RepositoryRepositoryService", () => {
 			};
 			const expectedEntityData = {
 				...entityData,
-				owner_id: undefined,
+				ownerId: undefined,
 			};
 			const authToken = "valid-token";
 
@@ -209,7 +209,7 @@ describe("RepositoryRepositoryService", () => {
 			userService.checkUserExists.mockResolvedValue(true);
 			repositoryBasicRepository.create.mockResolvedValue({
 				...expectedEntityData,
-				owner_id: 1,
+				ownerId: 1,
 				id: 1,
 				created_at: new Date(),
 				updated_at: new Date(),
@@ -217,7 +217,7 @@ describe("RepositoryRepositoryService", () => {
 
 			const result = await service.create(entityData, authToken);
 
-			expect(result).toMatchObject({ ...expectedEntityData, owner_id: 1 });
+			expect(result).toMatchObject({ ...expectedEntityData, ownerId: 1 });
 			expect(repositoryBasicRepository.create).toHaveBeenCalledWith(
 				expectedEntityData,
 			);
@@ -276,7 +276,7 @@ describe("RepositoryRepositoryService", () => {
 			id: 1,
 			name: "Test Repo",
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 			created_at: new Date(),
 			updated_at: new Date(),
 			description: "Test Description",
@@ -285,7 +285,7 @@ describe("RepositoryRepositoryService", () => {
 			id: 1,
 			name: "Updated Repo",
 			visibility: "public",
-			owner_id: 1,
+			ownerId: 1,
 			created_at: new Date(),
 			updated_at: new Date(),
 			description: "Test Description",
@@ -324,7 +324,7 @@ describe("RepositoryRepositoryService", () => {
 			description: "Test Description",
 			id: 1,
 			name: "Updated Repo",
-			owner_id: 1,
+			ownerId: 1,
 			updated_at: new Date(),
 			visibility: "public",
 		};
@@ -356,7 +356,7 @@ describe("RepositoryRepositoryService", () => {
 				id: 1,
 				name: "Updated Repo",
 				visibility: "public",
-				owner_id: 1,
+				ownerId: 1,
 				created_at: new Date(),
 				updated_at: new Date(),
 				description: "Test Description",
@@ -373,7 +373,7 @@ describe("RepositoryRepositoryService", () => {
 				id: 9,
 				description: "Test Description",
 				name: "some-name",
-				owner_id: 1,
+				ownerId: 1,
 				visibility: "public",
 			});
 			repositoryDetailedRepository.findFirst.mockResolvedValue(
@@ -458,7 +458,7 @@ describe("RepositoryRepositoryService", () => {
 	// 		id: 1,
 	// 		name: "Test Repo",
 	// 		visibility: "public",
-	// 		owner_id: 1,
+	// 		ownerId: 1,
 	// 		created_at: new Date(),
 	// 		updated_at: new Date(),
 	// 		description: "Test Description",
@@ -469,7 +469,7 @@ describe("RepositoryRepositoryService", () => {
 	// 		repositoryBasicRepository.findFirst.mockResolvedValue({
 	// 			...repository,
 	// 			id: 1,
-	// 			owner_id: 1,
+	// 			ownerId: 1,
 	// 		});
 	// 		repositoryBasicRepository.delete.mockResolvedValue();
 	// 		(authenticator.authenticate as jest.Mock).mockResolvedValue({

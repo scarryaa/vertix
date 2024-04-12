@@ -1,29 +1,29 @@
 export const verifyEntityExists = async ({
 	repository,
 	condition,
-	NotFoundError,
+	notFoundError,
 }: {
 	repository: { findFirst: (condition: any) => Promise<any> };
 	condition: any;
-	NotFoundError: new () => Error;
+	notFoundError: new () => Error;
 }): Promise<void> => {
 	const entity = await repository.findFirst(condition);
 	if (!entity) {
-		throw new NotFoundError();
+		throw new notFoundError();
 	}
 };
 
 export const verifyEntityDoesNotExist = async ({
 	repository,
 	condition,
-	FoundError,
+	foundError,
 }: {
 	repository: { findFirst: (options: { where: any }) => Promise<any> };
 	condition: any;
-	FoundError: new () => Error;
+	foundError: new () => Error;
 }): Promise<void> => {
 	const entity = await repository.findFirst({ where: condition });
 	if (entity) {
-		throw new FoundError();
+		throw new foundError();
 	}
 };

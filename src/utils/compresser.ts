@@ -1,8 +1,8 @@
 import { promisify } from "node:util";
-import { gzip } from "node:zlib";
-import type { DomainEvent } from "../events/domain.event";
+import { gunzip, gzip } from "node:zlib";
 
 const gzipAsync = promisify(gzip);
+const gunzipAsync = promisify(gunzip);
 
 export async function compressEvent(eventPayload: unknown): Promise<string> {
 	try {
@@ -15,15 +15,13 @@ export async function compressEvent(eventPayload: unknown): Promise<string> {
 	}
 }
 
-export async function decompressEvent(
-	compressedEvent: string,
-): Promise<DomainEvent> {
+export async function decompressEvent(compressedEvent: string): Promise<any> {
 	try {
 		const serializedEvent = Buffer.from(compressedEvent, "base64");
-		const decompressedEvent = await gzipAsync(serializedEvent);
+		const decompressedEvent = await gunzipAsync(serializedEvent);
+		console.log(decompressedEvent.toString("utf8"));
 		return JSON.parse(decompressedEvent.toString("utf8"));
 	} catch (error) {
-		// @TODO throw more specific error
 		throw new Error("Event could not be decompressed");
 	}
 }

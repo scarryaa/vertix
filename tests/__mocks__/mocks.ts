@@ -91,7 +91,7 @@ export const generateRepository = (
 	id: 1,
 	name: "Test Repo",
 	visibility: "public",
-	owner_id: 1,
+	ownerId: 1,
 	created_at: new Date(),
 	updated_at: new Date(),
 	description: "Test Description",
@@ -246,7 +246,7 @@ export const generateRepositoryDetailed = (
 	owner: {
 		...generateUser(),
 	},
-	owner_id: 1,
+	ownerId: 1,
 	issues: [],
 	stars: [],
 	programming_languages: [],

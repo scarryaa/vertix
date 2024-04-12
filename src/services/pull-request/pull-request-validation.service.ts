@@ -1,13 +1,13 @@
 import type { PullRequest } from "../../models";
 
 export class PullRequestValidationService {
-	async validateNewPullRequest(pull_request: PullRequest): Promise<void> {
+	async validateNewPullRequest(pullRequest: PullRequest): Promise<void> {
 		// Implementation to validate the new pull request
 	}
 
 	async validatePullRequestUpdate(
 		pullRequestId: string,
-		pull_request: Partial<PullRequest>,
+		pullRequest: Partial<PullRequest>,
 	): Promise<void> {
 		// Validate updates to an existing pull request
 	}
