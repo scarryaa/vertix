@@ -9,9 +9,9 @@ export const postgresDatasource = new DataSource({
 	entities: [],
 	host: "localhost",
 	port: 5432,
-	username: "test",
-	password: "test",
-	database: "test",
+	username: process.env.DB_USER,
+	password: process.env.DB_PASSWORD,
+	database: process.env.DB_NAME,
 });
 
 registerProvider<DataSource>({
@@ -27,7 +27,7 @@ registerProvider<DataSource>({
 	},
 	hooks: {
 		$onDestroy(dataSource) {
-			return dataSource.isInitialized && dataSource.close();
+			return dataSource.isInitialized && dataSource.destroy();
 		},
 	},
 });

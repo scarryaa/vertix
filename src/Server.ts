@@ -12,7 +12,7 @@ import * as rest from "./controllers/rest/index";
 	...config,
 	acceptMimes: ["application/json"],
 	httpPort: process.env.PORT || 8083,
-	httpsPort: false, // CHANGE
+	httpsPort: false,
 	disableComponentsScan: true,
 	ajv: {
 		returnsCoercedValues: true,
@@ -44,7 +44,7 @@ import * as rest from "./controllers/rest/index";
 	exclude: ["**/*.spec.ts"],
 })
 export class Server {
-	@Inject()
+	@Inject("PlatformApplication")
 	protected app: PlatformApplication;
 
 	@Configuration()
