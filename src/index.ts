@@ -1,20 +1,34 @@
-import { AppDataSource } from "./data-source"
-import { User } from "./entity/User"
+import { $log } from "@tsed/common";
+import { PlatformExpress } from "@tsed/platform-express";
+import { AggregateRootFactory } from "./CQRS/aggregrate-roots/AggregateRootFactory";
+import { UserAggregateRoot } from "./CQRS/aggregrate-roots/UserAggregateRoot";
+import { Server } from "./Server";
 
-AppDataSource.initialize().then(async () => {
+async function bootstrap() {
+	try {
+		const platform = await PlatformExpress.bootstrap(Server);
+		await platform.listen();
 
-    console.log("Inserting a new user into the database...")
-    const user = new User()
-    user.firstName = "Timber"
-    user.lastName = "Saw"
-    user.age = 25
-    await AppDataSource.manager.save(user)
-    console.log("Saved a new user with id: " + user.id)
+		// Rehydrate the aggregate roots
+		registerAggregateRoots();
 
-    console.log("Loading users from the database...")
-    const users = await AppDataSource.manager.find(User)
-    console.log("Loaded users: ", users)
+		process.on("SIGINT", () => {
+			platform.stop();
+		});
+	} catch (error) {
+		$log.error({
+			event: "SERVER_BOOTSTRAP_ERROR",
+			message: error.message,
+			stack: error.stack,
+		});
+	}
+}
 
-    console.log("Here you can setup and run express / fastify / any other framework.")
+const registerAggregateRoots = () => {
+	AggregateRootFactory.registerAggregateRoot(
+		"UserAggregateRoot",
+		UserAggregateRoot,
+	);
+};
 
-}).catch(error => console.log(error))
+bootstrap();

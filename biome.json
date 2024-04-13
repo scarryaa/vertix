@@ -6,18 +6,25 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"all": true
 		}
 	},
 	"javascript": {
 		"formatter": {
 			"enabled": true
+		},
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
 		}
 	},
 	"css": {
 		"formatter": {
 			"enabled": true
 		}
+	},
+	"formatter": {
+		"enabled": true,
+		"formatWithErrors": false
 	},
 	"vcs": {
 		"enabled": true,

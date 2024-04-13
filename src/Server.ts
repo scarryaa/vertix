@@ -7,6 +7,7 @@ import "@tsed/swagger";
 import { config } from "./config/index";
 import * as pages from "./controllers/pages/index";
 import * as rest from "./controllers/rest/index";
+import { PostgresDatasource } from "./datasources/PostgresDatasource";
 
 @Configuration({
 	...config,
@@ -46,6 +47,9 @@ import * as rest from "./controllers/rest/index";
 export class Server {
 	@Inject("PlatformApplication")
 	protected app: PlatformApplication;
+
+	@Inject(PostgresDatasource)
+	protected postgresDatasource: PostgresDatasource;
 
 	@Configuration()
 	protected settings: Configuration;
