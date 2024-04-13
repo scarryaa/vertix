@@ -1,34 +1,19 @@
-import { $log } from "@tsed/common";
-import { PlatformExpress } from "@tsed/platform-express";
-import { AggregateRootFactory } from "./CQRS/aggregrate-roots/AggregateRootFactory";
-import { UserAggregateRoot } from "./CQRS/aggregrate-roots/UserAggregateRoot";
-import { Server } from "./Server";
+import express from "express";
 
-async function bootstrap() {
-	try {
-		const platform = await PlatformExpress.bootstrap(Server);
-		await platform.listen();
+class Vertix {
+	async run() {
+		const app = express();
+		const port = 3000;
 
-		// Rehydrate the aggregate roots
-		registerAggregateRoots();
-
-		process.on("SIGINT", () => {
-			platform.stop();
+		app.get("/", (req, res) => {
+			res.send("Hello World!");
 		});
-	} catch (error) {
-		$log.error({
-			event: "SERVER_BOOTSTRAP_ERROR",
-			message: error.message,
-			stack: error.stack,
+
+		app.listen(port, () => {
+			console.log(`Server running at http://localhost:${port}/`);
 		});
 	}
 }
 
-const registerAggregateRoots = () => {
-	AggregateRootFactory.registerAggregateRoot(
-		"UserAggregateRoot",
-		UserAggregateRoot,
-	);
-};
-
-bootstrap();
+const vertix = new Vertix();
+vertix.run();
