@@ -11,7 +11,8 @@
 		"typeRoots": ["./node_modules/@types", "./types"],
 		"strictNullChecks": true,
 		"noUncheckedIndexedAccess": true,
-		"experimentalDecorators": true
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
 	},
 	"include": ["src/**/*", "./types", "tests"]
 }
