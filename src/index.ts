@@ -1,23 +1,17 @@
-import dotenv from "dotenv";
 import express from "express";
 import "reflect-metadata";
-import { config } from "./config";
+import { Config } from "./config";
 import { AppDataSource } from "./data-source";
 import { Logger } from "./logger";
 import { routes } from "./routes";
 import { userRoutes } from "./routes/users";
 
 class Vertix {
-	private logger: Logger;
-
-	constructor(logger: Logger) {
-		this.logger = logger;
-	}
-
 	async initialize(): Promise<void> {
-		config();
+		global.$logger = Logger.getInstance();
+		Config.loadConfig();
 
-		await AppDataSource.initialize();
+		await AppDataSource.getInstance().initialize();
 	}
 
 	async run() {
@@ -29,11 +23,10 @@ class Vertix {
 		app.use(routes);
 		app.use("/users", userRoutes);
 		app.listen(port, () => {
-			this.logger.info(`Server running on port ${port}`);
+			$logger.info(`Server running on port ${port}`);
 		});
 	}
 }
 
-const logger = new Logger();
-const vertix = new Vertix(logger);
+const vertix = new Vertix();
 vertix.run();

@@ -1,15 +1,15 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from "typeorm";
 
 @Entity()
-export class EventEntity {
+export class EventEntity<T> {
 	@PrimaryColumn("uuid")
 	id: string;
 
 	@Column()
 	eventType: string;
 
-	@Column("simple-json")
-	payload: string;
+	@Column("jsonb")
+	payload: any;
 
 	@Column()
 	aggregateId: string;
@@ -20,7 +20,7 @@ export class EventEntity {
 	constructor(
 		id: string,
 		eventType: string,
-		payload: string,
+		payload: any,
 		aggregateId: string,
 	) {
 		this.id = id;

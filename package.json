@@ -4,26 +4,37 @@
 	"description": "The Vertix server implementation for Codestash",
 	"main": "index.ts",
 	"scripts": {
-		"start:dev": "NODE_ENV=development ts-node ./src/index.ts",
-		"start:prod": "NODE_ENV=production ts-node./src/index.ts",
+		"start:dev": "NODE_ENV=development ts-node --files ./src/index.ts",
+		"start:prod": "NODE_ENV=production ts-node --files ./src/index.ts",
 		"biome:format:fix": "pnpm biome format --write ./",
 		"biome:lint:fix": "pnpm biome lint --apply ./",
-		"biome:fix-all": "pnpm biome:lint:fix; pnpm biome:format:fix"
+		"biome:fix-all": "pnpm biome:lint:fix; pnpm biome:format:fix",
+		"typeorm": "ts-node-dev --files ./node_modules/typeorm/cli.js",
+		"typeorm:migrate": "pnpm typeorm schema:drop -d ./src/data-source/index.ts"
 	},
-	"keywords": ["vertix", "codestash", "server"],
+	"keywords": [
+		"vertix",
+		"codestash",
+		"server"
+	],
 	"author": "scarryaa",
 	"license": "MIT",
 	"dependencies": {
 		"@types/node": "^20.12.7",
+		"bcrypt": "^5.1.1",
 		"express": ">=5.0.0-beta.1",
+		"joi": "^17.12.3",
 		"pg": "^8.11.5",
 		"reflect-metadata": "^0.2.2",
 		"typeorm": "^0.3.20"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.6.4",
+		"@types/bcrypt": "^5.0.2",
 		"@types/express": "^4.17.21",
+		"@types/jest": "^29.5.12",
 		"dotenv": "^16.4.5",
-		"ts-node": "^10.9.2"
+		"ts-node": "^10.9.2",
+		"ts-node-dev": "^2.0.0"
 	}
 }

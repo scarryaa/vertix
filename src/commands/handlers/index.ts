@@ -8,5 +8,5 @@ export abstract class BaseCommandHandler {
 		this.eventStore = eventStore;
 	}
 
-	abstract handle(command: any): Promise<void>;
+	abstract handle(command: BaseCommand<any>): Promise<void>;
 }

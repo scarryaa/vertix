@@ -1,5 +1,3 @@
-import type { BaseEvent } from "../events";
-
 export abstract class AggregateRoot {
 	id: string;
 

@@ -1,5 +1,3 @@
-import { generateUuid } from "../util";
-
 export type BasePayload = {};
 
 export class BaseEvent<U extends BasePayload> {

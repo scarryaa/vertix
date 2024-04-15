@@ -26,7 +26,9 @@ export class GetAllUsersQueryHandler {
 				const index = acc.findIndex(
 					(user: any) => user.id === event.aggregateId,
 				);
-				if (index !== -1) acc.splice(index, 1);
+				if (index !== -1) {
+					acc.splice(index, 1);
+				}
 			} else if (event.eventType === "UserCreatedEvent") {
 				// Handle UserCreatedEvent or other event types
 				const user = this.replayEvent(event);

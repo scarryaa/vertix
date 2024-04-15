@@ -12,7 +12,8 @@
 		"strictNullChecks": true,
 		"noUncheckedIndexedAccess": true,
 		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true
+		"emitDecoratorMetadata": true,
+		"types": ["node", "jest"]
 	},
 	"include": ["src/**/*", "./types", "tests"]
 }

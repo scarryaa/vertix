@@ -1,7 +1,9 @@
 import { AggregateRoot } from ".";
+import type { BaseEvent, BasePayload } from "../events";
 import type {
 	CreateUserPayload,
 	DeleteUserPayload,
+	UpdateUserPayload,
 	UserEvent,
 } from "../events/user.event";
 
@@ -26,18 +28,45 @@ export class UserAggregate extends AggregateRoot {
 		this.deleted = true;
 	}
 
-	public applyEvent<T extends CreateUserPayload & DeleteUserPayload>(
-		event: UserEvent<T>,
-	): void {
+	public applyUserUpdatedEvent(event: { payload: UpdateUserPayload }) {
+		this.userId = event.payload.userId;
+
+		if (event.payload.username) {
+			this.username = event.payload.username;
+		}
+
+		if (event.payload.password) {
+			this.password = event.payload.password;
+		}
+
+		if (event.payload.email) {
+			this.email = event.payload.email;
+		}
+
+		if (event.payload.name) {
+			this.name = event.payload.name;
+		}
+
+		$logger.info(`Updated user ${this.userId}`);
+	}
+
+	applyEvent(event: BaseEvent<BasePayload>) {
 		switch (event.eventType) {
-			case "UserCreatedEvent":
-				this.applyUserCreatedEvent(event);
+			case "UserCreated": {
+				const createUserEvent = event as UserEvent<CreateUserPayload>;
+				this.applyUserCreatedEvent(createUserEvent);
 				break;
-			case "UserDeletedEvent":
-				this.applyUserDeletedEvent(event);
+			}
+			case "UserDeleted": {
+				const deleteUserEvent = event as UserEvent<DeleteUserPayload>;
+				this.applyUserDeletedEvent(deleteUserEvent);
 				break;
-			default:
+			}
+			case "UserUpdated": {
+				const updateUserEvent = event as UserEvent<UpdateUserPayload>;
+				this.applyUserUpdatedEvent(updateUserEvent);
 				break;
+			}
 		}
 	}
 

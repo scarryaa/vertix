@@ -1,64 +1,98 @@
-import { randomUUID } from "node:crypto";
-import type { Repository } from "typeorm";
-import { BaseEvent, BasePayload } from ".";
+import { Brackets } from "typeorm";
+import { BaseEvent, type BasePayload } from ".";
 import { AppDataSource } from "../data-source";
 import { EventEntity } from "../entities/Event";
+import { Logger } from "../logger";
 
 export class EventStore {
-	// @TODO make a separare class for this?
-	private repository: Repository<EventEntity>;
-
-	constructor() {
-		this.repository = AppDataSource.getRepository(EventEntity);
+	// Need this because we can't set the repository in the constructor
+	getRepository() {
+		return AppDataSource.getInstance().getRepository(EventEntity);
 	}
 
 	async logAllEvents(): Promise<void> {
-		const events = await this.repository.find();
+		const events = await this.getRepository().find();
 		for (const event of events) {
-			console.log(event);
+			Logger.getInstance().info(JSON.stringify(event));
 		}
 	}
 
-	async loadEventsForAggregate(aggregateId: string): Promise<BaseEvent<any>[]> {
-		const events = await this.repository.find({
-			where: {
-				aggregateId,
-			},
-		});
+	async loadEventsForAggregate<T extends Partial<BasePayload>>(options: {
+		aggregateId?: string;
+		payload?: T & { _or?: any };
+	}): Promise<BaseEvent<T>[]> {
+		const queryBuilder = this.getRepository().createQueryBuilder("event");
 
-		return events.map((event) => {
-			return new BaseEvent(
-				event.aggregateId,
-				event.id,
-				event.eventType,
-				JSON.parse(event.payload),
-			);
-		});
+		if (options.aggregateId) {
+			queryBuilder.where("event.aggregateId = :aggregateId", {
+				aggregateId: options.aggregateId,
+			});
+		}
+
+		if (options.payload) {
+			if ("_or" in options.payload) {
+				const orConditions = options.payload._or as BasePayload[];
+				queryBuilder.andWhere(
+					new Brackets((qb) => {
+						orConditions.forEach((condition: any, index: number) => {
+							const conditionKey = Object.keys(condition)[0];
+							qb.orWhere(
+								`event.payload->>'${conditionKey}' = :conditionValue${index}`,
+								{
+									[`conditionValue${index}`]: condition[conditionKey!],
+								},
+							);
+						});
+					}),
+				);
+			} else {
+				// Existing logic for direct matching
+				for (const [key, value] of Object.entries(options.payload)) {
+					queryBuilder.andWhere(`event.payload->>'${key}' = :${key}`, {
+						[key]: (options.payload as any)[key],
+					});
+				}
+			}
+		}
+
+		const events = await queryBuilder.getMany();
+		return events.map(
+			(event) =>
+				new BaseEvent<T>(
+					event.aggregateId,
+					event.id,
+					event.eventType,
+					event.payload,
+				),
+		);
 	}
 
-	async loadAllEventsOfType(eventType: string): Promise<BaseEvent<any>[]> {
-		const events = await this.repository.find({
+	async loadAllEventsOfType<T extends BasePayload>(
+		eventType: string,
+	): Promise<BaseEvent<T>[]> {
+		const events = await this.getRepository().find({
 			where: {
 				eventType,
 			},
 		});
 
 		return events.map((event) => {
-			return new BaseEvent(
+			return new BaseEvent<T>(
 				event.aggregateId,
 				event.id,
 				event.eventType,
-				JSON.parse(event.payload),
+				event.payload,
 			);
 		});
 	}
 
 	async clearAllEvents(): Promise<void> {
 		try {
-			const userRepository = AppDataSource.getRepository(EventEntity);
+			const userRepository =
+				AppDataSource.getInstance().getRepository(EventEntity);
 			await userRepository.clear();
 		} catch (error) {
-			console.error(error);
+			$logger.error(error);
 			throw error;
 		}
 	}
@@ -67,14 +101,14 @@ export class EventStore {
 		const eventEntity = new EventEntity(
 			event.id,
 			event.eventType,
-			JSON.stringify(event.payload),
+			event.payload,
 			event.aggregateId,
 		);
 
 		try {
-			await this.repository.save(eventEntity);
+			await this.getRepository().save(eventEntity);
 		} catch (error) {
-			console.error(error);
+			$logger.error(error);
 			throw error;
 		}
 	}
