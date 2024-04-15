@@ -5,13 +5,17 @@ export function asyncHandler(
 		req: express.Request,
 		res: express.Response,
 		next: express.NextFunction,
-	) => Promise<any>,
+	) => Promise<any> | void,
 ) {
 	return async (
 		req: express.Request,
 		res: express.Response,
 		next: express.NextFunction,
 	) => {
-		await Promise.resolve(fn(req, res, next)).catch(next);
+		try {
+            await Promise.resolve(fn(req, res, next)).catch(next);
+        } catch (err) {
+            next(err);
+        }
 	};
 }

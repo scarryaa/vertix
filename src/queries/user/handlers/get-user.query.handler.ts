@@ -1,10 +1,10 @@
-import { UserAggregate } from "../../aggregrates/user.aggregrate";
-import type { EventStore } from "../../events/store.event";
+import { UserAggregate, UserEventType } from "../../../aggregrates/user.aggregrate";
+import type { EventStore } from "../../../events/store.event";
 import type {
 	CreateUserPayload,
 	DeleteUserPayload,
 	UserEvent,
-} from "../../events/user.event";
+} from "../../../events/user.event";
 import { GetUserQuery } from "../get-user.query";
 
 export class GetUserQueryHandler {
@@ -21,16 +21,13 @@ export class GetUserQueryHandler {
 		const events = await this.eventStore.loadEventsForAggregate({
 			aggregateId: query.userId,
 		});
-		$logger.info(JSON.stringify(events));
 
 		// Reconstruct the user
 		const userAggregate = new UserAggregate(query.userId);
 		for (const event of events) {
-			$logger.debug(`Applying event ${event.eventType}`);
-			// Example type check and casting
-			if (event.eventType === "UserCreated") {
+			if (event.eventType === UserEventType.UserCreatedEvent) {
 				userAggregate.applyEvent(event as UserEvent<CreateUserPayload>);
-			} else if (event.eventType === "UserDeleted") {
+			} else if (event.eventType === UserEventType.UserDeletedEvent) {
 				userAggregate.applyEvent(event as UserEvent<DeleteUserPayload>);
 			}
 		}
@@ -39,6 +36,7 @@ export class GetUserQueryHandler {
 			return null;
 		}
 
-		return userAggregate;
+		// Return without password
+		return userAggregate.toPublicObject();
 	}
 }

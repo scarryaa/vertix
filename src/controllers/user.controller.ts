@@ -1,12 +1,12 @@
-import type { CreateUserCommand } from "../commands/create-user.command";
-import type { DeleteUserCommand } from "../commands/delete-user.command";
-import type { CreateUserCommandHandler } from "../commands/handlers/create-user.command.handler";
-import type { DeleteUserCommandHandler } from "../commands/handlers/delete-user.command.handler";
-import type { UpdateUserCommandHandler } from "../commands/handlers/update-user.command.handler";
-import type { UpdateUserCommand } from "../commands/update-user.command";
-import { GetUserQuery } from "../queries/get-user.query";
-import type { GetAllUsersQueryHandler } from "../queries/handlers/get-all-users.query.handler";
-import type { GetUserQueryHandler } from "../queries/handlers/get-user.query.handler";
+import type { CreateUserCommand } from "../commands/user/create-user.command";
+import type { DeleteUserCommand } from "../commands/user/delete-user.command";
+import type { CreateUserCommandHandler } from "../commands/user/handlers/create-user.command.handler";
+import type { DeleteUserCommandHandler } from "../commands/user/handlers/delete-user.command.handler";
+import type { UpdateUserCommandHandler } from "../commands/user/handlers/update-user.command.handler";
+import type { UpdateUserCommand } from "../commands/user/update-user.command";
+import { GetUserQuery } from "../queries/user/get-user.query";
+import type { GetAllUsersQueryHandler } from "../queries/user/handlers/get-all-users.query.handler";
+import type { GetUserQueryHandler } from "../queries/user/handlers/get-user.query.handler";
 
 export class UserController {
 	private createUserCommandHandler: CreateUserCommandHandler;

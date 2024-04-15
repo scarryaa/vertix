@@ -1,13 +1,25 @@
 import { Brackets } from "typeorm";
 import { BaseEvent, type BasePayload } from ".";
+import type { UserEventType } from "../aggregrates/user.aggregrate";
 import { AppDataSource } from "../data-source";
 import { EventEntity } from "../entities/Event";
 import { Logger } from "../logger";
 
 export class EventStore {
+	private static instance: EventStore;
+
+	private constructor() {}
+
 	// Need this because we can't set the repository in the constructor
 	getRepository() {
 		return AppDataSource.getInstance().getRepository(EventEntity);
+	}
+
+	static getInstance(): EventStore {
+		if (!EventStore.instance) {
+			EventStore.instance = new EventStore();
+		}
+		return EventStore.instance;
 	}
 
 	async logAllEvents(): Promise<void> {
@@ -61,7 +73,7 @@ export class EventStore {
 				new BaseEvent<T>(
 					event.aggregateId,
 					event.id,
-					event.eventType,
+					event.eventType as UserEventType,
 					event.payload,
 				),
 		);
@@ -80,7 +92,7 @@ export class EventStore {
 			return new BaseEvent<T>(
 				event.aggregateId,
 				event.id,
-				event.eventType,
+				event.eventType as UserEventType,
 				event.payload,
 			);
 		});

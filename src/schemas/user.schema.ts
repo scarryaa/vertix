@@ -1,8 +1,9 @@
 import Joi from "joi";
 
+// Require at least one uppercase letter, one lowercase letter, and one number
 const password = Joi.string()
 	.regex(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/)
-	.required()
+	.min(8)
 	.error(
 		() =>
 			new Error(
@@ -10,16 +11,23 @@ const password = Joi.string()
 			),
 	);
 
+// No space allowed
+const username = Joi.string()
+	.regex(/^[a-zA-Z0-9]+$/)
+	.min(3)
+	.max(30)
+	.error(
+		() =>
+			new Error(
+				"Username must be at least 3 characters long and contain only letters and numbers",
+			),
+	);
+
 export const createUserSchema = Joi.object({
-	username: Joi.string().required().min(3).max(30),
-	// Require at least one uppercase letter, one lowercase letter, and one number
-	password: password,
+	username: username.required(),
+	password: password.required(),
 	email: Joi.string().email().required(),
 	name: Joi.string().required().min(1),
-});
-
-export const deleteUserSchema = Joi.object({
-	userId: Joi.string().required(),
 });
 
 export const getUserSchema = Joi.object({
@@ -30,9 +38,13 @@ export const getAllUsersSchema = Joi.object({});
 
 export const updateUserSchema = Joi.object({
 	userId: Joi.string().required(),
-	username: Joi.string().min(3).max(30),
-	// Require at least one uppercase letter, one lowercase letter, and one number
-	password: Joi.string().regex(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/),
+	username: username,
+	password: password,
 	email: Joi.string().email(),
 	name: Joi.string().min(1),
 }).or("username", "password", "email", "name");
+
+export const loginUserSchema = Joi.object({
+	username: Joi.string().required(),
+    password: Joi.string().required(),
+});

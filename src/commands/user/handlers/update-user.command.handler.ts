@@ -1,11 +1,11 @@
 import bcrypt from "bcrypt";
-import { BaseCommandHandler } from ".";
-import { UserAggregate } from "../../aggregrates/user.aggregrate";
-import { Config } from "../../config";
-import { DoesNotExistError } from "../../errors/does-not-exist.error";
-import type { EventStore } from "../../events/store.event";
-import { UserEventFactory } from "../../events/user-factory.event";
+import { UserAggregate } from "../../../aggregrates/user.aggregrate";
+import { Config } from "../../../config";
+import type { EventStore } from "../../../events/store.event";
+import { UserEventFactory } from "../../../events/user-factory.event";
+import { BaseCommandHandler } from "../../handlers";
 import type { UpdateUserCommand } from "../update-user.command";
+import { ensureUpdatedUserDoesNotExist, ensureUserExists } from "../validation";
 
 export class UpdateUserCommandHandler extends BaseCommandHandler {
 	protected eventStore: EventStore;
@@ -16,7 +16,11 @@ export class UpdateUserCommandHandler extends BaseCommandHandler {
 	}
 
 	async handle(command: UpdateUserCommand) {
-		await this.ensureUserExists(command.id);
+		await ensureUserExists(this.eventStore)(command.id);
+		await ensureUpdatedUserDoesNotExist(this.eventStore)(
+			command.email,
+			command.username,
+		);
 
 		const user = new UserAggregate(command.id);
 		const input: {
@@ -50,15 +54,7 @@ export class UpdateUserCommandHandler extends BaseCommandHandler {
 		}
 
 		const event = UserEventFactory.updateUserEvent(input);
-        this.eventStore.save(event);
+		this.eventStore.save(event);
 		user.applyUserUpdatedEvent(event);
-	}
-
-	async ensureUserExists(userId: string) {
-		// Check if the user exists
-		const userEvents = await this.eventStore.loadEventsForAggregate({ aggregateId: userId });
-		if (!userEvents.length) {
-			throw new DoesNotExistError("User does not exist.");
-		}
 	}
 }

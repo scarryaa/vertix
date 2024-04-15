@@ -1,4 +1,4 @@
-import { BaseCommand } from ".";
+import { BaseCommand } from "..";
 
 export class CreateUserCommand extends BaseCommand<CreateUserCommand> {
 	public id: string;

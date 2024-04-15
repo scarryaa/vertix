@@ -10,6 +10,7 @@ export class Config {
 	private static DB_NAME: string;
 	private static SALT_ROUNDS: number;
 	private static LOG_LEVEL: string;
+	private static JWT_SECRET: string;
 
 	public static loadConfig() {
 		// Have to use console.info because logger config is not loaded yet
@@ -32,6 +33,7 @@ export class Config {
 		Config.DB_NAME = process.env.DB_NAME || "";
 		Config.SALT_ROUNDS = Number(process.env.SALT_ROUNDS);
 		Config.LOG_LEVEL = process.env.LOG_LEVEL || "";
+		Config.JWT_SECRET = process.env.JWT_SECRET || "";
 	}
 
 	private static validateConfig(): void {
@@ -42,6 +44,7 @@ export class Config {
 			"DB_NAME",
 			"SALT_ROUNDS",
 			"LOG_LEVEL",
+			"JWT_SECRET",
 		];
 		for (const configKey of requiredConfigs) {
 			const value = Config.getConfigValue(configKey);
@@ -65,10 +68,16 @@ export class Config {
 				return Config.SALT_ROUNDS;
 			case "LOG_LEVEL":
 				return Config.LOG_LEVEL;
+			case "JWT_SECRET":
+				return Config.JWT_SECRET;
 			default:
 				return "";
 		}
 	}
+
+	public static get nodeEnv(): string {
+        return Config.NODE_ENV;
+    }
 
 	public static get dbPort(): number {
 		return Config.DB_PORT;
@@ -92,5 +101,9 @@ export class Config {
 
 	public static get logLevel(): string {
 		return Config.LOG_LEVEL;
+	}
+
+	public static get jwtSecret(): string {
+		return Config.JWT_SECRET;
 	}
 }

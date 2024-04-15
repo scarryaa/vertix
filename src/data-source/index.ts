@@ -9,23 +9,23 @@ export class AppDataSource {
 
 	static getInstance(): DataSource {
 		if (!AppDataSource.instance) {
-            AppDataSource.instance = createAppDataSource();
-        }
+			AppDataSource.instance = createAppDataSource();
+		}
 
-        return AppDataSource.instance;
+		return AppDataSource.instance;
 	}
 }
 
 function createAppDataSource() {
-    return new DataSource({
-        type: "postgres",
-        host: "localhost",
-        port: Config.dbPort,
-        username: Config.dbUsername,
-        password: Config.dbPassword,
-        database: Config.dbName,
-        entities: [EventEntity],
-        synchronize: true,
-        logging: false,
-    });
+	return new DataSource({
+		type: "postgres",
+		host: "localhost",
+		port: Config.dbPort,
+		username: Config.dbUsername,
+		password: Config.dbPassword,
+		database: Config.dbName,
+		entities: [EventEntity],
+		synchronize: true,
+		logging: false,
+	});
 }

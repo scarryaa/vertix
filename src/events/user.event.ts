@@ -18,6 +18,22 @@ export interface UpdateUserPayload extends BasePayload {
 	password?: string;
 	email?: string;
 	name?: string;
+	bio?: string;
+	publicEmail?: string;
+	avatarUrl?: string;
+	websiteUrl?: string;
+	followers?: number;
+	following?: number;
+	starred?: boolean;
+	twoFactorEnabled?: boolean;
+	emailVerified?: boolean;
+	notificationSettings?: string[];
+	repositories?: string[];
+	contributions?: number;
+	statusMessage?: string;
+	timezone?: string;
+	phoneNumber?: string;
+	role?: string;
 }
 
 export class UserEvent<

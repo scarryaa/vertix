@@ -1,6 +1,6 @@
-import { UserAggregate } from "../../aggregrates/user.aggregrate";
-import type { BaseEvent } from "../../events";
-import type { EventStore } from "../../events/store.event";
+import { UserAggregate, UserEventType } from "../../../aggregrates/user.aggregrate";
+import type { BaseEvent } from "../../../events";
+import type { EventStore } from "../../../events/store.event";
 
 export class GetAllUsersQueryHandler {
 	private eventStore: EventStore;
@@ -12,16 +12,16 @@ export class GetAllUsersQueryHandler {
 	async handle() {
 		// Load both UserCreated and UserDeleted events
 		const userCreatedEvents =
-			await this.eventStore.loadAllEventsOfType("UserCreatedEvent");
+			await this.eventStore.loadAllEventsOfType(UserEventType.UserCreatedEvent);
 		const userDeletedEvents =
-			await this.eventStore.loadAllEventsOfType("UserDeletedEvent");
+			await this.eventStore.loadAllEventsOfType(UserEventType.UserDeletedEvent);
 		const allEvents = [...userCreatedEvents, ...userDeletedEvents];
 
 		// Sort events by timestamp or sequence
 		allEvents.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
 		const users = allEvents.reduce((acc: any, event) => {
-			if (event.eventType === "UserDeletedEvent") {
+			if (event.eventType === UserEventType.UserDeletedEvent) {
 				// Mark the user as deleted or remove from the accumulator
 				const index = acc.findIndex(
 					(user: any) => user.id === event.aggregateId,
@@ -29,7 +29,7 @@ export class GetAllUsersQueryHandler {
 				if (index !== -1) {
 					acc.splice(index, 1);
 				}
-			} else if (event.eventType === "UserCreatedEvent") {
+			} else if (event.eventType === UserEventType.UserCreatedEvent) {
 				// Handle UserCreatedEvent or other event types
 				const user = this.replayEvent(event);
 				acc.push(user);
@@ -37,7 +37,16 @@ export class GetAllUsersQueryHandler {
 			return acc;
 		}, []);
 
-		return { users, count: users.length };
+		// Return users without password
+		const usersWithoutPasswords = users.map((user: any) => {
+			const { password, ...userWithoutPassword } = user;
+			return userWithoutPassword;
+		});
+
+		return {
+			users: usersWithoutPasswords,
+			count: usersWithoutPasswords.length,
+		};
 	}
 
 	replayEvent(event: BaseEvent<any>): any {

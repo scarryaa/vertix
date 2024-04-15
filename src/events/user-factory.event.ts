@@ -1,3 +1,4 @@
+import { UserEventType } from "../aggregrates/user.aggregrate";
 import { generateUuid } from "../util";
 import {
 	type CreateUserPayload,
@@ -13,7 +14,7 @@ export class UserEventFactory {
 	): UserEvent<CreateUserPayload> {
 		const aggregrateId = payload.userId;
 		const id = generateUuid();
-		const eventType = "UserCreatedEvent";
+		const eventType = UserEventType.UserCreatedEvent;
 		return new UserEvent<CreateUserPayload>(
 			aggregrateId,
 			id,
@@ -27,7 +28,7 @@ export class UserEventFactory {
 	): UserEvent<DeleteUserPayload> {
 		const aggregrateId = payload.userId;
 		const id = generateUuid();
-		const eventType = "UserDeletedEvent";
+		const eventType = UserEventType.UserDeletedEvent;
 		const deletionPayload: DeleteUserPayload = { userId: payload.userId };
 		return new UserEvent<DeleteUserPayload>(
 			aggregrateId,
@@ -42,7 +43,7 @@ export class UserEventFactory {
 	): UserEvent<UpdateUserPayload> {
 		const aggregrateId = payload.userId;
 		const id = generateUuid();
-		const eventType = "UserUpdatedEvent";
+		const eventType = UserEventType.UserUpdatedEvent;
 		return new UserEvent<UpdateUserPayload>(
 			aggregrateId,
 			id,
