@@ -1,5 +1,6 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import { Vertix } from "..";
 import { CreateUserCommand } from "../commands/user/create-user.command";
 import { DeleteUserCommand } from "../commands/user/delete-user.command";
 import { CreateUserCommandHandler } from "../commands/user/handlers/create-user.command.handler";
@@ -10,13 +11,14 @@ import { UserController } from "../controllers/user.controller";
 import { EventStore } from "../events/store.event";
 import { validateUserCredentials } from "../jwt";
 import { asyncHandler } from "../middleware/async-handler";
-import { jwtMiddleware } from "../middleware/jwt";
+import { type JwtPayload, jwtMiddleware, revokeToken } from "../middleware/jwt";
 import { validateRequest } from "../middleware/validation";
 import { GetUserQuery } from "../queries/user/get-user.query";
 import { GetAllUsersQueryHandler } from "../queries/user/handlers/get-all-users.query.handler";
 import { GetUserQueryHandler } from "../queries/user/handlers/get-user.query.handler";
 import {
 	createUserSchema,
+	deleteUserSchema,
 	getAllUsersSchema,
 	getUserSchema,
 	loginUserSchema,
@@ -58,6 +60,25 @@ userRoutes.get(
 	}),
 );
 
+userRoutes.get(
+	"/:userId",
+	validateRequest({ paramsSchema: getUserSchema }),
+	asyncHandler(async (req, res) => {
+		// Get a single user
+		const { userId } = req.params;
+		// biome-ignore lint/style/noNonNullAssertion: We already checked userId with Joi
+		const query = new GetUserQuery(userId!);
+		const user = await userController.getUser(query);
+
+		// Check if user is null or all properties are null
+		if (user === null || Object.keys(user).length === 0) {
+			sendNotFoundResponse(res);
+		} else {
+			sendSuccessResponse(res, user);
+		}
+	}),
+);
+
 userRoutes.patch(
 	"/",
 	validateRequest({ bodySchema: updateUserSchema }),
@@ -96,6 +117,7 @@ userRoutes.post(
 				username: user.username,
 				iat: Math.floor(Date.now() / 1000),
 				nbf: Math.floor(Date.now() / 1000),
+				jti: generateUuid(),
 			},
 			Config.jwtSecret,
 			{ expiresIn: "1h" },
@@ -112,11 +134,16 @@ userRoutes.post(
 );
 
 userRoutes.post(
-    "/logout",
-	asyncHandler((req, res) => {
-        res.clearCookie("token");
-        return sendNoContentResponse(res);
-    }),
+	"/logout",
+	asyncHandler(async (req, res) => {
+		const token = req.cookies.token;
+		if (token) {
+			const decoded = jwt.verify(token, Config.jwtSecret) as JwtPayload;
+			await revokeToken(decoded.jti);
+			res.clearCookie("token");
+		}
+		return sendNoContentResponse(res);
+	}),
 );
 
 userRoutes.post(
@@ -143,20 +170,58 @@ userRoutes.post(
 	}),
 );
 
-userRoutes.get(
-	"/:userId",
-	validateRequest({ paramsSchema: getUserSchema }),
+userRoutes.post(
+	"/request-delete",
+	jwtMiddleware,
 	asyncHandler(async (req, res) => {
-		// Get a single user
-		const { userId } = req.params;
-		// biome-ignore lint/style/noNonNullAssertion: We already checked with Joi
-		const query = new GetUserQuery(userId!);
-		const user = await getUserQueryHandler.handle(query);
+		if (req.id) {
+			const deletionToken = generateUuid();
+			// Reconstruct the user aggregate
+			const user = await Vertix.getInstance()
+				.getUserService()
+				.reconstructUserAggregateFromEvents(req.id);
 
-		if (user === null) {
-			sendNotFoundResponse(res);
+			// Store the deletion token
+			user.setDeletionToken(deletionToken);
+
+			// Send a response and email
+			Vertix.getInstance().getEmailService().sendEmail({
+				subject: "Account deletion request",
+				to: "CHANGE_THIS@gmail.com",
+                text: "Hi",
+				html: "<h1>Hi</h1>",
+            });
+			
+			sendSuccessResponse(res, {
+				message:
+					"Confirmation email sent. Please check your email to confirm account deletion.",
+			});
 		} else {
-			sendSuccessResponse(res, user);
+			sendUnauthorizedResponse(res);
+		}
+	}),
+);
+
+userRoutes.get(
+	"/confirm-delete/:deletionToken",
+	jwtMiddleware,
+	validateRequest({ paramsSchema: deleteUserSchema }),
+	asyncHandler(async (req, res) => {
+		const { deletionToken } = req.params;
+		const userId = req.id;
+
+		const user = await Vertix.getInstance()
+			.getUserService()
+			// biome-ignore lint/style/noNonNullAssertion: userId should be there from jwt middleware
+			.reconstructUserAggregateFromEvents(userId!);
+
+		// biome-ignore lint/style/noNonNullAssertion: We already validated the deletion token with Joi
+		if (user.validateDeletionToken(deletionToken!)) {
+			// Proceed with account deletion logic
+			// deleteUserByDeletionToken(deletionToken);
+			sendNoContentResponse(res);
+		} else {
+			sendUnauthorizedResponse(res);
 		}
 	}),
 );

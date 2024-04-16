@@ -4,13 +4,14 @@
 	"description": "The Vertix server implementation for Codestash",
 	"main": "index.ts",
 	"scripts": {
-		"start:dev": "NODE_ENV=development ts-node --files ./src/index.ts",
+		"start:dev": "pnpm redis:nixos & NODE_ENV=development ts-node --files ./src/index.ts",
 		"start:prod": "NODE_ENV=production ts-node --files ./src/index.ts",
 		"biome:format:fix": "pnpm biome format --write ./",
 		"biome:lint:fix": "pnpm biome lint --apply ./",
 		"biome:fix-all": "pnpm biome:lint:fix; pnpm biome:format:fix",
 		"typeorm": "ts-node-dev --files ./node_modules/typeorm/cli.js",
-		"typeorm:migrate": "pnpm typeorm schema:drop -d ./src/data-source/index.ts"
+		"typeorm:migrate": "pnpm typeorm schema:drop -d ./src/data-source/index.ts",
+		"redis:nixos": "nix-shell -p redis; redis-server"
 	},
 	"keywords": [
 		"vertix",
@@ -26,9 +27,13 @@
 		"cors": "^2.8.5",
 		"express": ">=5.0.0-beta.1",
 		"http-status-codes": "^2.3.0",
+		"imap": "^0.8.19",
+		"ioredis": "^5.3.2",
 		"joi": "^17.12.3",
 		"jsonwebtoken": "^9.0.2",
+		"nodemailer": "^6.9.13",
 		"pg": "^8.11.5",
+		"redis": "^4.6.13",
 		"reflect-metadata": "^0.2.2",
 		"typeorm": "^0.3.20"
 	},
@@ -38,8 +43,10 @@
 		"@types/cookie-parser": "^1.4.7",
 		"@types/cors": "^2.8.17",
 		"@types/express": "^4.17.21",
+		"@types/imap": "^0.8.40",
 		"@types/jest": "^29.5.12",
 		"@types/jsonwebtoken": "^9.0.6",
+		"@types/nodemailer": "^6.4.14",
 		"dotenv": "^16.4.5",
 		"ts-node": "^10.9.2",
 		"ts-node-dev": "^2.0.0"

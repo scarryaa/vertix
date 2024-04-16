@@ -30,11 +30,11 @@ export const sendNoContentResponse = (res: Response) => {
 };
 
 export const sendUnauthorizedResponse = (res: Response) => {
-	res.status(StatusCodes.UNAUTHORIZED).json({ message: "Unauthorized" });
+	res.status(StatusCodes.UNAUTHORIZED).json({ message: "Unauthorized." });
 };
 
 export const sendForbiddenResponse = (res: Response) => {
-	res.status(StatusCodes.FORBIDDEN).json({ message: "Forbidden" });
+	res.status(StatusCodes.FORBIDDEN).json({ message: "Forbidden." });
 };
 
 export const sendNotFoundResponse = (res: Response) => {

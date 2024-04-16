@@ -18,7 +18,7 @@ enum UserRole {
 	Admin = "Admin",
 }
 
-const eventHandlersKey = Symbol('eventHandlers');
+const eventHandlersKey = Symbol("eventHandlers");
 
 export class UserAggregate extends AggregateRoot {
 	private userId!: string;
@@ -47,6 +47,7 @@ export class UserAggregate extends AggregateRoot {
 	private statusMessage!: string;
 	private timezone!: string;
 	private phoneNumber!: string;
+	private deletionToken!: string | null;
 
 	public applyUserCreatedEvent(event: { payload: CreateUserPayload }) {
 		this.userId = event.payload.userId;
@@ -59,6 +60,7 @@ export class UserAggregate extends AggregateRoot {
 	public applyUserDeletedEvent(event: { payload: DeleteUserPayload }) {
 		this.userId = event.payload.userId;
 		this.deleted = true;
+		this.deletedAt = new Date();
 	}
 
 	public applyUserUpdatedEvent(event: { payload: UpdateUserPayload }) {
@@ -83,18 +85,11 @@ export class UserAggregate extends AggregateRoot {
 			"role",
 		];
 
-		// Filter out 'userId' from the keys of event.payload
-		const keys = (
-			Object.keys(event.payload) as Array<keyof UpdateUserPayload>
-		).filter((key) => key !== "userId");
+		const keys = Object.keys(event.payload) as Array<keyof UpdateUserPayload>;
 
-		for (const key of keys) {
-			if (
-				validProperties.includes(key as keyof Omit<UpdateUserPayload, "userId">)
-			) {
-				if (event.payload[key] !== undefined) {
-					(this[key] as any) = event.payload[key];
-				}
+		for (const key of validProperties) {
+			if (validProperties.includes(key) && event.payload[key] !== undefined) {
+				(this[key] as any) = event.payload[key];
 			}
 		}
 	}
@@ -144,8 +139,6 @@ export class UserAggregate extends AggregateRoot {
 	}
 
 	public toPrivateObject() {
-		this.throwIfDeleted();
-
 		return {
 			id: this.id,
 			userId: this.userId,
@@ -176,5 +169,18 @@ export class UserAggregate extends AggregateRoot {
 
 	public getPassword(): string {
 		return this.password;
+	}
+
+	// Deletion token management
+	public setDeletionToken(token: string): void {
+		this.deletionToken = token;
+	}
+
+	public clearDeletionToken(): void {
+		this.deletionToken = null;
+	}
+
+	public validateDeletionToken(token: string): boolean {
+		return this.deletionToken === token;
 	}
 }

@@ -50,6 +50,6 @@ export class UserController {
 
 	async getUser(params: GetUserQuery) {
 		const query = new GetUserQuery(params.userId);
-		await this.getUserQueryHandler.handle(query);
+		return await this.getUserQueryHandler.handle(query);
 	}
 }

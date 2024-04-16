@@ -1,11 +1,14 @@
-import { UserAggregate, UserEventType } from "../../../aggregrates/user.aggregrate";
+import {
+	UserAggregate,
+	UserEventType,
+} from "../../../aggregrates/user.aggregrate";
 import type { EventStore } from "../../../events/store.event";
 import type {
 	CreateUserPayload,
 	DeleteUserPayload,
 	UserEvent,
 } from "../../../events/user.event";
-import { GetUserQuery } from "../get-user.query";
+import type { GetUserQuery } from "../get-user.query";
 
 export class GetUserQueryHandler {
 	private eventStore: EventStore;
@@ -17,10 +20,13 @@ export class GetUserQueryHandler {
 	// Get a single user
 	async handle(query: GetUserQuery) {
 		// Fetch all events for the user
-		const command = new GetUserQuery(query.userId);
 		const events = await this.eventStore.loadEventsForAggregate({
 			aggregateId: query.userId,
 		});
+
+		if (events.length === 0) {
+			return null;
+        }
 
 		// Reconstruct the user
 		const userAggregate = new UserAggregate(query.userId);

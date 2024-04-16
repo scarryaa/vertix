@@ -48,3 +48,7 @@ export const loginUserSchema = Joi.object({
 	username: Joi.string().required(),
     password: Joi.string().required(),
 });
+
+export const deleteUserSchema = Joi.object({
+	deletionToken: Joi.string().required().uuid(),
+});
