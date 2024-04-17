@@ -1,4 +1,5 @@
 import { BaseEvent, type BasePayload } from ".";
+import type { UserEventType } from "../aggregrates/user.aggregate";
 
 export interface CreateUserPayload extends BasePayload {
 	userId: string;
@@ -38,4 +39,4 @@ export interface UpdateUserPayload extends BasePayload {
 
 export class UserEvent<
 	T extends CreateUserPayload | DeleteUserPayload | UpdateUserPayload,
-> extends BaseEvent<T> {}
+> extends BaseEvent<T, UserEventType> {}

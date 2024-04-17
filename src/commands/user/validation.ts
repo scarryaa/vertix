@@ -1,4 +1,4 @@
-import { UserEventType } from "../../aggregrates/user.aggregrate";
+import { UserEventType } from "../../aggregrates/user.aggregate";
 import { AlreadyExistsError } from "../../errors/already-exists.error";
 import { DoesNotExistError } from "../../errors/does-not-exist.error";
 import type { EventStore } from "../../events/store.event";

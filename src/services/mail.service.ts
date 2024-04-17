@@ -26,7 +26,14 @@ export class MailService {
 	}
 
 	async sendEmail(emailOptions: EmailOptions) {
-		// await this.transporter.sendMail(emailOptions);
+		// try {
+		// 	await this.transporter.sendMail(emailOptions).catch((error) => {
+		// 		$logger.error("Error sending email:", error);
+		// 	})
+		// } catch (error) {
+		// 	$logger.error("Error sending email:", error);
+		// }
+
 		// this.addMailToSentFolder(emailOptions);
 		$logger.info(`Email sent to ${emailOptions.to}`);
 	}

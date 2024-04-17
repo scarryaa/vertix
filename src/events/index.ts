@@ -1,15 +1,18 @@
-import type { UserEventType } from "../aggregrates/user.aggregrate";
-
 export type BasePayload = {};
 
-export class BaseEvent<U extends BasePayload> {
+export class BaseEvent<U extends BasePayload, EventType> {
 	id: string;
 	aggregateId: string;
-	eventType: UserEventType;
+	eventType: EventType;
 	payload: U;
 	createdAt: Date;
 
-	constructor(aggregateId: string, id: string, eventType: UserEventType, payload: U) {
+	constructor(
+		aggregateId: string,
+		id: string,
+		eventType: EventType,
+		payload: U,
+	) {
 		this.id = id;
 		this.eventType = eventType;
 		this.payload = payload;

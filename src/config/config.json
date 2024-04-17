@@ -1,0 +1,60 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"properties": {
+		"nodeEnv": {
+			"type": "string"
+		},
+		"dbPort": {
+			"type": "number"
+		},
+		"dbUsername": {
+			"type": "string"
+		},
+		"dbPassword": {
+			"type": "string"
+		},
+		"dbName": {
+			"type": "string"
+		},
+		"saltRounds": {
+			"type": "number"
+		},
+		"logLevel": {
+			"type": "string"
+		},
+		"jwtSecret": {
+			"type": "string"
+		},
+		"emailUsername": {
+			"type": "string"
+		},
+		"emailPassword": {
+			"type": "string"
+		},
+		"emailSmtpServer": {
+			"type": "string"
+		},
+		"emailSmtpPort": {
+			"type": "number"
+		},
+		"emailSecure": {
+			"type": "boolean"
+		},
+		"emailImapServer": {
+			"type": "string"
+		},
+		"emailImapPort": {
+			"type": "number"
+		},
+		"emailFrom": {
+			"type": "string"
+		},
+		"awsAccessKeyId": {
+			"type": "string"
+		},
+		"awsSecretAccessKey": {
+			"type": "string"
+		}
+	}
+}

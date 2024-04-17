@@ -13,9 +13,9 @@ export function asyncHandler(
 		next: express.NextFunction,
 	) => {
 		try {
-            await Promise.resolve(fn(req, res, next)).catch(next);
-        } catch (err) {
-            next(err);
-        }
+			await Promise.resolve(fn(req, res, next)).catch(next);
+		} catch (err) {
+			next(err);
+		}
 	};
 }

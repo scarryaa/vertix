@@ -1,4 +1,4 @@
-import { UserEventType } from "../aggregrates/user.aggregrate";
+import { UserEventType } from "../aggregrates/user.aggregate";
 import { generateUuid } from "../util";
 import {
 	type CreateUserPayload,

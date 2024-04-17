@@ -41,7 +41,7 @@ export const revokeToken = async (token: string) => {
 	if (!token) {
 		$logger.error("No token to revoke");
 		return;
-    }
+	}
 
 	const client = await createClient()
 		.on("error", (err) => {

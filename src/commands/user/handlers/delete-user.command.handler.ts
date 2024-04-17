@@ -1,5 +1,5 @@
 import type { BaseCommand } from "../..";
-import { UserAggregate } from "../../../aggregrates/user.aggregrate";
+import { UserAggregate } from "../../../aggregrates/user.aggregate";
 import { UserEventFactory } from "../../../events/user-factory.event";
 import { BaseCommandHandler } from "../../handlers";
 import type { DeleteUserCommand } from "../delete-user.command";
@@ -16,7 +16,7 @@ export class DeleteUserCommandHandler extends BaseCommandHandler {
 		});
 
 		await this.eventStore.save(event);
-		user.applyUserDeletedEvent(event);
+		user.applyEvent(event);
 
 		$logger.info("User deleted");
 	}

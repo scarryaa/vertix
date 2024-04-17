@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { UserAggregate, UserEventType } from "../aggregrates/user.aggregrate";
+import { UserAggregate, UserEventType } from "../aggregrates/user.aggregate";
 import { DoesNotExistError } from "../errors/does-not-exist.error";
 import type { EventStore } from "../events/store.event";
 
@@ -9,18 +9,20 @@ export const validateUserCredentials = (eventStore: EventStore) =>
 		password: string,
 	): Promise<{ id: string; username: string } | null> {
 		const userId = await resolveUsernameToUserId(eventStore)(username);
-		const userEvents = await eventStore.loadEventsForAggregate({ aggregateId: userId });
+		const userEvents = await eventStore.loadEventsForAggregate({
+			aggregateId: userId,
+		});
 
 		// Reconstruct the user's state from the events
 		const user = new UserAggregate(userId);
-        for (const event of userEvents) {
-            user.applyEvent(event);
-        }
+		for (const event of userEvents) {
+			user.applyEvent(event, true);
+		}
 
-        // Make sure the user is not deleted
-        if (user.isDeleted()) {
-            throw new DoesNotExistError("User does not exist.");
-        }
+		// Make sure the user is not deleted
+		if (user.isDeleted()) {
+			throw new DoesNotExistError("User does not exist.");
+		}
 
 		// If the user has been reconstructed successfully and the password matches, return the user
 		if (user && (await bcrypt.compare(password, user.getPassword()))) {
@@ -49,4 +51,3 @@ export const resolveUsernameToUserId = (eventStore: EventStore) =>
 
 		return userId;
 	};
-

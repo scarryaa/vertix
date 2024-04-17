@@ -1,6 +1,6 @@
 import { Brackets } from "typeorm";
 import { BaseEvent, type BasePayload } from ".";
-import type { UserEventType } from "../aggregrates/user.aggregrate";
+import type { UserEventType } from "../aggregrates/user.aggregate";
 import { AppDataSource } from "../data-source";
 import { EventEntity } from "../entities/Event";
 import { Logger } from "../logger";
@@ -29,10 +29,67 @@ export class EventStore {
 		}
 	}
 
+	async queryIndex<T>(options: {
+		aggregateId?: string;
+		payloadMatches?: any;
+		payloadContains?: any;
+		eventType?: string;
+		limit?: number;
+		offset?: number;
+	}): Promise<EventEntity<T>[]> {
+		const queryBuilder = this.getRepository().createQueryBuilder("event");
+
+		for (const [key, value] of Object.entries(options)) {
+			// skip payload, limit, offset
+			if (
+				key === "payloadContains" ||
+				key === "payloadMatches" ||
+				key === "limit" ||
+				key === "offset"
+			) {
+				continue;
+			}
+
+			queryBuilder.andWhere(`event.${key} = :${key}`, {
+				[key]: value,
+			});
+		}
+
+		if (options.payloadMatches) {
+			for (const [key, value] of Object.entries(options.payloadMatches)) {
+				queryBuilder.andWhere(`event.payload->>'${key}' = :${key}`, {
+					[key]: value,
+				});
+			}
+		}
+
+		if (options.payloadContains) {
+			queryBuilder.andWhere(
+				new Brackets((qb) => {
+					for (const [key, value] of Object.entries(options.payloadContains)) {
+						qb.orWhere(`event.payload->>'${key}' LIKE :${key}`, {
+							[key]: `%${value}%`,
+						});
+					}
+				}),
+			);
+		}
+
+		if (options.limit) {
+			queryBuilder.limit(options.limit);
+		}
+
+		if (options.offset) {
+			queryBuilder.offset(options.offset);
+		}
+
+		return await queryBuilder.getMany();
+	}
+
 	async loadEventsForAggregate<T extends Partial<BasePayload>>(options: {
 		aggregateId?: string;
 		payload?: T & { _or?: any };
-	}): Promise<BaseEvent<T>[]> {
+	}): Promise<BaseEvent<T, any>[]> {
 		const queryBuilder = this.getRepository().createQueryBuilder("event");
 
 		if (options.aggregateId) {
@@ -68,9 +125,13 @@ export class EventStore {
 		}
 
 		const events = await queryBuilder.getMany();
+		if (events.length === 0) {
+			return [];
+		}
+
 		return events.map(
 			(event) =>
-				new BaseEvent<T>(
+				new BaseEvent<T, UserEventType>(
 					event.aggregateId,
 					event.id,
 					event.eventType as UserEventType,
@@ -81,7 +142,7 @@ export class EventStore {
 
 	async loadAllEventsOfType<T extends BasePayload>(
 		eventType: string,
-	): Promise<BaseEvent<T>[]> {
+	): Promise<BaseEvent<T, any>[]> {
 		const events = await this.getRepository().find({
 			where: {
 				eventType,
@@ -89,7 +150,7 @@ export class EventStore {
 		});
 
 		return events.map((event) => {
-			return new BaseEvent<T>(
+			return new BaseEvent<T, UserEventType>(
 				event.aggregateId,
 				event.id,
 				event.eventType as UserEventType,
@@ -109,7 +170,7 @@ export class EventStore {
 		}
 	}
 
-	async save(event: BaseEvent<any>) {
+	async save(event: BaseEvent<any, UserEventType>) {
 		const eventEntity = new EventEntity(
 			event.id,
 			event.eventType,

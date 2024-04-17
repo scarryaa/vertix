@@ -31,13 +31,13 @@ export const createUserSchema = Joi.object({
 });
 
 export const getUserSchema = Joi.object({
-	userId: Joi.string().required(),
+	userId: Joi.string().uuid().required(),
 });
 
 export const getAllUsersSchema = Joi.object({});
 
 export const updateUserSchema = Joi.object({
-	userId: Joi.string().required(),
+	userId: Joi.string().uuid().required(),
 	username: username,
 	password: password,
 	email: Joi.string().email(),
@@ -46,7 +46,7 @@ export const updateUserSchema = Joi.object({
 
 export const loginUserSchema = Joi.object({
 	username: Joi.string().required(),
-    password: Joi.string().required(),
+	password: Joi.string().required(),
 });
 
 export const deleteUserSchema = Joi.object({

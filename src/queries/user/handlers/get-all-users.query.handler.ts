@@ -1,4 +1,7 @@
-import { UserAggregate, UserEventType } from "../../../aggregrates/user.aggregrate";
+import {
+	UserAggregate,
+	UserEventType,
+} from "../../../aggregrates/user.aggregate";
 import type { BaseEvent } from "../../../events";
 import type { EventStore } from "../../../events/store.event";
 
@@ -10,48 +13,52 @@ export class GetAllUsersQueryHandler {
 	}
 
 	async handle() {
-		// Load both UserCreated and UserDeleted events
-		const userCreatedEvents =
-			await this.eventStore.loadAllEventsOfType(UserEventType.UserCreatedEvent);
-		const userDeletedEvents =
-			await this.eventStore.loadAllEventsOfType(UserEventType.UserDeletedEvent);
-		const allEvents = [...userCreatedEvents, ...userDeletedEvents];
+		// Load UserCreated, UserDeleted, and UserUpdated events in parallel
+		const [userCreatedEvents, userDeletedEvents, userUpdatedEvents] =
+			await Promise.all([
+				this.eventStore.loadAllEventsOfType(UserEventType.UserCreatedEvent),
+				this.eventStore.loadAllEventsOfType(UserEventType.UserDeletedEvent),
+				this.eventStore.loadAllEventsOfType(UserEventType.UserUpdatedEvent),
+			]);
 
-		// Sort events by timestamp or sequence
+		// Combine and sort all events by timestamp
+		const allEvents = [
+			...userCreatedEvents,
+			...userDeletedEvents,
+			...userUpdatedEvents,
+		];
 		allEvents.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
-		const users = allEvents.reduce((acc: any, event) => {
-			if (event.eventType === UserEventType.UserDeletedEvent) {
-				// Mark the user as deleted or remove from the accumulator
-				const index = acc.findIndex(
-					(user: any) => user.id === event.aggregateId,
-				);
-				if (index !== -1) {
-					acc.splice(index, 1);
-				}
-			} else if (event.eventType === UserEventType.UserCreatedEvent) {
-				// Handle UserCreatedEvent or other event types
-				const user = this.replayEvent(event);
-				acc.push(user);
+		// Process events to reconstruct user states
+		const userAggregates = {} as Record<string, UserAggregate>;
+		for (const event of allEvents) {
+			const aggregateId = event.aggregateId;
+			if (!userAggregates[aggregateId]) {
+				userAggregates[aggregateId] = new UserAggregate(aggregateId);
 			}
-			return acc;
-		}, []);
+			const userAggregate = userAggregates[aggregateId];
 
-		// Return users without password
-		const usersWithoutPasswords = users.map((user: any) => {
-			const { password, ...userWithoutPassword } = user;
-			return userWithoutPassword;
-		});
+			// Apply event if not a deletion
+			if (event.eventType !== UserEventType.UserDeletedEvent) {
+				userAggregate?.applyEvent(event, true);
+			}
+		}
 
+		// Filter out deleted users and convert to public object format
+		const users = Object.values(userAggregates)
+			.filter((user) => !user.isDeleted())
+			.map((user) => user.toPublicObject());
+
+		// Return the final list of users and the count
 		return {
-			users: usersWithoutPasswords,
-			count: usersWithoutPasswords.length,
+			users,
+			count: users.length,
 		};
 	}
 
-	replayEvent(event: BaseEvent<any>): any {
+	replayEvent(event: BaseEvent<any, any>): any {
 		const user = new UserAggregate(event.aggregateId);
-		user.applyEvent(event);
+		user.applyEvent(event, true);
 		return user;
 	}
 }

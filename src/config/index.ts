@@ -1,183 +1,169 @@
 import path from "node:path";
 import dotenv from "dotenv";
 
+interface ConfigOptions {
+	nodeEnv: string;
+	dbPort: number;
+	dbUsername: string;
+	dbPassword: string;
+	dbName: string;
+	saltRounds: number;
+	logLevel: string;
+	jwtSecret: string;
+	emailUsername: string;
+	emailPassword: string;
+	emailSmtpServer: string;
+	emailSmtpPort: number;
+	emailSecure: boolean;
+	emailImapServer: string;
+	emailImapPort: number;
+	emailFrom: string;
+	awsAccessKeyId: string;
+	awsSecretAccessKey: string;
+}
+
 // biome-ignore lint/complexity/noStaticOnlyClass: Needed for Config class
 export class Config {
-	private static NODE_ENV: string = process.env.NODE_ENV || "development";
-	private static DB_PORT: number;
-	private static DB_USERNAME: string;
-	private static DB_PASSWORD: string;
-	private static DB_NAME: string;
-	private static SALT_ROUNDS: number;
-	private static LOG_LEVEL: string;
-	private static JWT_SECRET: string;
-	private static EMAIL_USERNAME: string;
-	private static EMAIL_PASSWORD: string;
-	private static EMAIL_SMTP_SERVER: string;
-	private static EMAIL_SMTP_PORT: number;
-	private static EMAIL_SECURE: boolean;
-	private static EMAIL_IMAP_SERVER: string;
-	private static EMAIL_IMAP_PORT: number;
-	private static EMAIL_FROM: string;
+	private static config: ConfigOptions;
 
-	public static loadConfig() {
-		// Have to use console.info because logger config is not loaded yet
+	public static loadConfig(env: NodeJS.ProcessEnv = process.env) {
 		console.info("Loading config...");
-		console.debug(`NODE_ENV: ${Config.NODE_ENV}`);
-
 		dotenv.config({
-			path: path.resolve(__dirname, `../../.env.${Config.NODE_ENV}`),
+			path: path.resolve(__dirname, `../../.env.${env.NODE_ENV}`),
 		});
-		Config.loadConfigInternal();
+		Config.loadConfigInternal(env);
 		Config.validateConfig();
-
-		$logger.info("Config loaded");
+		console.info("Config loaded");
 	}
 
-	private static loadConfigInternal(): void {
-		Config.DB_PORT = Number(process.env.DB_PORT);
-		Config.DB_USERNAME = process.env.DB_USERNAME || "";
-		Config.DB_PASSWORD = process.env.DB_PASSWORD || "";
-		Config.DB_NAME = process.env.DB_NAME || "";
-		Config.SALT_ROUNDS = Number(process.env.SALT_ROUNDS);
-		Config.LOG_LEVEL = process.env.LOG_LEVEL || "";
-		Config.JWT_SECRET = process.env.JWT_SECRET || "";
+	private static loadConfigInternal(env: NodeJS.ProcessEnv): void {
+		Config.config = {
+			nodeEnv: Config.getValueOrDefault(env.NODE_ENV, "development"),
+			dbPort: Config.getNumberValueOrDefault(env.DB_PORT, 5432),
+			dbUsername: Config.getValueOrDefault(env.DB_USERNAME, ""),
+			dbPassword: Config.getValueOrDefault(env.DB_PASSWORD, ""),
+			dbName: Config.getValueOrDefault(env.DB_NAME, ""),
+			saltRounds: Config.getNumberValueOrDefault(env.SALT_ROUNDS, 10),
+			logLevel: Config.getValueOrDefault(env.LOG_LEVEL, ""),
+			jwtSecret: Config.getValueOrDefault(env.JWT_SECRET, ""),
+			emailUsername: Config.getValueOrDefault(env.EMAIL_USERNAME, ""),
+			emailPassword: Config.getValueOrDefault(env.EMAIL_PASSWORD, ""),
+			emailSmtpServer: Config.getValueOrDefault(env.EMAIL_SMTP_SERVER, ""),
+			emailSmtpPort: Config.getNumberValueOrDefault(env.EMAIL_SMTP_PORT, 587),
+			emailSecure: Config.getBooleanValueOrDefault(env.EMAIL_SECURE, false),
+			emailImapServer: Config.getValueOrDefault(env.EMAIL_IMAP_SERVER, ""),
+			emailImapPort: Config.getNumberValueOrDefault(env.EMAIL_IMAP_PORT, 993),
+			emailFrom: Config.getValueOrDefault(env.EMAIL_FROM, ""),
+			awsAccessKeyId: Config.getValueOrDefault(env.AWS_ACCESS_KEY_ID, ""),
+			awsSecretAccessKey: Config.getValueOrDefault(
+				env.AWS_SECRET_ACCESS_KEY,
+				"",
+			),
+		};
+	}
 
-		// Email
-		Config.EMAIL_USERNAME = process.env.EMAIL_USERNAME || "";
-		Config.EMAIL_PASSWORD = process.env.EMAIL_PASSWORD || "";
-		Config.EMAIL_SMTP_SERVER = process.env.EMAIL_SMTP_SERVER || "";
-		Config.EMAIL_SMTP_PORT = Number(process.env.EMAIL_SMTP_PORT) || 587;
-		Config.EMAIL_IMAP_SERVER = process.env.EMAIL_IMAP_SERVER || "";
-		Config.EMAIL_IMAP_PORT = Number(process.env.EMAIL_IMAP_PORT) || 993;
-		Config.EMAIL_SECURE = Boolean(process.env.EMAIL_SECURE);
-		Config.EMAIL_FROM = process.env.EMAIL_FROM || "";
+	private static getValueOrDefault(
+		value: string | undefined,
+		defaultValue: string,
+	): string {
+		return value || defaultValue;
+	}
+
+	private static getNumberValueOrDefault(
+		value: string | undefined,
+		defaultValue: number,
+	): number {
+		return value ? Number(value) : defaultValue;
+	}
+
+	private static getBooleanValueOrDefault(
+		value: string | undefined,
+		defaultValue: boolean,
+	): boolean {
+		return value ? value.toLowerCase() === "true" : defaultValue;
 	}
 
 	private static validateConfig(): void {
-		const requiredConfigs = [
-			"DB_PORT",
-			"DB_USERNAME",
-			"DB_PASSWORD",
-			"DB_NAME",
-			"SALT_ROUNDS",
-			"LOG_LEVEL",
-			"JWT_SECRET",
-			"EMAIL_USERNAME",
-			"EMAIL_PASSWORD",
-			"EMAIL_SMTP_SERVER",
-			"EMAIL_SMTP_PORT",
-			"EMAIL_IMAP_SERVER",
-			"EMAIL_IMAP_PORT",
-			"EMAIL_SECURE",
-			"EMAIL_FROM",
-		];
-		for (const configKey of requiredConfigs) {
-			const value = Config.getConfigValue(configKey);
-			if (!value || value === "") {
-				throw new Error(`${configKey} is not set`);
+		for (const configKey of Object.keys(Config.getConfigValue)) {
+			if (Config.getConfigValue(configKey) === "") {
+				throw new Error(`Missing config value: ${configKey}`);
 			}
 		}
 	}
 
 	private static getConfigValue(key: string): string | number | boolean {
-		switch (key) {
-			case "DB_PORT":
-				return Config.DB_PORT;
-			case "DB_USERNAME":
-				return Config.DB_USERNAME;
-			case "DB_PASSWORD":
-				return Config.DB_PASSWORD;
-			case "DB_NAME":
-				return Config.DB_NAME;
-			case "SALT_ROUNDS":
-				return Config.SALT_ROUNDS;
-			case "LOG_LEVEL":
-				return Config.LOG_LEVEL;
-			case "JWT_SECRET":
-				return Config.JWT_SECRET;
-			case "EMAIL_USERNAME":
-				return Config.EMAIL_USERNAME;
-			case "EMAIL_PASSWORD":
-				return Config.EMAIL_PASSWORD;
-			case "EMAIL_SMTP_SERVER":
-				return Config.EMAIL_SMTP_SERVER;
-			case "EMAIL_SMTP_PORT":
-				return Config.EMAIL_SMTP_PORT;
-			case "EMAIL_IMAP_SERVER":
-				return Config.EMAIL_IMAP_SERVER;
-			case "EMAIL_IMAP_PORT":
-				return Config.EMAIL_IMAP_PORT;
-			case "EMAIL_SECURE":
-				return Config.EMAIL_SECURE;
-			case "EMAIL_FROM":
-				return Config.EMAIL_FROM;
-			default:
-				return "";
-		}
+		return (Config as any)[key];
 	}
 
 	public static get nodeEnv(): string {
-		return Config.NODE_ENV;
+		return Config.config.nodeEnv;
 	}
 
 	public static get dbPort(): number {
-		return Config.DB_PORT;
+		return Config.config.dbPort;
 	}
 
 	public static get dbUsername(): string {
-		return Config.DB_USERNAME;
+		return Config.config.dbUsername;
 	}
 
 	public static get dbPassword(): string {
-		return Config.DB_PASSWORD;
+		return Config.config.dbPassword;
 	}
 
 	public static get dbName(): string {
-		return Config.DB_NAME;
+		return Config.config.dbName;
 	}
 
 	public static get saltRounds(): number {
-		return Config.SALT_ROUNDS;
+		return Config.config.saltRounds;
 	}
 
 	public static get logLevel(): string {
-		return Config.LOG_LEVEL;
+		return Config.config.logLevel;
 	}
 
 	public static get jwtSecret(): string {
-		return Config.JWT_SECRET;
+		return Config.config.jwtSecret;
 	}
 
 	public static get emailUsername(): string {
-		return Config.EMAIL_USERNAME;
+		return Config.config.emailUsername;
 	}
 
 	public static get emailPassword(): string {
-		return Config.EMAIL_PASSWORD;
+		return Config.config.emailPassword;
 	}
 
 	public static get emailSmtpServer(): string {
-		return Config.EMAIL_SMTP_SERVER;
+		return Config.config.emailSmtpServer;
 	}
 
 	public static get emailSmtpPort(): number {
-		return Config.EMAIL_SMTP_PORT;
+		return Config.config.emailSmtpPort;
 	}
 
 	public static get emailImapServer(): string {
-		return Config.EMAIL_IMAP_SERVER;
+		return Config.config.emailImapServer;
 	}
 
 	public static get emailImapPort(): number {
-		return Config.EMAIL_IMAP_PORT;
+		return Config.config.emailImapPort;
 	}
 
 	public static get emailSecure(): boolean {
-		return Config.EMAIL_SECURE;
+		return Config.config.emailSecure;
 	}
 
 	public static get emailFrom(): string {
-		return Config.EMAIL_FROM;
+		return Config.config.emailFrom;
+	}
+
+	public static get awsAccessKeyId(): string {
+		return Config.config.awsAccessKeyId;
+	}
+
+	public static get awsSecretAccessKey(): string {
+		return Config.config.awsSecretAccessKey;
 	}
 }

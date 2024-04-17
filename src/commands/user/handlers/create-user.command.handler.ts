@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { UserAggregate } from "../../../aggregrates/user.aggregrate";
+import { UserAggregate } from "../../../aggregrates/user.aggregate";
 import { Config } from "../../../config";
 import { AlreadyExistsError } from "../../../errors/already-exists.error";
 import type { EventStore } from "../../../events/store.event";
@@ -15,6 +15,7 @@ export class CreateUserCommandHandler extends BaseCommandHandler {
 		super(eventStore);
 		this.eventStore = eventStore;
 	}
+
 	async handle(command: CreateUserCommand) {
 		// Check if user already exists
 		await this.ensureUserDoesNotExist(command);
@@ -35,8 +36,8 @@ export class CreateUserCommandHandler extends BaseCommandHandler {
 		});
 
 		await this.eventStore.save(event);
-		user.applyUserCreatedEvent(event);
-		$logger.info("User created");
+		user.applyEvent(event);
+		$logger.info(`User ${command.username} created`);
 	}
 
 	async ensureUserDoesNotExist(command: CreateUserCommand) {

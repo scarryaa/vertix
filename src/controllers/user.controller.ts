@@ -4,7 +4,7 @@ import type { CreateUserCommandHandler } from "../commands/user/handlers/create-
 import type { DeleteUserCommandHandler } from "../commands/user/handlers/delete-user.command.handler";
 import type { UpdateUserCommandHandler } from "../commands/user/handlers/update-user.command.handler";
 import type { UpdateUserCommand } from "../commands/user/update-user.command";
-import { GetUserQuery } from "../queries/user/get-user.query";
+import type { GetUserQuery } from "../queries/user/get-user.query";
 import type { GetAllUsersQueryHandler } from "../queries/user/handlers/get-all-users.query.handler";
 import type { GetUserQueryHandler } from "../queries/user/handlers/get-user.query.handler";
 
@@ -48,8 +48,7 @@ export class UserController {
 		return users;
 	}
 
-	async getUser(params: GetUserQuery) {
-		const query = new GetUserQuery(params.userId);
+	async getUser(query: GetUserQuery) {
 		return await this.getUserQueryHandler.handle(query);
 	}
 }

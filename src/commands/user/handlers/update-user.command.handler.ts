@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { UserAggregate } from "../../../aggregrates/user.aggregrate";
+import { UserAggregate } from "../../../aggregrates/user.aggregate";
 import { Config } from "../../../config";
 import type { EventStore } from "../../../events/store.event";
 import { UserEventFactory } from "../../../events/user-factory.event";
@@ -54,7 +54,7 @@ export class UpdateUserCommandHandler extends BaseCommandHandler {
 		}
 
 		const event = UserEventFactory.updateUserEvent(input);
-		this.eventStore.save(event);
-		user.applyUserUpdatedEvent(event);
+		await this.eventStore.save(event);
+		await user.applyEvent(event);
 	}
 }

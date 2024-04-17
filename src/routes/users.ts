@@ -1,25 +1,16 @@
-import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { Vertix } from "..";
 import { CreateUserCommand } from "../commands/user/create-user.command";
 import { DeleteUserCommand } from "../commands/user/delete-user.command";
-import { CreateUserCommandHandler } from "../commands/user/handlers/create-user.command.handler";
-import { DeleteUserCommandHandler } from "../commands/user/handlers/delete-user.command.handler";
-import { UpdateUserCommandHandler } from "../commands/user/handlers/update-user.command.handler";
 import { Config } from "../config";
 import { UserController } from "../controllers/user.controller";
 import { EventStore } from "../events/store.event";
 import { validateUserCredentials } from "../jwt";
-import { asyncHandler } from "../middleware/async-handler";
 import { type JwtPayload, jwtMiddleware, revokeToken } from "../middleware/jwt";
 import { validateRequest } from "../middleware/validation";
 import { GetUserQuery } from "../queries/user/get-user.query";
-import { GetAllUsersQueryHandler } from "../queries/user/handlers/get-all-users.query.handler";
-import { GetUserQueryHandler } from "../queries/user/handlers/get-user.query.handler";
 import {
 	createUserSchema,
 	deleteUserSchema,
-	getAllUsersSchema,
 	getUserSchema,
 	loginUserSchema,
 	updateUserSchema,
@@ -33,77 +24,111 @@ import {
 	sendUnauthorizedResponse,
 } from "../util/routes-util";
 
-export const userRoutes = Router();
+import { type Request, type Response, Router } from "express";
+import { CreateUserCommandHandler } from "../commands/user/handlers/create-user.command.handler";
+import { DeleteUserCommandHandler } from "../commands/user/handlers/delete-user.command.handler";
+import { UpdateUserCommandHandler } from "../commands/user/handlers/update-user.command.handler";
+import { GetAllUsersQueryHandler } from "../queries/user/handlers/get-all-users.query.handler";
+import { GetUserQueryHandler } from "../queries/user/handlers/get-user.query.handler";
+import { MailService } from "../services/mail.service";
+import { UserService } from "../services/user.service";
 
-const eventStore = EventStore.getInstance();
-const createUserCommandHandler = new CreateUserCommandHandler(eventStore);
-const deleteUserCommandHandler = new DeleteUserCommandHandler(eventStore);
-const updateUserCommandHandler = new UpdateUserCommandHandler(eventStore);
-const getAllUsersQueryHandler = new GetAllUsersQueryHandler(eventStore);
-const getUserQueryHandler = new GetUserQueryHandler(eventStore);
-const userController = new UserController(
-	createUserCommandHandler,
-	deleteUserCommandHandler,
-	getAllUsersQueryHandler,
-	getUserQueryHandler,
-	updateUserCommandHandler,
-);
+class UserRoutes {
+	private router: Router;
+	private userController: UserController;
+	private eventStore: EventStore;
+	private userService: UserService;
+	private emailService: MailService;
 
-userRoutes.get(
-	"/",
-	validateRequest({ querySchema: getAllUsersSchema }),
-	asyncHandler(async (req, res) => {
-		// Get all users
-		const users = await userController.getAllUsers();
+	constructor(
+		userController: UserController,
+		eventStore: EventStore,
+		userService: UserService,
+		emailService: MailService,
+	) {
+		this.router = Router();
+		this.userController = userController;
+		this.eventStore = eventStore;
+		this.userService = userService;
+		this.emailService = emailService;
 
+		this.initializeRoutes();
+	}
+
+	private initializeRoutes() {
+		this.router.get("/", this.getAllUsers.bind(this));
+		this.router.get(
+			"/:userId",
+			validateRequest({ paramsSchema: getUserSchema }),
+			this.getUser.bind(this),
+		);
+		this.router.patch(
+			"/",
+			validateRequest({ bodySchema: updateUserSchema }),
+			jwtMiddleware,
+			this.updateUser.bind(this),
+		);
+		this.router.post(
+			"/login",
+			validateRequest({ bodySchema: loginUserSchema }),
+			this.loginUser.bind(this),
+		);
+		this.router.post("/logout", this.logoutUser.bind(this));
+		this.router.post(
+			"/",
+			validateRequest({ bodySchema: createUserSchema }),
+			this.createUser.bind(this),
+		);
+		this.router.post(
+			"/request-delete",
+			jwtMiddleware,
+			this.requestDeleteUser.bind(this),
+		);
+		this.router.get(
+			"/confirm-delete/:deletionToken",
+			jwtMiddleware,
+			validateRequest({ paramsSchema: deleteUserSchema }),
+			this.confirmDeleteUser.bind(this),
+		);
+		this.router.delete("/", jwtMiddleware, this.deleteUser.bind(this));
+	}
+
+	private async getAllUsers(req: Request, res: Response) {
+		const users = await this.userController.getAllUsers();
 		sendSuccessResponse(res, users);
-	}),
-);
+	}
 
-userRoutes.get(
-	"/:userId",
-	validateRequest({ paramsSchema: getUserSchema }),
-	asyncHandler(async (req, res) => {
-		// Get a single user
+	private async getUser(req: Request, res: Response) {
 		const { userId } = req.params;
-		// biome-ignore lint/style/noNonNullAssertion: We already checked userId with Joi
+		// biome-ignore lint/style/noNonNullAssertion: We already checkeed with Joi
 		const query = new GetUserQuery(userId!);
-		const user = await userController.getUser(query);
+		const user = await this.userController.getUser(query);
 
-		// Check if user is null or all properties are null
 		if (user === null || Object.keys(user).length === 0) {
 			sendNotFoundResponse(res);
 		} else {
 			sendSuccessResponse(res, user);
 		}
-	}),
-);
+	}
 
-userRoutes.patch(
-	"/",
-	validateRequest({ bodySchema: updateUserSchema }),
-	jwtMiddleware,
-	asyncHandler(async (req, res) => {
-		// Update user
+	private async updateUser(req: Request, res: Response) {
 		const { userId, username, email, password, name } = req.body;
-		await userController.updateUser({
+		await this.userController.updateUser({
 			username,
 			email,
 			password,
 			name,
 			id: userId,
 		});
-
 		sendSuccessResponse(res, { message: "User updated successfully." });
-	}),
-);
+	}
 
-userRoutes.post(
-	"/login",
-	validateRequest({ bodySchema: loginUserSchema }),
-	asyncHandler(async (req, res) => {
+	private async loginUser(req: Request, res: Response) {
 		const { username, password } = req.body;
-		const user = await validateUserCredentials(eventStore)(username, password);
+		const user = await validateUserCredentials(this.eventStore)(
+			username,
+			password,
+		);
 
 		if (!user) {
 			sendUnauthorizedResponse(res);
@@ -130,12 +155,9 @@ userRoutes.post(
 			sameSite: "strict",
 		});
 		sendSuccessResponse(res, { message: "Login successful." });
-	}),
-);
+	}
 
-userRoutes.post(
-	"/logout",
-	asyncHandler(async (req, res) => {
+	private async logoutUser(req: Request, res: Response) {
 		const token = req.cookies.token;
 		if (token) {
 			const decoded = jwt.verify(token, Config.jwtSecret) as JwtPayload;
@@ -143,13 +165,9 @@ userRoutes.post(
 			res.clearCookie("token");
 		}
 		return sendNoContentResponse(res);
-	}),
-);
+	}
 
-userRoutes.post(
-	"/",
-	validateRequest({ bodySchema: createUserSchema }),
-	asyncHandler(async (req, res) => {
+	private async createUser(req: Request, res: Response) {
 		// Create a new user
 		const { username, password, email, name } = req.body;
 		const command = new CreateUserCommand(
@@ -161,37 +179,33 @@ userRoutes.post(
 		);
 
 		// Apply the event
-		await userController.createUser(command);
+		await this.userController.createUser(command);
 		sendCreatedResponse(
 			res,
 			{ message: "User created successfully.", id: command.id },
 			`/users/${command.id}`,
 		);
-	}),
-);
+	}
 
-userRoutes.post(
-	"/request-delete",
-	jwtMiddleware,
-	asyncHandler(async (req, res) => {
+	private async requestDeleteUser(req: Request, res: Response) {
 		if (req.id) {
 			const deletionToken = generateUuid();
 			// Reconstruct the user aggregate
-			const user = await Vertix.getInstance()
-				.getUserService()
-				.reconstructUserAggregateFromEvents(req.id);
+			const user = await this.userService.reconstructUserAggregateFromEvents(
+				req.id,
+			);
 
 			// Store the deletion token
 			user.setDeletionToken(deletionToken);
 
 			// Send a response and email
-			Vertix.getInstance().getEmailService().sendEmail({
+			this.emailService.sendEmail({
 				subject: "Account deletion request",
-				to: "CHANGE_THIS@gmail.com",
-                text: "Hi",
+				to: "scarryaa@gmail.com",
+				text: "Hi",
 				html: "<h1>Hi</h1>",
-            });
-			
+			});
+
 			sendSuccessResponse(res, {
 				message:
 					"Confirmation email sent. Please check your email to confirm account deletion.",
@@ -199,21 +213,16 @@ userRoutes.post(
 		} else {
 			sendUnauthorizedResponse(res);
 		}
-	}),
-);
+	}
 
-userRoutes.get(
-	"/confirm-delete/:deletionToken",
-	jwtMiddleware,
-	validateRequest({ paramsSchema: deleteUserSchema }),
-	asyncHandler(async (req, res) => {
+	private async confirmDeleteUser(req: Request, res: Response) {
 		const { deletionToken } = req.params;
 		const userId = req.id;
 
-		const user = await Vertix.getInstance()
-			.getUserService()
-			// biome-ignore lint/style/noNonNullAssertion: userId should be there from jwt middleware
-			.reconstructUserAggregateFromEvents(userId!);
+		const user = await this.userService.reconstructUserAggregateFromEvents(
+			// biome-ignore lint/style/noNonNullAssertion: We already checkeed with Joi
+			userId!,
+		);
 
 		// biome-ignore lint/style/noNonNullAssertion: We already validated the deletion token with Joi
 		if (user.validateDeletionToken(deletionToken!)) {
@@ -223,19 +232,15 @@ userRoutes.get(
 		} else {
 			sendUnauthorizedResponse(res);
 		}
-	}),
-);
+	}
 
-userRoutes.delete(
-	"/",
-	jwtMiddleware,
-	asyncHandler(async (req, res) => {
+	private async deleteUser(req: Request, res: Response) {
 		// Get user id from request
 		if (req.id) {
 			const command = new DeleteUserCommand(req.id);
 
 			// Apply the event
-			await userController.deleteUser(command);
+			await this.userController.deleteUser(command);
 
 			// Remove cookie
 			res.clearCookie("token");
@@ -244,5 +249,24 @@ userRoutes.delete(
 		} else {
 			sendUnauthorizedResponse(res);
 		}
-	}),
-);
+	}
+
+	public getRouter(): Router {
+		return this.router;
+	}
+}
+
+const userRoutes = new UserRoutes(
+	new UserController(
+		new CreateUserCommandHandler(EventStore.getInstance()),
+		new DeleteUserCommandHandler(EventStore.getInstance()),
+		new GetAllUsersQueryHandler(EventStore.getInstance()),
+		new GetUserQueryHandler(EventStore.getInstance()),
+		new UpdateUserCommandHandler(EventStore.getInstance()),
+	),
+	EventStore.getInstance(),
+	UserService.getInstance(),
+	new MailService(),
+).getRouter();
+
+export { userRoutes };
